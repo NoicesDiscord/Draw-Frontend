@@ -6,8 +6,11 @@ export default function GameRoom({ playerInfo }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
   const socketRef = useRef(null)
+  
+  // Interaction states
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
+  const [isMyTurn, setIsMyTurn] = useState(false) // Locks canvas for non-drawers
   
   // Game State
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
@@ -47,6 +50,8 @@ export default function GameRoom({ playerInfo }) {
     // 3. Listen for game updates
     socketRef.current.on('round_update', (data) => {
       setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
+      // Unlock the canvas ONLY if the server says it is my turn
+      setIsMyTurn(data.drawerName === playerInfo.name)
     })
 
     socketRef.current.on('secret_word', (word) => {
@@ -80,7 +85,6 @@ export default function GameRoom({ playerInfo }) {
     
     const rect = canvasRef.current.getBoundingClientRect()
     
-    // Scale ensures drawing is accurate even when canvas is shrunk on mobile
     const scaleX = canvasRef.current.width / rect.width
     const scaleY = canvasRef.current.height / rect.height
     
@@ -91,7 +95,7 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const startDrawing = (e) => {
-    // Prevent scrolling while drawing on mobile
+    if (!isMyTurn) return // Block non-drawers instantly
     if (e.touches && e.cancelable) e.preventDefault() 
     
     const { x, y } = getCoordinates(e)
@@ -103,7 +107,7 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const draw = (e) => {
-    if (!isDrawing) return
+    if (!isDrawing || !isMyTurn) return // Block non-drawers instantly
     if (e.touches && e.cancelable) e.preventDefault()
 
     const { x, y } = getCoordinates(e)
@@ -114,6 +118,7 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const stopDrawing = () => {
+    if (!isMyTurn) return // Block non-drawers instantly
     contextRef.current.closePath()
     setIsDrawing(false)
     socketRef.current.emit('stop')
@@ -129,7 +134,7 @@ export default function GameRoom({ playerInfo }) {
         flexDirection: 'row', 
         flexWrap: 'wrap', 
         gap: '20px', 
-        maxWidth: '1200px', 
+        maxWidth: '1400px', // Increased width for larger board
         margin: '0 auto',
         justifyContent: 'center'
       }}>
@@ -165,7 +170,7 @@ export default function GameRoom({ playerInfo }) {
         </div>
 
         {/* Drawing Board Area */}
-        <div style={{ flex: '1 1 500px', minWidth: '0' }}> 
+        <div style={{ flex: '2 1 600px', minWidth: '300px' }}> 
           <div style={{ marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h2 style={{ margin: 0 }}>Drawing Board</h2>
             
@@ -187,12 +192,12 @@ export default function GameRoom({ playerInfo }) {
             style={{ 
               border: '2px solid #333', 
               borderRadius: '8px', 
-              cursor: 'crosshair', 
+              cursor: isMyTurn ? 'crosshair' : 'not-allowed', // Changes based on whose turn it is
               backgroundColor: '#ffffff',
               touchAction: 'none', 
               width: '100%', 
               height: 'auto',
-              aspectRatio: '4/3' 
+              display: 'block'
             }}
           />
         </div>
