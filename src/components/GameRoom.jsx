@@ -122,7 +122,6 @@ export default function GameRoom({ playerInfo }) {
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
-          /* FIX: Physically locks the viewport size to prevent bleeding */
           width: 100vw;
           height: 100vh;
           max-width: 100%;
@@ -146,16 +145,54 @@ export default function GameRoom({ playerInfo }) {
           display: flex;
           flex-direction: column;
           min-height: 0;
-          min-width: 0; /* FIX: Prevents flex children from stretching the grid */
+          min-width: 0; 
         }
         .sidebar-left { grid-column: 1; }
         .center-canvas { grid-column: 2; }
         .sidebar-right { grid-column: 3; }
         
+        /* Desktop Default Classes */
+        .status-bar {
+          background-color: #3700b3;
+          color: #fff;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: bold;
+          text-align: center;
+          width: 100%;
+          font-size: 18px;
+          margin-bottom: 10px;
+          flex-shrink: 0;
+        }
+        .canvas-wrapper {
+          flex-grow: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #1e1e1e;
+          padding: 10px;
+          border-radius: 8px;
+          border: 1px solid #333;
+          min-height: 0;
+          min-width: 0;
+        }
+        .game-canvas {
+          background-color: #ffffff;
+          touch-action: none;
+          width: 100%;
+          height: auto;
+          aspect-ratio: 4/3; 
+          border-radius: 4px;
+          box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+          border: 2px solid #333;
+        }
+
+        /* MOBILE OVERRIDES */
         @media (max-width: 900px) {
           .game-layout {
             grid-template-columns: 35fr 65fr;
-            grid-template-rows: 55fr 45fr; 
+            /* "auto" ensures canvas gets exactly the height it needs, 1fr gives chat the rest */
+            grid-template-rows: auto 1fr; 
             gap: 10px;
             padding: 10px;
           }
@@ -174,7 +211,18 @@ export default function GameRoom({ playerInfo }) {
           .status-bar {
             padding: 6px 10px !important;
             font-size: 14px !important;
-            margin-bottom: 5px !important;
+            margin-bottom: 8px !important;
+            border-radius: 4px !important;
+          }
+          .canvas-wrapper {
+            /* This instantly kills the black border/wasted space on mobile */
+            padding: 0 !important;
+            background-color: transparent !important;
+            border: none !important;
+          }
+          .game-canvas {
+            border-radius: 6px !important;
+            border: 1px solid #555 !important;
           }
         }
       `}</style>
@@ -211,11 +259,11 @@ export default function GameRoom({ playerInfo }) {
 
         {/* Drawing Board */}
         <div className="center-canvas">
-          <div className="status-bar" style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', width: '100%', fontSize: '18px', marginBottom: '10px', flexShrink: 0 }}>
+          <div className="status-bar">
             {gameStatus}
           </div>
           
-          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', minHeight: 0, minWidth: 0 }}>
+          <div className="canvas-wrapper">
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
@@ -225,16 +273,8 @@ export default function GameRoom({ playerInfo }) {
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
-              style={{ 
-                cursor: isMyTurn ? 'crosshair' : 'not-allowed', 
-                backgroundColor: '#ffffff',
-                touchAction: 'none', 
-                maxWidth: '100%', 
-                maxHeight: '100%',
-                aspectRatio: '4/3', 
-                borderRadius: '4px',
-                boxShadow: '0px 4px 10px rgba(0,0,0,0.5)'
-              }}
+              className="game-canvas"
+              style={{ cursor: isMyTurn ? 'crosshair' : 'not-allowed' }}
             />
           </div>
         </div>
