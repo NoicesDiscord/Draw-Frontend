@@ -151,19 +151,6 @@ export default function GameRoom({ playerInfo }) {
         .center-canvas { grid-column: 2; }
         .sidebar-right { grid-column: 3; }
         
-        /* Desktop Default Classes */
-        .status-bar {
-          background-color: #3700b3;
-          color: #fff;
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-weight: bold;
-          text-align: center;
-          width: 100%;
-          font-size: 18px;
-          margin-bottom: 10px;
-          flex-shrink: 0;
-        }
         .canvas-wrapper {
           flex-grow: 1;
           display: flex;
@@ -175,6 +162,7 @@ export default function GameRoom({ playerInfo }) {
           border: 1px solid #333;
           min-height: 0;
           min-width: 0;
+          position: relative; /* CRITICAL: Enables floating text overlays inside the canvas box */
         }
         .game-canvas {
           background-color: #ffffff;
@@ -186,15 +174,45 @@ export default function GameRoom({ playerInfo }) {
           box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
           border: 2px solid #333;
         }
+        
+        /* Floating Text Overlays */
+        .waiting-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: #999; /* Grey text so it looks like it's printed on the board */
+          font-size: 24px;
+          font-weight: bold;
+          text-align: center;
+          pointer-events: none; /* Clicks pass right through it */
+          width: 90%;
+        }
+        .floating-status {
+          position: absolute;
+          top: 15px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(55, 0, 179, 0.85); /* Semi-transparent purple */
+          color: white;
+          padding: 8px 20px;
+          border-radius: 20px;
+          font-weight: bold;
+          pointer-events: none;
+          font-size: 16px;
+          white-space: nowrap;
+          z-index: 10;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
 
-        /* MOBILE OVERRIDES */
+        /* MOBILE FULL-SCREEN OPTIMIZATIONS */
         @media (max-width: 900px) {
           .game-layout {
             grid-template-columns: 35fr 65fr;
-            /* "auto" ensures canvas gets exactly the height it needs, 1fr gives chat the rest */
             grid-template-rows: auto 1fr; 
-            gap: 10px;
-            padding: 10px;
+            /* Premium full-screen feel: tiny 4px gaps and padding pushed tight to the edges */
+            gap: 4px;
+            padding: 4px;
           }
           .center-canvas {
             grid-column: 1 / span 2; 
@@ -208,14 +226,7 @@ export default function GameRoom({ playerInfo }) {
             grid-column: 2;
             grid-row: 2; 
           }
-          .status-bar {
-            padding: 6px 10px !important;
-            font-size: 14px !important;
-            margin-bottom: 8px !important;
-            border-radius: 4px !important;
-          }
           .canvas-wrapper {
-            /* This instantly kills the black border/wasted space on mobile */
             padding: 0 !important;
             background-color: transparent !important;
             border: none !important;
@@ -223,6 +234,14 @@ export default function GameRoom({ playerInfo }) {
           .game-canvas {
             border-radius: 6px !important;
             border: 1px solid #555 !important;
+          }
+          .waiting-text {
+            font-size: 18px; /* Scale down for mobile */
+          }
+          .floating-status {
+            font-size: 13px;
+            padding: 5px 12px;
+            top: 5px; /* Push tighter to the top on mobile */
           }
         }
       `}</style>
@@ -232,7 +251,7 @@ export default function GameRoom({ playerInfo }) {
         {/* Leaderboard */}
         <div className="sidebar-left">
           <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#bb86fc', textAlign: 'center', fontSize: '16px' }}>Scores</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', color: '#bb86fc', textAlign: 'center', fontSize: '15px' }}>Scores</h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
               {playerList.map((p, index) => (
                 <li 
@@ -259,11 +278,19 @@ export default function GameRoom({ playerInfo }) {
 
         {/* Drawing Board */}
         <div className="center-canvas">
-          <div className="status-bar">
-            {gameStatus}
-          </div>
-          
           <div className="canvas-wrapper">
+            
+            {/* The Floating Overlays directly "on" the canvas */}
+            {gameStatus === "Waiting for a second player to join..." ? (
+              <div className="waiting-text">
+                Waiting for a second player to join...
+              </div>
+            ) : (
+              <div className="floating-status">
+                {gameStatus}
+              </div>
+            )}
+            
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
