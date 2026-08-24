@@ -1,21 +1,30 @@
 import { useRef, useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
-import ChatBox from './ChatBox' // <-- 1. We imported the ChatBox here at the top
+import ChatBox from './ChatBox'
 
 export default function GameRoom({ playerInfo }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
   const socketRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
-  const [isSocketReady, setIsSocketReady] = useState(false) // <-- 1. Add this new state
+  const [isSocketReady, setIsSocketReady] = useState(false)
+  
+  // NEW: State to show whose turn it is
+  const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
 
   useEffect(() => {
     const canvas = canvasRef.current
     canvas.width = 800
     canvas.height = 600
     const context = canvas.getContext('2d')
-    context.fillStyle = 'white'
-    context.fillRect(0, 0, canvas.width, canvas.height)
+    
+    // Helper to wipe the board white
+    const clearCanvas = () => {
+      context.fillStyle = 'white'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+    }
+    clearCanvas()
+    
     context.lineCap = 'round'
     context.strokeStyle = 'black'
     context.lineWidth = 5
@@ -23,24 +32,39 @@ export default function GameRoom({ playerInfo }) {
 
     // --- PASTE YOUR RENDER URL HERE ---
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
-    setIsSocketReady(true) // <-- 2. Add this right below the connection
+    setIsSocketReady(true)
 
+    // 1. Tell the server we arrived!
+    socketRef.current.emit('join_game', playerInfo.name)
+
+    // 2. Listen for game updates
+    socketRef.current.on('round_update', (data) => {
+      setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
+    })
+
+    socketRef.current.on('secret_word', (word) => {
+      setGameStatus(`🌟 YOUR TURN! The word is: ${word.toUpperCase()}`)
+    })
+
+    socketRef.current.on('clear_board', () => {
+      clearCanvas()
+    })
+
+    // 3. Drawing Listeners
     socketRef.current.on('start', (data) => {
       contextRef.current.beginPath()
       contextRef.current.moveTo(data.x, data.y)
     })
-
     socketRef.current.on('draw', (data) => {
       contextRef.current.lineTo(data.x, data.y)
       contextRef.current.stroke()
     })
-
     socketRef.current.on('stop', () => {
       contextRef.current.closePath()
     })
 
     return () => socketRef.current.disconnect()
-  }, [])
+  }, [playerInfo.name])
 
   const startDrawing = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent
@@ -75,7 +99,15 @@ export default function GameRoom({ playerInfo }) {
       </div>
 
       <div>
-        <h2 style={{ marginBottom: '10px' }}>Drawing Board</h2>
+        <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>Drawing Board</h2>
+          
+          {/* NEW: The Game Status Bar */}
+          <div style={{ backgroundColor: '#FFD54F', padding: '8px 15px', borderRadius: '20px', fontWeight: 'bold' }}>
+            {gameStatus}
+          </div>
+          
+        </div>
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
@@ -86,11 +118,9 @@ export default function GameRoom({ playerInfo }) {
         />
       </div>
 
-      {/* 3. Only render the ChatBox if the socket is actually ready! */}
       {isSocketReady && (
         <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
       )}
-
     </div>
   )
 }
