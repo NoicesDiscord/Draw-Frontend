@@ -9,6 +9,8 @@ export default function ChatBox({ socket, playerInfo }) {
   const secretWord = "apple" 
 
   useEffect(() => {
+    if (!socket) return // <-- ADD THIS LINE to prevent crashes
+
     // Listen for incoming messages from the server
     socket.on('chat_message', (msg) => {
       setMessages((prev) => [...prev, msg])

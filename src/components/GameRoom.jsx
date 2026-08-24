@@ -7,6 +7,7 @@ export default function GameRoom({ playerInfo }) {
   const contextRef = useRef(null)
   const socketRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [isSocketReady, setIsSocketReady] = useState(false) // <-- 1. Add this new state
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -21,7 +22,8 @@ export default function GameRoom({ playerInfo }) {
     contextRef.current = context
 
     // --- PASTE YOUR RENDER URL HERE ---
-    socketRef.current = io('https://skribbl-backend-xxxxx.onrender.com') 
+    socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
+    setIsSocketReady(true) // <-- 2. Add this right below the connection
 
     socketRef.current.on('start', (data) => {
       contextRef.current.beginPath()
@@ -84,8 +86,10 @@ export default function GameRoom({ playerInfo }) {
         />
       </div>
 
-      {/* <-- 2. The ChatBox is placed exactly here, inside the main flex container, next to the canvas div */}
-      <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
+      {/* 3. Only render the ChatBox if the socket is actually ready! */}
+      {isSocketReady && (
+        <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
+      )}
 
     </div>
   )
