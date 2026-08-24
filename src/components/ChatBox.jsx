@@ -25,29 +25,43 @@ export default function ChatBox({ socket, playerInfo }) {
     setInputValue('')
   }
 
-  return (
-    <div style={{ width: '300px', display: 'flex', flexDirection: 'column', border: '2px solid #ccc', borderRadius: '8px', overflow: 'hidden' }}>
-      <div style={{ flexGrow: 1, height: '400px', overflowY: 'auto', padding: '10px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid #333', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#1e1e1e' }}>
+      
+      <div style={{ flexGrow: 1, height: '400px', overflowY: 'auto', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((msg, index) => (
-          <div key={index} style={{ fontSize: '14px' }}>
+          <div key={index} style={{ fontSize: '14px', lineHeight: '1.4' }}>
             {msg.isGuess ? (
-              <span style={{ color: '#2E7D32', fontWeight: 'bold' }}>🎉 {msg.sender} guessed the word!</span>
+              <span style={{ color: '#03dac6', fontWeight: 'bold' }}>🎉 {msg.sender} guessed the word!</span>
             ) : (
-              <span><strong style={{ color: '#1976D2' }}>{msg.sender}: </strong>{msg.text}</span>
+              <span style={{ color: '#e0e0e0' }}>
+                <strong style={{ color: '#bb86fc' }}>{msg.sender}: </strong>
+                {msg.text}
+              </span>
             )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', borderTop: '1px solid #ccc' }}>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', borderTop: '1px solid #333' }}>
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Guess the word..."
-          style={{ flexGrow: 1, padding: '10px', border: 'none', outline: 'none' }}
+          style={{ 
+            flexGrow: 1, 
+            padding: '12px', 
+            border: 'none', 
+            outline: 'none', 
+            backgroundColor: '#2d2d2d', 
+            color: '#fff' 
+          }}
         />
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#eee', border: 'none', cursor: 'pointer' }}>Send</button>
+        <button type="submit" style={{ padding: '12px 20px', backgroundColor: '#bb86fc', color: '#000', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+          Send
+        </button>
       </form>
     </div>
   )
