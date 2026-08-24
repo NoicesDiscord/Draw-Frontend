@@ -9,14 +9,20 @@ export default function ChatBox({ socket, playerInfo }) {
   const secretWord = "apple" 
 
   useEffect(() => {
-    if (!socket) return // <-- ADD THIS LINE to prevent crashes
+    if (!socket) return
 
-    // Listen for incoming messages from the server
-    socket.on('chat_message', (msg) => {
+    // 1. Define the exact function we want to run
+    const handleNewMessage = (msg) => {
       setMessages((prev) => [...prev, msg])
-    })
+    }
 
-    return () => socket.off('chat_message')
+    // 2. Attach the listener
+    socket.on('chat_message', handleNewMessage)
+
+    // 3. Explicitly remove ONLY this exact listener to prevent leaks
+    return () => {
+      socket.off('chat_message', handleNewMessage)
+    }
   }, [socket])
 
   // Auto-scroll to the bottom when a new message arrives
