@@ -9,8 +9,9 @@ export default function GameRoom({ playerInfo }) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
   
-  // NEW: State to show whose turn it is
+  // Game State
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
+  const [playerList, setPlayerList] = useState([])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -30,14 +31,20 @@ export default function GameRoom({ playerInfo }) {
     context.lineWidth = 5
     contextRef.current = context
 
-    // --- PASTE YOUR RENDER URL HERE ---
+    // --- YOUR RENDER URL ---
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
     setIsSocketReady(true)
 
-    // 1. Tell the server we arrived!
+    // 1. Tell the server we arrived
     socketRef.current.emit('join_game', playerInfo.name)
 
-    // 2. Listen for game updates
+    // 2. Listen for leaderboard updates
+    socketRef.current.on('update_players', (playersArray) => {
+      const sortedPlayers = playersArray.sort((a, b) => b.score - a.score)
+      setPlayerList(sortedPlayers)
+    })
+
+    // 3. Listen for game updates
     socketRef.current.on('round_update', (data) => {
       setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
     })
@@ -50,7 +57,7 @@ export default function GameRoom({ playerInfo }) {
       clearCanvas()
     })
 
-    // 3. Drawing Listeners
+    // 4. Drawing Listeners
     socketRef.current.on('start', (data) => {
       contextRef.current.beginPath()
       contextRef.current.moveTo(data.x, data.y)
@@ -91,18 +98,34 @@ export default function GameRoom({ playerInfo }) {
   return (
     <div style={{ display: 'flex', gap: '20px', maxWidth: '1200px', margin: '40px auto' }}>
       
+      {/* 1. Leaderboard Sidebar */}
       <div style={{ width: '200px', padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
-        <h3>Players</h3>
+        <h3>Leaderboard</h3>
         <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li style={{ fontWeight: 'bold', color: '#4CAF50' }}>{playerInfo.name}</li>
+          {playerList.map((p, index) => (
+            <li 
+              key={index} 
+              style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                padding: '8px 0',
+                borderBottom: '1px solid #ddd',
+                color: p.name === playerInfo.name ? '#4CAF50' : '#333',
+                fontWeight: p.name === playerInfo.name ? 'bold' : 'normal'
+              }}
+            >
+              <span>{index + 1}. {p.name}</span>
+              <span style={{ fontWeight: 'bold' }}>{p.score} pts</span>
+            </li>
+          ))}
         </ul>
       </div>
 
+      {/* 2. Drawing Board */}
       <div>
         <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>Drawing Board</h2>
           
-          {/* NEW: The Game Status Bar */}
           <div style={{ backgroundColor: '#FFD54F', padding: '8px 15px', borderRadius: '20px', fontWeight: 'bold' }}>
             {gameStatus}
           </div>
@@ -118,9 +141,11 @@ export default function GameRoom({ playerInfo }) {
         />
       </div>
 
+      {/* 3. Chat Box */}
       {isSocketReady && (
         <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
       )}
+
     </div>
   )
 }
