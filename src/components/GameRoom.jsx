@@ -122,10 +122,14 @@ export default function GameRoom({ playerInfo }) {
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
-          width: 100vw;
-          height: 100vh;
-          max-width: 100%;
+          
+          /* FIX 1: Absolutely locks the layout to the screen pixels. Stops ALL scrolling and bottom cut-offs! */
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          width: 100%;
+          height: 100%;
           overflow: hidden; 
+          touch-action: none; 
         }
         * {
           box-sizing: border-box;
@@ -137,7 +141,7 @@ export default function GameRoom({ playerInfo }) {
           gap: 20px;
           padding: 20px;
           width: 100%; 
-          height: 100dvh; 
+          height: 100%; 
           max-width: 1600px;
           margin: 0 auto;
         }
@@ -162,7 +166,7 @@ export default function GameRoom({ playerInfo }) {
           border: 1px solid #333;
           min-height: 0;
           min-width: 0;
-          position: relative; /* CRITICAL: Enables floating text overlays inside the canvas box */
+          position: relative; 
         }
         .game-canvas {
           background-color: #ffffff;
@@ -175,17 +179,16 @@ export default function GameRoom({ playerInfo }) {
           border: 2px solid #333;
         }
         
-        /* Floating Text Overlays */
         .waiting-text {
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          color: #999; /* Grey text so it looks like it's printed on the board */
+          color: #999; 
           font-size: 24px;
           font-weight: bold;
           text-align: center;
-          pointer-events: none; /* Clicks pass right through it */
+          pointer-events: none; 
           width: 90%;
         }
         .floating-status {
@@ -193,7 +196,7 @@ export default function GameRoom({ playerInfo }) {
           top: 15px;
           left: 50%;
           transform: translateX(-50%);
-          background-color: rgba(55, 0, 179, 0.85); /* Semi-transparent purple */
+          background-color: rgba(55, 0, 179, 0.85); 
           color: white;
           padding: 8px 20px;
           border-radius: 20px;
@@ -205,18 +208,20 @@ export default function GameRoom({ playerInfo }) {
           box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* MOBILE FULL-SCREEN OPTIMIZATIONS */
+        /* MOBILE EDGE-TO-EDGE OVERRIDES */
         @media (max-width: 900px) {
           .game-layout {
-            grid-template-columns: 35fr 65fr;
-            grid-template-rows: auto 1fr; 
-            /* Premium full-screen feel: tiny 4px gaps and padding pushed tight to the edges */
-            gap: 4px;
-            padding: 4px;
+            grid-template-columns: 32fr 68fr;
+            /* FIX 2: Canvas gets a massive 62% of the height, UI gets 38% */
+            grid-template-rows: 62fr 38fr; 
+            /* FIX 3: 0px gap and 0 padding means the game physically touches the glass edges of the phone */
+            gap: 0px;
+            padding: 0px;
           }
           .center-canvas {
             grid-column: 1 / span 2; 
             grid-row: 1;
+            border-bottom: 2px solid #222; /* Divider between drawing and chat */
           }
           .sidebar-left {
             grid-column: 1;
@@ -230,18 +235,33 @@ export default function GameRoom({ playerInfo }) {
             padding: 0 !important;
             background-color: transparent !important;
             border: none !important;
+            border-radius: 0 !important;
           }
+          
+          /* Canvas stretches edge to edge and deeper downward */
           .game-canvas {
-            border-radius: 6px !important;
-            border: 1px solid #555 !important;
+            border-radius: 0 !important; 
+            border: none !important;
+            aspect-ratio: auto !important; /* Removes ratio lock so it can stretch deep */
+            height: 100% !important; 
           }
+          
+          /* Strip borders and rounded corners from Chat and Leaderboard to make them true full-screen blocks */
+          .sidebar-left > div, .sidebar-right > div {
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .sidebar-left > div {
+            border-right: 2px solid #222 !important; /* Vertical divider between scores and chat */
+          }
+
           .waiting-text {
-            font-size: 18px; /* Scale down for mobile */
+            font-size: 18px; 
           }
           .floating-status {
             font-size: 13px;
             padding: 5px 12px;
-            top: 5px; /* Push tighter to the top on mobile */
+            top: 10px; 
           }
         }
       `}</style>
@@ -280,7 +300,6 @@ export default function GameRoom({ playerInfo }) {
         <div className="center-canvas">
           <div className="canvas-wrapper">
             
-            {/* The Floating Overlays directly "on" the canvas */}
             {gameStatus === "Waiting for a second player to join..." ? (
               <div className="waiting-text">
                 Waiting for a second player to join...
