@@ -115,7 +115,6 @@ export default function GameRoom({ playerInfo }) {
 
   return (
     <>
-      {/* CSS GRID LAYOUT SYSTEM */}
       <style>{`
         body, html {
           margin: 0;
@@ -123,7 +122,6 @@ export default function GameRoom({ playerInfo }) {
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
-          /* This stops the page from bouncing/scrolling on mobile! */
           overflow: hidden; 
         }
         * {
@@ -131,13 +129,13 @@ export default function GameRoom({ playerInfo }) {
         }
         .game-layout {
           display: grid;
-          /* Desktop: Leaderboard(200px) | Canvas(Takes rest) | Chat(300px) */
           grid-template-columns: 200px 1fr 300px;
           grid-template-rows: 100%;
           gap: 20px;
           padding: 20px;
-          width: 100vw;
-          height: 100dvh; /* Uses exact device height */
+          /* FIX: Changed 100vw to 100% to prevent right-side bleeding */
+          width: 100%; 
+          height: 100dvh; 
           max-width: 1600px;
           margin: 0 auto;
         }
@@ -145,7 +143,7 @@ export default function GameRoom({ playerInfo }) {
           grid-column: 1;
           display: flex;
           flex-direction: column;
-          min-height: 0; /* Prevents overflow pushing the grid out */
+          min-height: 0;
         }
         .center-canvas {
           grid-column: 2;
@@ -160,27 +158,25 @@ export default function GameRoom({ playerInfo }) {
           min-height: 0;
         }
         
-        /* MOBILE OPTIMIZATION OVERRIDE */
         @media (max-width: 900px) {
           .game-layout {
-            /* Split bottom width: 35% Leaderboard, 65% Chat */
-            grid-template-columns: 35% 65%;
-            /* Split screen height: 55% Canvas, 45% Leaderboard/Chat */
-            grid-template-rows: 55% 45%; 
+            /* FIX: Switched from % to fr units so it subtracts the 10px gap perfectly */
+            grid-template-columns: 35fr 65fr;
+            grid-template-rows: 55fr 45fr; 
             gap: 10px;
             padding: 10px;
           }
           .center-canvas {
-            grid-column: 1 / span 2; /* Stretch canvas across the top */
+            grid-column: 1 / span 2; 
             grid-row: 1;
           }
           .sidebar-left {
             grid-column: 1;
-            grid-row: 2; /* Push to bottom left */
+            grid-row: 2; 
           }
           .sidebar-right {
             grid-column: 2;
-            grid-row: 2; /* Push to bottom right */
+            grid-row: 2; 
           }
           .status-bar {
             padding: 6px 10px !important;
@@ -192,7 +188,7 @@ export default function GameRoom({ playerInfo }) {
 
       <div className="game-layout">
         
-        {/* 1. Leaderboard (Bottom Left on Mobile) */}
+        {/* Leaderboard */}
         <div className="sidebar-left">
           <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#bb86fc', textAlign: 'center', fontSize: '16px' }}>Scores</h3>
@@ -220,13 +216,12 @@ export default function GameRoom({ playerInfo }) {
           </div>
         </div>
 
-        {/* 2. Drawing Board (Top 55% on Mobile) */}
+        {/* Drawing Board */}
         <div className="center-canvas">
           <div className="status-bar" style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', width: '100%', fontSize: '18px', marginBottom: '10px', flexShrink: 0 }}>
             {gameStatus}
           </div>
           
-          {/* Canvas Wrapper */}
           <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', minHeight: 0 }}>
             <canvas
               ref={canvasRef}
@@ -243,7 +238,7 @@ export default function GameRoom({ playerInfo }) {
                 touchAction: 'none', 
                 maxWidth: '100%', 
                 maxHeight: '100%',
-                aspectRatio: '4/3', /* Forces perfectly scaled drawing space */
+                aspectRatio: '4/3', 
                 borderRadius: '4px',
                 boxShadow: '0px 4px 10px rgba(0,0,0,0.5)'
               }}
@@ -251,7 +246,7 @@ export default function GameRoom({ playerInfo }) {
           </div>
         </div>
 
-        {/* 3. Chat Box (Bottom Right on Mobile) */}
+        {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
