@@ -7,12 +7,10 @@ export default function GameRoom({ playerInfo }) {
   const contextRef = useRef(null)
   const socketRef = useRef(null)
   
-  // Interaction states
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
   const [isMyTurn, setIsMyTurn] = useState(false) 
   
-  // Game State
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
   const [playerList, setPlayerList] = useState([])
 
@@ -92,7 +90,6 @@ export default function GameRoom({ playerInfo }) {
     if (e.touches && e.cancelable) e.preventDefault() 
     
     const { x, y } = getCoordinates(e)
-
     contextRef.current.beginPath()
     contextRef.current.moveTo(x, y)
     setIsDrawing(true)
@@ -104,7 +101,6 @@ export default function GameRoom({ playerInfo }) {
     if (e.touches && e.cancelable) e.preventDefault()
 
     const { x, y } = getCoordinates(e)
-
     contextRef.current.lineTo(x, y)
     contextRef.current.stroke()
     socketRef.current.emit('draw', { x, y })
@@ -119,11 +115,7 @@ export default function GameRoom({ playerInfo }) {
 
   return (
     <>
-      {/* 
-        This style block kills the white borders and defines our responsive layout!
-        It uses CSS Flexbox to perfectly assign space on desktop, and completely 
-        reorders the layout when viewed on a phone screen.
-      */}
+      {/* CSS GRID LAYOUT SYSTEM */}
       <style>{`
         body, html {
           margin: 0;
@@ -131,84 +123,94 @@ export default function GameRoom({ playerInfo }) {
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
-          overflow-x: hidden;
+          /* This stops the page from bouncing/scrolling on mobile! */
+          overflow: hidden; 
         }
         * {
           box-sizing: border-box;
         }
         .game-layout {
-          display: flex;
-          flex-direction: row;
+          display: grid;
+          /* Desktop: Leaderboard(200px) | Canvas(Takes rest) | Chat(300px) */
+          grid-template-columns: 200px 1fr 300px;
+          grid-template-rows: 100%;
           gap: 20px;
           padding: 20px;
-          width: 100%;
+          width: 100vw;
+          height: 100dvh; /* Uses exact device height */
           max-width: 1600px;
           margin: 0 auto;
-          min-height: 100vh;
         }
         .sidebar-left {
-          width: 200px; /* Narrower Leaderboard */
-          flex-shrink: 0;
+          grid-column: 1;
           display: flex;
           flex-direction: column;
+          min-height: 0; /* Prevents overflow pushing the grid out */
         }
         .center-canvas {
-          flex-grow: 1; /* Consumes all available center space */
+          grid-column: 2;
           display: flex;
           flex-direction: column;
-          min-width: 300px;
+          min-height: 0;
         }
         .sidebar-right {
-          width: 300px; /* Fixed Chat Box width */
-          flex-shrink: 0;
+          grid-column: 3;
           display: flex;
           flex-direction: column;
+          min-height: 0;
         }
         
-        /* Mobile Phone Optimization */
+        /* MOBILE OPTIMIZATION OVERRIDE */
         @media (max-width: 900px) {
           .game-layout {
-            flex-direction: column;
+            /* Split bottom width: 35% Leaderboard, 65% Chat */
+            grid-template-columns: 35% 65%;
+            /* Split screen height: 55% Canvas, 45% Leaderboard/Chat */
+            grid-template-rows: 55% 45%; 
+            gap: 10px;
             padding: 10px;
-            gap: 15px;
-          }
-          .sidebar-left, .sidebar-right {
-            width: 100%;
-            height: 350px; /* Prevents chat from getting infinitely tall */
           }
           .center-canvas {
-            order: 1; /* Forces Canvas to the very top */
-          }
-          .sidebar-right {
-            order: 2; /* Forces Chat to the middle */
+            grid-column: 1 / span 2; /* Stretch canvas across the top */
+            grid-row: 1;
           }
           .sidebar-left {
-            order: 3; /* Forces Leaderboard to the bottom */
+            grid-column: 1;
+            grid-row: 2; /* Push to bottom left */
+          }
+          .sidebar-right {
+            grid-column: 2;
+            grid-row: 2; /* Push to bottom right */
+          }
+          .status-bar {
+            padding: 6px 10px !important;
+            font-size: 14px !important;
+            margin-bottom: 5px !important;
           }
         }
       `}</style>
 
       <div className="game-layout">
         
-        {/* 1. Left Sidebar: Leaderboard */}
+        {/* 1. Leaderboard (Bottom Left on Mobile) */}
         <div className="sidebar-left">
-          <div style={{ backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px', border: '1px solid #333', height: '100%', overflowY: 'auto' }}>
-            <h3 style={{ marginTop: 0, color: '#bb86fc', textAlign: 'center' }}>Leaderboard</h3>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#bb86fc', textAlign: 'center', fontSize: '16px' }}>Scores</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
               {playerList.map((p, index) => (
                 <li 
                   key={index} 
                   style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between',
-                    padding: '8px 0',
+                    padding: '6px 0',
                     borderBottom: '1px solid #333',
                     color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0',
                     fontWeight: p.name === playerInfo.name ? 'bold' : 'normal',
-                    fontSize: '14px'
+                    fontSize: '13px'
                   }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px' }}>
                     {index + 1}. {p.name}
                   </span>
                   <span>{p.score}</span>
@@ -218,15 +220,14 @@ export default function GameRoom({ playerInfo }) {
           </div>
         </div>
 
-        {/* 2. Center: Drawing Board */}
+        {/* 2. Drawing Board (Top 55% on Mobile) */}
         <div className="center-canvas">
-          <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', width: '100%', fontSize: '18px' }}>
-              {gameStatus}
-            </div>
+          <div className="status-bar" style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', width: '100%', fontSize: '18px', marginBottom: '10px', flexShrink: 0 }}>
+            {gameStatus}
           </div>
           
-          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
+          {/* Canvas Wrapper */}
+          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', minHeight: 0 }}>
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
@@ -240,9 +241,9 @@ export default function GameRoom({ playerInfo }) {
                 cursor: isMyTurn ? 'crosshair' : 'not-allowed', 
                 backgroundColor: '#ffffff',
                 touchAction: 'none', 
-                width: '100%', 
-                height: 'auto',
-                aspectRatio: '4/3', /* Keeps the drawing space perfectly proportioned */
+                maxWidth: '100%', 
+                maxHeight: '100%',
+                aspectRatio: '4/3', /* Forces perfectly scaled drawing space */
                 borderRadius: '4px',
                 boxShadow: '0px 4px 10px rgba(0,0,0,0.5)'
               }}
@@ -250,7 +251,7 @@ export default function GameRoom({ playerInfo }) {
           </div>
         </div>
 
-        {/* 3. Right Sidebar: Chat Box */}
+        {/* 3. Chat Box (Bottom Right on Mobile) */}
         <div className="sidebar-right">
           {isSocketReady && (
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
