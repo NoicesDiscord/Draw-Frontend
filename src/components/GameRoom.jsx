@@ -10,7 +10,7 @@ export default function GameRoom({ playerInfo }) {
   // Interaction states
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
-  const [isMyTurn, setIsMyTurn] = useState(false) // Locks canvas for non-drawers
+  const [isMyTurn, setIsMyTurn] = useState(false) 
   
   // Game State
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
@@ -22,7 +22,6 @@ export default function GameRoom({ playerInfo }) {
     canvas.height = 600
     const context = canvas.getContext('2d')
     
-    // Helper to wipe the board white
     const clearCanvas = () => {
       context.fillStyle = 'white'
       context.fillRect(0, 0, canvas.width, canvas.height)
@@ -38,19 +37,15 @@ export default function GameRoom({ playerInfo }) {
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
     setIsSocketReady(true)
 
-    // 1. Tell the server we arrived
     socketRef.current.emit('join_game', playerInfo.name)
 
-    // 2. Listen for leaderboard updates
     socketRef.current.on('update_players', (playersArray) => {
       const sortedPlayers = playersArray.sort((a, b) => b.score - a.score)
       setPlayerList(sortedPlayers)
     })
 
-    // 3. Listen for game updates
     socketRef.current.on('round_update', (data) => {
       setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
-      // Unlock the canvas ONLY if the server says it is my turn
       setIsMyTurn(data.drawerName === playerInfo.name)
     })
 
@@ -62,7 +57,6 @@ export default function GameRoom({ playerInfo }) {
       clearCanvas()
     })
 
-    // 4. Drawing Listeners
     socketRef.current.on('start', (data) => {
       contextRef.current.beginPath()
       contextRef.current.moveTo(data.x, data.y)
@@ -78,7 +72,6 @@ export default function GameRoom({ playerInfo }) {
     return () => socketRef.current.disconnect()
   }, [playerInfo.name])
 
-  // Helper function to get exact coordinates, factoring in screen resize scaling
   const getCoordinates = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.nativeEvent.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.nativeEvent.clientY
@@ -95,7 +88,7 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const startDrawing = (e) => {
-    if (!isMyTurn) return // Block non-drawers instantly
+    if (!isMyTurn) return 
     if (e.touches && e.cancelable) e.preventDefault() 
     
     const { x, y } = getCoordinates(e)
@@ -107,7 +100,7 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const draw = (e) => {
-    if (!isDrawing || !isMyTurn) return // Block non-drawers instantly
+    if (!isDrawing || !isMyTurn) return 
     if (e.touches && e.cancelable) e.preventDefault()
 
     const { x, y } = getCoordinates(e)
@@ -118,98 +111,153 @@ export default function GameRoom({ playerInfo }) {
   }
 
   const stopDrawing = () => {
-    if (!isMyTurn) return // Block non-drawers instantly
+    if (!isMyTurn) return 
     contextRef.current.closePath()
     setIsDrawing(false)
     socketRef.current.emit('stop')
   }
 
   return (
-    // Dark Mode Background Container
-    <div style={{ backgroundColor: '#121212', color: '#e0e0e0', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
-      
-      {/* Responsive Flex Container */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'row', 
-        flexWrap: 'wrap', 
-        gap: '20px', 
-        maxWidth: '1400px', // Increased width for larger board
-        margin: '0 auto',
-        justifyContent: 'center'
-      }}>
+    <>
+      {/* 
+        This style block kills the white borders and defines our responsive layout!
+        It uses CSS Flexbox to perfectly assign space on desktop, and completely 
+        reorders the layout when viewed on a phone screen.
+      */}
+      <style>{`
+        body, html {
+          margin: 0;
+          padding: 0;
+          background-color: #121212;
+          color: #e0e0e0;
+          font-family: sans-serif;
+          overflow-x: hidden;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        .game-layout {
+          display: flex;
+          flex-direction: row;
+          gap: 20px;
+          padding: 20px;
+          width: 100%;
+          max-width: 1600px;
+          margin: 0 auto;
+          min-height: 100vh;
+        }
+        .sidebar-left {
+          width: 200px; /* Narrower Leaderboard */
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .center-canvas {
+          flex-grow: 1; /* Consumes all available center space */
+          display: flex;
+          flex-direction: column;
+          min-width: 300px;
+        }
+        .sidebar-right {
+          width: 300px; /* Fixed Chat Box width */
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+        }
         
-        {/* Leaderboard Sidebar */}
-        <div style={{ 
-          width: '100%', 
-          maxWidth: '250px', 
-          padding: '20px', 
-          backgroundColor: '#1e1e1e', 
-          borderRadius: '8px',
-          border: '1px solid #333'
-        }}>
-          <h3 style={{ marginTop: 0, color: '#bb86fc' }}>Leaderboard</h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {playerList.map((p, index) => (
-              <li 
-                key={index} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  padding: '8px 0',
-                  borderBottom: '1px solid #333',
-                  color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0',
-                  fontWeight: p.name === playerInfo.name ? 'bold' : 'normal'
-                }}
-              >
-                <span>{index + 1}. {p.name}</span>
-                <span style={{ fontWeight: 'bold' }}>{p.score} pts</span>
-              </li>
-            ))}
-          </ul>
+        /* Mobile Phone Optimization */
+        @media (max-width: 900px) {
+          .game-layout {
+            flex-direction: column;
+            padding: 10px;
+            gap: 15px;
+          }
+          .sidebar-left, .sidebar-right {
+            width: 100%;
+            height: 350px; /* Prevents chat from getting infinitely tall */
+          }
+          .center-canvas {
+            order: 1; /* Forces Canvas to the very top */
+          }
+          .sidebar-right {
+            order: 2; /* Forces Chat to the middle */
+          }
+          .sidebar-left {
+            order: 3; /* Forces Leaderboard to the bottom */
+          }
+        }
+      `}</style>
+
+      <div className="game-layout">
+        
+        {/* 1. Left Sidebar: Leaderboard */}
+        <div className="sidebar-left">
+          <div style={{ backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px', border: '1px solid #333', height: '100%', overflowY: 'auto' }}>
+            <h3 style={{ marginTop: 0, color: '#bb86fc', textAlign: 'center' }}>Leaderboard</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {playerList.map((p, index) => (
+                <li 
+                  key={index} 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #333',
+                    color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0',
+                    fontWeight: p.name === playerInfo.name ? 'bold' : 'normal',
+                    fontSize: '14px'
+                  }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
+                    {index + 1}. {p.name}
+                  </span>
+                  <span>{p.score}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Drawing Board Area */}
-        <div style={{ flex: '2 1 600px', minWidth: '300px' }}> 
-          <div style={{ marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h2 style={{ margin: 0 }}>Drawing Board</h2>
-            
-            <div style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}>
+        {/* 2. Center: Drawing Board */}
+        <div className="center-canvas">
+          <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ backgroundColor: '#3700b3', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', width: '100%', fontSize: '18px' }}>
               {gameStatus}
             </div>
-            
           </div>
           
-          <canvas
-            ref={canvasRef}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-            style={{ 
-              border: '2px solid #333', 
-              borderRadius: '8px', 
-              cursor: isMyTurn ? 'crosshair' : 'not-allowed', // Changes based on whose turn it is
-              backgroundColor: '#ffffff',
-              touchAction: 'none', 
-              width: '100%', 
-              height: 'auto',
-              display: 'block'
-            }}
-          />
+          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={startDrawing}
+              onTouchMove={draw}
+              onTouchEnd={stopDrawing}
+              style={{ 
+                cursor: isMyTurn ? 'crosshair' : 'not-allowed', 
+                backgroundColor: '#ffffff',
+                touchAction: 'none', 
+                width: '100%', 
+                height: 'auto',
+                aspectRatio: '4/3', /* Keeps the drawing space perfectly proportioned */
+                borderRadius: '4px',
+                boxShadow: '0px 4px 10px rgba(0,0,0,0.5)'
+              }}
+            />
+          </div>
         </div>
 
-        {/* Chat Box */}
-        <div style={{ width: '100%', maxWidth: '300px' }}>
+        {/* 3. Right Sidebar: Chat Box */}
+        <div className="sidebar-right">
           {isSocketReady && (
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
           )}
         </div>
 
       </div>
-    </div>
+    </>
   )
 }
