@@ -122,6 +122,10 @@ export default function GameRoom({ playerInfo }) {
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
+          /* FIX: Physically locks the viewport size to prevent bleeding */
+          width: 100vw;
+          height: 100vh;
+          max-width: 100%;
           overflow: hidden; 
         }
         * {
@@ -133,34 +137,23 @@ export default function GameRoom({ playerInfo }) {
           grid-template-rows: 100%;
           gap: 20px;
           padding: 20px;
-          /* FIX: Changed 100vw to 100% to prevent right-side bleeding */
           width: 100%; 
           height: 100dvh; 
           max-width: 1600px;
           margin: 0 auto;
         }
-        .sidebar-left {
-          grid-column: 1;
+        .sidebar-left, .center-canvas, .sidebar-right {
           display: flex;
           flex-direction: column;
           min-height: 0;
+          min-width: 0; /* FIX: Prevents flex children from stretching the grid */
         }
-        .center-canvas {
-          grid-column: 2;
-          display: flex;
-          flex-direction: column;
-          min-height: 0;
-        }
-        .sidebar-right {
-          grid-column: 3;
-          display: flex;
-          flex-direction: column;
-          min-height: 0;
-        }
+        .sidebar-left { grid-column: 1; }
+        .center-canvas { grid-column: 2; }
+        .sidebar-right { grid-column: 3; }
         
         @media (max-width: 900px) {
           .game-layout {
-            /* FIX: Switched from % to fr units so it subtracts the 10px gap perfectly */
             grid-template-columns: 35fr 65fr;
             grid-template-rows: 55fr 45fr; 
             gap: 10px;
@@ -190,7 +183,7 @@ export default function GameRoom({ playerInfo }) {
         
         {/* Leaderboard */}
         <div className="sidebar-left">
-          <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#bb86fc', textAlign: 'center', fontSize: '16px' }}>Scores</h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
               {playerList.map((p, index) => (
@@ -222,7 +215,7 @@ export default function GameRoom({ playerInfo }) {
             {gameStatus}
           </div>
           
-          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', minHeight: 0 }}>
+          <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', minHeight: 0, minWidth: 0 }}>
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
