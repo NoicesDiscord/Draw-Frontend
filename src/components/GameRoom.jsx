@@ -500,7 +500,7 @@ export default function GameRoom({ playerInfo }) {
                 🏆 {winner} won the game!
               </div>
             ) : (
-              <div className="floating-status" style={{ fontSize: '20px', letterSpacing: '1px' }}>
+              <div className="floating-status" style={{ fontSize: 'clamp(13px, 4vw, 20px)', letterSpacing: '1px', padding: '6px 14px' }}>
                 {isMyTurn ? secretWord.toUpperCase() : getDynamicHint()}
               </div>
             )}
