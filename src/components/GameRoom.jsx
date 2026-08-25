@@ -35,6 +35,30 @@ export default function GameRoom({ playerInfo }) {
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
 
+  // --- NEW: Prevent accidental back-swipes and refreshes on mobile! ---
+  useEffect(() => {
+    // 1. Push a dummy state to trap the first back-swipe
+    window.history.pushState(null, null, window.location.href)
+    
+    const handleBackSwipe = () => {
+      // If they swipe back, push another dummy state immediately to keep them in the game
+      window.history.pushState(null, null, window.location.href)
+    }
+    window.addEventListener('popstate', handleBackSwipe)
+
+    // 2. Trigger the browser's native "Leave Site?" warning popup if they try to close the tab
+    const handleBeforeUnload = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('popstate', handleBackSwipe)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
+
   useEffect(() => {
     const canvas = canvasRef.current
     canvas.width = 800
