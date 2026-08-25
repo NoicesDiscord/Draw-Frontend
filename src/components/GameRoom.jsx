@@ -148,6 +148,12 @@ export default function GameRoom({ playerInfo }) {
     socketRef.current.emit('stop')
   }
 
+  // NEW: Tells the server to wipe the board
+  const handleClearBoard = () => {
+    if (!isMyTurn) return
+    socketRef.current.emit('clear_board')
+  }
+
   return (
     <>
       <style>{`
@@ -318,6 +324,17 @@ export default function GameRoom({ playerInfo }) {
                 onChange={(e) => setBrushSize(parseInt(e.target.value))}
                 style={{ width: '70px' }}
               />
+
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px' }} />
+              
+              {/* NEW: Trash Can / Clear Board Button */}
+              <button 
+                onClick={handleClearBoard}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 4px', transform: 'translateY(-1px)' }}
+                title="Clear Board"
+              >
+                🗑️
+              </button>
             </div>
             
           </div>
