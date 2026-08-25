@@ -20,7 +20,10 @@ export default function GameRoom({ playerInfo }) {
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
-  const [isBucketMode, setIsBucketMode] = useState(false) // NEW: Toggle for the paint bucket
+  const [isBucketMode, setIsBucketMode] = useState(false) 
+  
+  // NEW: Fast 1-click colors for the toolbar
+  const presetColors = ['#000000', '#808080', '#ff0000', '#ff8800', '#ffcc00', '#00cc00', '#0088ff', '#9900cc', '#ff66cc', '#8b4513']
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
@@ -367,20 +370,43 @@ export default function GameRoom({ playerInfo }) {
                 pointerEvents: isMyTurn ? 'auto' : 'none' // Locks clicks if it's not your turn
               }}
             >
-              {/* NEW: Infinite Native Color Picker, Bucket, and Eraser */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {/* NEW: Custom Picker + Fast Presets + Tools */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', maxWidth: '100%' }}>
                 
+                {/* 1. Custom Color Wheel (The fallback) */}
                 <input 
                   type="color" 
                   value={brushColor}
                   onChange={(e) => { setBrushColor(e.target.value); setIsBucketMode(false); }}
-                  style={{ width: '32px', height: '32px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent' }}
-                  title="Choose any color!"
+                  style={{ width: '32px', height: '32px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}
+                  title="Custom Color"
                 />
 
+                <div style={{ width: '2px', height: '20px', backgroundColor: '#555' }} />
+
+                {/* 2. Fast 1-Click Colors (Swipeable on mobile!) */}
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', maxWidth: '40vw', paddingBottom: '4px', alignItems: 'center' }}>
+                  {presetColors.map(color => (
+                    <button
+                      key={color}
+                      onClick={() => { setBrushColor(color); setIsBucketMode(false); }}
+                      style={{
+                        width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0, cursor: 'pointer', padding: 0,
+                        backgroundColor: color,
+                        border: brushColor === color ? '2px solid #fff' : '1px solid #444',
+                        boxShadow: brushColor === color ? '0 0 5px rgba(255,255,255,0.8)' : 'none'
+                      }}
+                      title="Quick Color"
+                    />
+                  ))}
+                </div>
+
+                <div style={{ width: '2px', height: '20px', backgroundColor: '#555' }} />
+
+                {/* 3. Bucket and Eraser */}
                 <button 
                   onClick={() => setIsBucketMode(!isBucketMode)}
-                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px' }}
+                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
                   title="Paint Bucket (Fill)"
                 >
                   🪣
@@ -388,7 +414,7 @@ export default function GameRoom({ playerInfo }) {
 
                 <button 
                   onClick={() => { setBrushColor('#ffffff'); setIsBucketMode(false); }}
-                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px' }}
+                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
                   title="Eraser"
                 >
                   🧽
