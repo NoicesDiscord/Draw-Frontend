@@ -79,6 +79,11 @@ export default function GameRoom({ playerInfo }) {
       clearCanvas()
     })
 
+    // FAILSAFE: Ensure the timer is actually listening to the server ticks!
+    socketRef.current.on('timer_update', (time) => {
+      setTimeLeft(time)
+    })
+
     // --- UPDATED: Apply incoming network colors/sizes before drawing ---
     socketRef.current.on('start', (data) => {
       contextRef.current.strokeStyle = data.color || '#000000'
@@ -275,16 +280,15 @@ export default function GameRoom({ playerInfo }) {
         <div className="center-canvas">
           <div className="canvas-wrapper">
             
-            {/* NEW: Clean, black digital clock overlay at the top-left */}
-            {timeLeft > 0 && (
-              <div style={{
-                position: 'absolute', top: '15px', left: '15px',
-                color: '#000000', fontSize: '22px', fontWeight: '900', 
-                fontFamily: 'monospace', zIndex: 20, pointerEvents: 'none'
-              }}>
-                0:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-              </div>
-            )}
+            {/* NEW: Permanent Digital Clock overlay at the top-left */}
+            <div style={{
+              position: 'absolute', top: '15px', left: '15px',
+              backgroundColor: 'rgba(255, 255, 255, 0.7)', padding: '2px 8px', borderRadius: '6px',
+              color: '#000', fontSize: '24px', fontWeight: '900', 
+              fontFamily: 'monospace', zIndex: 50, pointerEvents: 'none', border: '2px solid #000'
+            }}>
+              {timeLeft > 0 ? `0:${timeLeft < 10 ? `0${timeLeft}` : timeLeft}` : "0:00"}
+            </div>
 
             {gameStatus === "Waiting for a second player to join..." ? (
               <div className="waiting-text">Waiting for a second player to join...</div>
