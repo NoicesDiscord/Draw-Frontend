@@ -13,6 +13,7 @@ export default function GameRoom({ playerInfo }) {
   
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
   const [playerList, setPlayerList] = useState([])
+  const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -46,6 +47,10 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
+      // --- ADD THIS BLOCK ---
+    socketRef.current.on('timer_update', (time) => {
+      setTimeLeft(time)
+    })
       setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
       setIsMyTurn(data.drawerName === playerInfo.name)
     })
@@ -241,7 +246,14 @@ export default function GameRoom({ playerInfo }) {
             {gameStatus === "Waiting for a second player to join..." ? (
               <div className="waiting-text">Waiting for a second player to join...</div>
             ) : (
-              <div className="floating-status">{gameStatus}</div>
+              <div className="floating-status" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+  <span>{gameStatus}</span>
+  {timeLeft > 0 && (
+    <span style={{ backgroundColor: '#fff', color: '#3700b3', padding: '2px 8px', borderRadius: '12px', fontSize: '13px' }}>
+      ⏱ {timeLeft}s
+    </span>
+  )}
+</div>
             )}
             
             <canvas
