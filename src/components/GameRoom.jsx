@@ -60,6 +60,9 @@ export default function GameRoom({ playerInfo }) {
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
+  
+  // NEW: Load the success "Ding!" sound
+  const dingSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'))
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
@@ -247,6 +250,13 @@ export default function GameRoom({ playerInfo }) {
     // NEW: Listen for Undo/Redo from the Drawer
     socketRef.current.on('undo', () => handleUndo())
     socketRef.current.on('redo', () => handleRedo())
+
+    // NEW: Play ding sound when the server confirms a correct guess!
+    socketRef.current.on('correct_guess', () => {
+      dingSound.current.volume = 0.6
+      dingSound.current.currentTime = 0
+      dingSound.current.play().catch(err => console.log("Audio blocked:", err))
+    })
 
     return () => socketRef.current.disconnect()
   }, [playerInfo.name])
