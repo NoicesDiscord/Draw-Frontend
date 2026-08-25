@@ -5,9 +5,14 @@ export default function App() {
   const [name, setName] = useState('')
   const [playerInfo, setPlayerInfo] = useState(null)
 
+  // NEW: A hand-picked list of fun, recognizable avatars
+  const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
+
   const handleJoin = () => {
     if (name.trim()) {
-      setPlayerInfo({ name: name.trim() })
+      // Pick a random avatar and permanently attach it to the front of the player's name!
+      const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)]
+      setPlayerInfo({ name: `${randomAvatar} ${name.trim()}` })
     }
   }
 
