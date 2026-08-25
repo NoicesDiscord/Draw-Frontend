@@ -256,7 +256,7 @@ export default function GameRoom({ playerInfo }) {
       dingSound.current.volume = 0.6
       dingSound.current.currentTime = 0
       dingSound.current.play().catch(err => console.log("Audio blocked:", err))
-    })
+    })     
 
     return () => socketRef.current.disconnect()
   }, [playerInfo.name])
