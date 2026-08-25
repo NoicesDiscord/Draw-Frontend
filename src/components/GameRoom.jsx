@@ -211,13 +211,59 @@ export default function GameRoom({ playerInfo }) {
         /* MOBILE EDGE-TO-EDGE OVERRIDES */
         @media (max-width: 900px) {
           .game-layout {
-            grid-template-columns: 32fr 68fr;
-            /* FIX 2: Canvas gets a massive 62% of the height, UI gets 38% */
-            grid-template-rows: 62fr 38fr; 
-            /* FIX 3: 0px gap and 0 padding means the game physically touches the glass edges of the phone */
+            /* 
+               HOW TO TWEAK THIS YOURSELF:
+               grid-template-rows controls vertical height. 60fr = 60%, 40fr = 40%.
+               grid-template-columns controls the bottom width. 30fr = Leaderboard, 70fr = Chat.
+               Change these numbers anytime to instantly adjust your layout! 
+            */
+            grid-template-rows: 60fr 40fr; 
+            grid-template-columns: 30fr 70fr;
             gap: 0px;
             padding: 0px;
           }
+          .center-canvas {
+            grid-column: 1 / span 2; 
+            grid-row: 1;
+            border-bottom: 2px solid #333;
+          }
+          .sidebar-left {
+            grid-column: 1;
+            grid-row: 2; 
+          }
+          .sidebar-right {
+            grid-column: 2;
+            grid-row: 2; 
+          }
+          .canvas-wrapper {
+            padding: 0 !important;
+            background-color: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .game-canvas {
+            border-radius: 0 !important; 
+            border: none !important;
+            aspect-ratio: auto !important; 
+            height: 100% !important; 
+          }
+          .sidebar-left > div, .sidebar-right > div {
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .sidebar-left > div {
+            border-right: 2px solid #333 !important; 
+          }
+          .waiting-text {
+            font-size: 20px; /* Increased from 18px */
+          }
+          .floating-status {
+            font-size: 15px; /* Increased from 13px */
+            padding: 6px 14px;
+            top: 15px; 
+          }
+        }
+
           .center-canvas {
             grid-column: 1 / span 2; 
             grid-row: 1;
