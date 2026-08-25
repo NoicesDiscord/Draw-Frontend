@@ -14,6 +14,7 @@ export default function GameRoom({ playerInfo }) {
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
   const [playerList, setPlayerList] = useState([])
   const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
+  const [winner, setWinner] = useState(null)
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -47,9 +48,14 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
+      setWinner(null) // Hides the celebration screen when a new round begins!
       // --- ADD THIS BLOCK ---
     socketRef.current.on('timer_update', (time) => {
       setTimeLeft(time)
+    })
+    socketRef.current.on('game_over', (winnerName) => {
+      setWinner(winnerName)
+      setGameStatus(`🏆 ${winnerName} won the game!`)
     })
       setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
       setIsMyTurn(data.drawerName === playerInfo.name)
@@ -309,12 +315,32 @@ export default function GameRoom({ playerInfo }) {
           </div>
         </div>
 
-        {/* Chat Box */}
+       {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
           )}
         </div>
+
+        {/* NEW: Cinematic Game Over Overlay goes HERE, outside the sidebar div! */}
+        {winner && (
+          <div style={{
+            position: 'fixed', /* Note: I changed this to 'fixed' to guarantee it covers the whole screen! */
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 100,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <h1 style={{ color: '#FFD54F', fontSize: 'clamp(40px, 8vw, 70px)', margin: '0 0 20px 0', textAlign: 'center', textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+              🎉 GAME OVER 🎉
+            </h1>
+            <h2 style={{ color: '#fff', fontSize: 'clamp(24px, 5vw, 40px)', margin: '0 0 40px 0', textAlign: 'center' }}>
+              <span style={{ color: '#03dac6' }}>{winner}</span> takes the crown!
+            </h2>
+            <p style={{ color: '#bb86fc', fontSize: '18px', animation: 'pulse 2s infinite' }}>
+              Starting a new match in a few seconds...
+            </p>
+          </div>
+        )}
 
       </div>
     </>
