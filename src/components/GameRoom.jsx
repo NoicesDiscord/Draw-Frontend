@@ -20,7 +20,7 @@ export default function GameRoom({ playerInfo }) {
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
-  const colors = ['#000000', '#f44336', '#4caf50', '#2196f3', '#ffeb3b', '#ff9800', '#9c27b0', '#ffffff']
+  const [isBucketMode, setIsBucketMode] = useState(false) // NEW: Toggle for the paint bucket
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
@@ -101,6 +101,11 @@ export default function GameRoom({ playerInfo }) {
       contextRef.current.closePath()
     })
 
+    // NEW: Listen for the other player using the paint bucket
+    socketRef.current.on('fill', (data) => {
+      applyFill(contextRef.current, canvasRef.current, data.x, data.y, data.color)
+    })
+
     return () => socketRef.current.disconnect()
   }, [playerInfo.name])
 
@@ -118,12 +123,57 @@ export default function GameRoom({ playerInfo }) {
     }
   }
 
+  // --- NEW: HTML5 Canvas Scanline Flood Fill Algorithm ---
+  const applyFill = (ctx, canvas, x, y, colorHex) => {
+    const hexToRgb = (h) => [parseInt(h.slice(1,3), 16), parseInt(h.slice(3,5), 16), parseInt(h.slice(5,7), 16), 255]
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imgData.data
+    const [fR, fG, fB, fA] = hexToRgb(colorHex)
+    const startPos = (Math.floor(y) * canvas.width + Math.floor(x)) * 4
+    const sR = data[startPos], sG = data[startPos+1], sB = data[startPos+2], sA = data[startPos+3]
+    if (sR === fR && sG === fG && sB === fB) return // Color is already the same
+    
+    const match = (p) => data[p]===sR && data[p+1]===sG && data[p+2]===sB && data[p+3]===sA
+    const color = (p) => { data[p]=fR; data[p+1]=fG; data[p+2]=fB; data[p+3]=fA }
+    
+    const stack = [[Math.floor(x), Math.floor(y)]]
+    const w = canvas.width, h = canvas.height
+    
+    while(stack.length) {
+      let [cx, cy] = stack.pop()
+      let p = (cy * w + cx) * 4
+      while(cy >= 0 && match(p)) { cy--; p -= w*4 }
+      p += w*4; cy++
+      let rL = false, rR = false
+      while(cy < h && match(p)) {
+        color(p)
+        if (cx > 0) {
+          if (match(p - 4)) { if (!rL) { stack.push([cx - 1, cy]); rL = true } }
+          else if (rL) rL = false
+        }
+        if (cx < w - 1) {
+          if (match(p + 4)) { if (!rR) { stack.push([cx + 1, cy]); rR = true } }
+          else if (rR) rR = false
+        }
+        cy++; p += w*4
+      }
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }
+
   // --- UPDATED: Apply local colors and send them to the server ---
   const startDrawing = (e) => {
     if (!isMyTurn) return 
     if (e.touches && e.cancelable) e.preventDefault() 
     
     const { x, y } = getCoordinates(e)
+
+    // NEW: If bucket mode is ON, fill the canvas instead of drawing a line!
+    if (isBucketMode) {
+      applyFill(contextRef.current, canvasRef.current, x, y, brushColor)
+      socketRef.current.emit('fill', { x, y, color: brushColor })
+      return
+    }
     
     contextRef.current.strokeStyle = brushColor
     contextRef.current.lineWidth = brushSize
@@ -317,20 +367,33 @@ export default function GameRoom({ playerInfo }) {
                 pointerEvents: isMyTurn ? 'auto' : 'none' // Locks clicks if it's not your turn
               }}
             >
-              {/* Color Swatches */}
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {colors.map(color => (
-                  <button
-                    key={color}
-                    onClick={() => setBrushColor(color)}
-                    className={color === '#ffffff' ? 'color-btn eraser' : 'color-btn'}
-                    style={{
-                      backgroundColor: color,
-                      border: brushColor === color ? '2px solid #fff' : '1px solid #666',
-                    }}
-                    title={color === '#ffffff' ? 'Eraser' : 'Color'}
-                  />
-                ))}
+              {/* NEW: Infinite Native Color Picker, Bucket, and Eraser */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                
+                <input 
+                  type="color" 
+                  value={brushColor}
+                  onChange={(e) => { setBrushColor(e.target.value); setIsBucketMode(false); }}
+                  style={{ width: '32px', height: '32px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                  title="Choose any color!"
+                />
+
+                <button 
+                  onClick={() => setIsBucketMode(!isBucketMode)}
+                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px' }}
+                  title="Paint Bucket (Fill)"
+                >
+                  🪣
+                </button>
+
+                <button 
+                  onClick={() => { setBrushColor('#ffffff'); setIsBucketMode(false); }}
+                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px' }}
+                  title="Eraser"
+                >
+                  🧽
+                </button>
+                
               </div>
               
               <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px' }} />
