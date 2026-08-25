@@ -75,7 +75,6 @@ export default function GameRoom({ playerInfo }) {
     const clientY = e.touches ? e.touches[0].clientY : e.nativeEvent.clientY
     
     const rect = canvasRef.current.getBoundingClientRect()
-    
     const scaleX = canvasRef.current.width / rect.width
     const scaleY = canvasRef.current.height / rect.height
     
@@ -116,14 +115,13 @@ export default function GameRoom({ playerInfo }) {
   return (
     <>
       <style>{`
+        /* GLOBAL RESET & VIEWPORT LOCK */
         body, html {
           margin: 0;
           padding: 0;
           background-color: #121212;
           color: #e0e0e0;
           font-family: sans-serif;
-          
-          /* FIX 1: Absolutely locks the layout to the screen pixels. Stops ALL scrolling and bottom cut-offs! */
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
           width: 100%;
@@ -134,6 +132,8 @@ export default function GameRoom({ playerInfo }) {
         * {
           box-sizing: border-box;
         }
+        
+        /* DESKTOP LAYOUT (3 Columns) */
         .game-layout {
           display: grid;
           grid-template-columns: 200px 1fr 300px;
@@ -155,6 +155,7 @@ export default function GameRoom({ playerInfo }) {
         .center-canvas { grid-column: 2; }
         .sidebar-right { grid-column: 3; }
         
+        /* CANVAS STYLES */
         .canvas-wrapper {
           flex-grow: 1;
           display: flex;
@@ -179,6 +180,7 @@ export default function GameRoom({ playerInfo }) {
           border: 2px solid #333;
         }
         
+        /* TEXT OVERLAYS */
         .waiting-text {
           position: absolute;
           top: 50%;
@@ -208,24 +210,18 @@ export default function GameRoom({ playerInfo }) {
           box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* MOBILE EDGE-TO-EDGE OVERRIDES */
+        /* MOBILE OVERRIDES */
         @media (max-width: 900px) {
           .game-layout {
-            /* 
-               HOW TO TWEAK THIS YOURSELF:
-               grid-template-rows controls vertical height. 60fr = 60%, 40fr = 40%.
-               grid-template-columns controls the bottom width. 30fr = Leaderboard, 70fr = Chat.
-               Change these numbers anytime to instantly adjust your layout! 
-            */
-            grid-template-rows: 60fr 40fr; 
             grid-template-columns: 30fr 70fr;
+            grid-template-rows: 60fr 40fr; 
             gap: 0px;
             padding: 0px;
           }
           .center-canvas {
             grid-column: 1 / span 2; 
             grid-row: 1;
-            border-bottom: 2px solid #333;
+            border-bottom: 2px solid #222; 
           }
           .sidebar-left {
             grid-column: 1;
@@ -241,73 +237,29 @@ export default function GameRoom({ playerInfo }) {
             border: none !important;
             border-radius: 0 !important;
           }
+          
           .game-canvas {
             border-radius: 0 !important; 
             border: none !important;
             aspect-ratio: auto !important; 
             height: 100% !important; 
           }
+          
           .sidebar-left > div, .sidebar-right > div {
             border: none !important;
             border-radius: 0 !important;
           }
           .sidebar-left > div {
-            border-right: 2px solid #333 !important; 
+            border-right: 2px solid #222 !important; 
           }
+
           .waiting-text {
-            font-size: 20px; /* Increased from 18px */
+            font-size: 20px; 
           }
           .floating-status {
-            font-size: 15px; /* Increased from 13px */
+            font-size: 15px;
             padding: 6px 14px;
             top: 15px; 
-          }
-        }
-
-          .center-canvas {
-            grid-column: 1 / span 2; 
-            grid-row: 1;
-            border-bottom: 2px solid #222; /* Divider between drawing and chat */
-          }
-          .sidebar-left {
-            grid-column: 1;
-            grid-row: 2; 
-          }
-          .sidebar-right {
-            grid-column: 2;
-            grid-row: 2; 
-          }
-          .canvas-wrapper {
-            padding: 0 !important;
-            background-color: transparent !important;
-            border: none !important;
-            border-radius: 0 !important;
-          }
-          
-          /* Canvas stretches edge to edge and deeper downward */
-          .game-canvas {
-            border-radius: 0 !important; 
-            border: none !important;
-            aspect-ratio: auto !important; /* Removes ratio lock so it can stretch deep */
-            height: 100% !important; 
-          }
-          
-          /* Strip borders and rounded corners from Chat and Leaderboard to make them true full-screen blocks */
-          .sidebar-left > div, .sidebar-right > div {
-            border: none !important;
-            border-radius: 0 !important;
-          }
-          .sidebar-left > div {
-            border-right: 2px solid #222 !important; /* Vertical divider between scores and chat */
-          }
-
-          .waiting-text {
-            font-size: 18px; 
-          }
-          .floating-status {
-            font-size: 13px;
-            padding: 5px 12px;
-            top: 10px; 
           }
         }
       `}</style>
