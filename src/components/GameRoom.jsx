@@ -22,8 +22,15 @@ export default function GameRoom({ playerInfo }) {
   const [brushSize, setBrushSize] = useState(5)
   const [isBucketMode, setIsBucketMode] = useState(false) 
   
-  // NEW: Fast 1-click colors for the toolbar
-  const presetColors = ['#000000', '#808080', '#ff0000', '#ff8800', '#ffcc00', '#00cc00', '#0088ff', '#9900cc', '#ff66cc', '#8b4513']
+  // NEW: 15 Essential Colors (Grays, Warms, Greens, Blues, Purples, Browns)
+  const presetColors = [
+    '#000000', '#666666', '#cccccc', 
+    '#ff0000', '#ff6600', '#ffcc00', 
+    '#00cc00', '#006600', 
+    '#00ccff', '#0000ff', 
+    '#9900cc', '#ff00ff', '#ff99cc', 
+    '#8b4513', '#f4a460'
+  ]
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
@@ -363,92 +370,76 @@ export default function GameRoom({ playerInfo }) {
             />
 
             {/* NEW: Floating Tool Bar overlay */}
+            {/* NEW: Responsive Tool Bar (15 Colors + Fixed Overflow) */}
             <div 
               className="toolbar" 
               style={{ 
-                opacity: isMyTurn ? 1 : 0.3, // Fades out if it's not your turn
-                pointerEvents: isMyTurn ? 'auto' : 'none' // Locks clicks if it's not your turn
+                opacity: isMyTurn ? 1 : 0.3, 
+                pointerEvents: isMyTurn ? 'auto' : 'none',
+                width: '96vw', /* Locks it safely inside the phone screen */
+                maxWidth: '700px', /* Keeps it looking normal on desktop */
+                boxSizing: 'border-box',
+                justifyContent: 'space-between'
               }}
             >
-              {/* NEW: Custom Picker + Fast Presets + Tools */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', maxWidth: '100%' }}>
-                
-                {/* 1. Custom Color Wheel (The fallback) */}
-                <input 
-                  type="color" 
-                  value={brushColor}
-                  onChange={(e) => { setBrushColor(e.target.value); setIsBucketMode(false); }}
-                  style={{ width: '32px', height: '32px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}
-                  title="Custom Color"
-                />
+              {/* Custom Picker */}
+              <input 
+                type="color" value={brushColor}
+                onChange={(e) => { setBrushColor(e.target.value); setIsBucketMode(false); }}
+                style={{ width: '28px', height: '28px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}
+                title="Custom Color"
+              />
 
-                <div style={{ width: '2px', height: '20px', backgroundColor: '#555' }} />
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
 
-                {/* 2. Fast 1-Click Colors (Swipeable on mobile!) */}
-                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', maxWidth: '40vw', paddingBottom: '4px', alignItems: 'center' }}>
-                  {presetColors.map(color => (
-                    <button
-                      key={color}
-                      onClick={() => { setBrushColor(color); setIsBucketMode(false); }}
-                      style={{
-                        width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0, cursor: 'pointer', padding: 0,
-                        backgroundColor: color,
-                        border: brushColor === color ? '2px solid #fff' : '1px solid #444',
-                        boxShadow: brushColor === color ? '0 0 5px rgba(255,255,255,0.8)' : 'none'
-                      }}
-                      title="Quick Color"
-                    />
-                  ))}
-                </div>
+              {/* 15 Fast Colors (flex: 1 forces it to ONLY use remaining space!) */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '4px', alignItems: 'center' }}>
+                {presetColors.map(color => (
+                  <button
+                    key={color}
+                    onClick={() => { setBrushColor(color); setIsBucketMode(false); }}
+                    style={{
+                      width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0, cursor: 'pointer', padding: 0,
+                      backgroundColor: color,
+                      border: brushColor === color ? '2px solid #fff' : '1px solid #444',
+                      boxShadow: brushColor === color ? '0 0 5px rgba(255,255,255,0.8)' : 'none'
+                    }}
+                  />
+                ))}
+              </div>
 
-                <div style={{ width: '2px', height: '20px', backgroundColor: '#555' }} />
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
 
-                {/* 3. Bucket and Eraser */}
+              {/* Bucket & Eraser */}
+              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                 <button 
                   onClick={() => setIsBucketMode(!isBucketMode)}
-                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
-                  title="Paint Bucket (Fill)"
-                >
-                  🪣
-                </button>
-
+                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                >🪣</button>
                 <button 
                   onClick={() => { setBrushColor('#ffffff'); setIsBucketMode(false); }}
-                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
-                  title="Eraser"
-                >
-                  🧽
-                </button>
-                
+                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                >🧽</button>
               </div>
               
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px' }} />
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
               
               {/* Brush Size Slider */}
               <input 
-                type="range" 
-                min="2" 
-                max="25" 
-                value={brushSize}
+                type="range" min="2" max="25" value={brushSize}
                 onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                style={{ width: '70px' }}
+                style={{ width: '50px', flexShrink: 0 }} 
               />
 
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px' }} />
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
               
-              {/* NEW: Trash Can / Clear Board Button */}
+              {/* Trash Can */}
               <button 
                 onClick={handleClearBoard}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 4px', transform: 'translateY(-1px)' }}
-                title="Clear Board"
-              >
-                🗑️
-              </button>
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 2px', flexShrink: 0 }}
+              >🗑️</button>
             </div>
             
-          </div>
-        </div>
-
        {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
