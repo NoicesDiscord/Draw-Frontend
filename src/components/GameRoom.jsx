@@ -64,9 +64,6 @@ export default function GameRoom({ playerInfo }) {
       setWinner(winnerName)
       setGameStatus(`🏆 ${winnerName} won the game!`)
     })
-      setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
-      setIsMyTurn(data.drawerName === playerInfo.name)
-    })
 
     socketRef.current.on('secret_word', (word) => {
       setGameStatus(`🌟 YOUR TURN! The word is: ${word.toUpperCase()}`)
