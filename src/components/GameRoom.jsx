@@ -63,6 +63,9 @@ export default function GameRoom({ playerInfo }) {
   
   // NEW: Load the success "Ding!" sound
   const dingSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'))
+  
+  // NEW: Load the epic victory fanfare!
+  const winSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'))
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
@@ -206,6 +209,11 @@ export default function GameRoom({ playerInfo }) {
 
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
+      
+      // NEW: Play the epic celebration sound!
+      winSound.current.volume = 0.7
+      winSound.current.currentTime = 0
+      winSound.current.play().catch(err => console.log("Audio blocked:", err))
     })
 
     // Disabled: We handle this dynamically in the HTML now!
