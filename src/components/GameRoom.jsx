@@ -23,15 +23,40 @@ export default function GameRoom({ playerInfo }) {
   const [brushSize, setBrushSize] = useState(5)
   const [isBucketMode, setIsBucketMode] = useState(false) 
   
-  // NEW: 15 Essential Colors (Grays, Warms, Greens, Blues, Purples, Browns)
+  // NEW: 20 Essential Colors (Includes neons, pastels, and skin tones!)
   const presetColors = [
-    '#000000', '#666666', '#cccccc', 
-    '#ff0000', '#ff6600', '#ffcc00', 
-    '#00cc00', '#006600', 
-    '#00ccff', '#0000ff', 
-    '#9900cc', '#ff00ff', '#ff99cc', 
-    '#8b4513', '#f4a460'
+    '#000000', '#333333', '#777777', '#cccccc', '#ffffff',
+    '#ff0000', '#ff6600', '#ffcc00', '#ffff00', '#99cc00', 
+    '#00cc00', '#006600', '#00ffff', '#00ccff', '#0000ff', 
+    '#000066', '#9900cc', '#ff00ff', '#ff99cc', '#8b4513'
   ]
+
+  // --- NEW: Undo / Redo Memory Stacks ---
+  const undoStack = useRef([])
+  const redoStack = useRef([])
+
+  const saveState = () => {
+    if (!canvasRef.current || !contextRef.current) return
+    const data = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
+    undoStack.current.push(data)
+    if (undoStack.current.length > 30) undoStack.current.shift() // Cap at 30 steps so browsers don't crash!
+  }
+
+  const handleUndo = () => {
+    if (undoStack.current.length > 1) {
+      redoStack.current.push(undoStack.current.pop()) // Move current state to Redo
+      const previousState = undoStack.current[undoStack.current.length - 1] // Get the state before it
+      contextRef.current.putImageData(previousState, 0, 0) // Draw it!
+    }
+  }
+
+  const handleRedo = () => {
+    if (redoStack.current.length > 0) {
+      const nextState = redoStack.current.pop() // Grab from Redo
+      undoStack.current.push(nextState) // Put back into Undo
+      contextRef.current.putImageData(nextState, 0, 0) // Draw it!
+    }
+  }
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
@@ -147,6 +172,9 @@ export default function GameRoom({ playerInfo }) {
     const clearCanvas = () => {
       context.fillStyle = 'white'
       context.fillRect(0, 0, canvas.width, canvas.height)
+      undoStack.current = [] // Wipe history on a clear board
+      redoStack.current = []
+      undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height)) // Save pure white board as Step 1
     }
     clearCanvas()
     
@@ -209,12 +237,18 @@ export default function GameRoom({ playerInfo }) {
     })
     socketRef.current.on('stop', () => {
       contextRef.current.closePath()
+      saveState() // Guessers save the line!
+      redoStack.current = []
     })
 
     // NEW: Listen for the other player using the paint bucket
     socketRef.current.on('fill', (data) => {
       applyFill(contextRef.current, canvasRef.current, data.x, data.y, data.color)
     })
+
+    // NEW: Listen for Undo/Redo from the Drawer
+    socketRef.current.on('undo', () => handleUndo())
+    socketRef.current.on('redo', () => handleRedo())
 
     return () => socketRef.current.disconnect()
   }, [playerInfo.name])
@@ -269,6 +303,11 @@ export default function GameRoom({ playerInfo }) {
       }
     }
     ctx.putImageData(imgData, 0, 0)
+    
+    // NEW: Save the canvas state immediately after filling a shape!
+    undoStack.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
+    if (undoStack.current.length > 30) undoStack.current.shift()
+    redoStack.current = []
   }
 
   // --- UPDATED: Apply local colors and send them to the server ---
@@ -313,6 +352,10 @@ export default function GameRoom({ playerInfo }) {
     contextRef.current.closePath()
     setIsDrawing(false)
     socketRef.current.emit('stop')
+    
+    // NEW: Drawer saves state immediately after lifting their mouse/finger
+    saveState()
+    redoStack.current = []
   }
 
   // NEW: Tells the server to wipe the board
@@ -482,29 +525,35 @@ export default function GameRoom({ playerInfo }) {
             />
 
             {/* NEW: Floating Tool Bar overlay */}
-            {/* NEW: Responsive Tool Bar (15 Colors + Fixed Overflow) */}
+            {/* NEW: Responsive Tool Bar (20 Colors + Undo/Redo) */}
             <div 
               className="toolbar" 
               style={{ 
                 opacity: isMyTurn ? 1 : 0.3, 
                 pointerEvents: isMyTurn ? 'auto' : 'none',
-                width: '96vw', /* Locks it safely inside the phone screen */
-                maxWidth: '700px', /* Keeps it looking normal on desktop */
+                width: '96vw', 
+                maxWidth: '700px', 
                 boxSizing: 'border-box',
                 justifyContent: 'space-between'
               }}
             >
-              {/* Custom Picker */}
-              <input 
-                type="color" value={brushColor}
-                onChange={(e) => { setBrushColor(e.target.value); setIsBucketMode(false); }}
-                style={{ width: '28px', height: '28px', padding: '0', border: 'none', cursor: 'pointer', background: 'transparent', flexShrink: 0 }}
-                title="Custom Color"
-              />
+              {/* Undo / Redo Buttons */}
+              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                <button 
+                  onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
+                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                  title="Undo"
+                >↩️</button>
+                <button 
+                  onClick={() => { handleRedo(); socketRef.current.emit('redo'); }}
+                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                  title="Redo"
+                >↪️</button>
+              </div>
 
               <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
 
-              {/* 15 Fast Colors (flex: 1 forces it to ONLY use remaining space!) */}
+              {/* 20 Fast Colors (flex: 1 forces it to ONLY use remaining space!) */}
               <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '4px', alignItems: 'center' }}>
                 {presetColors.map(color => (
                   <button
