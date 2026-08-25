@@ -275,17 +275,21 @@ export default function GameRoom({ playerInfo }) {
         <div className="center-canvas">
           <div className="canvas-wrapper">
             
+            {/* NEW: Clean, black digital clock overlay at the top-left */}
+            {timeLeft > 0 && (
+              <div style={{
+                position: 'absolute', top: '15px', left: '15px',
+                color: '#000000', fontSize: '22px', fontWeight: '900', 
+                fontFamily: 'monospace', zIndex: 20, pointerEvents: 'none'
+              }}>
+                0:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+              </div>
+            )}
+
             {gameStatus === "Waiting for a second player to join..." ? (
               <div className="waiting-text">Waiting for a second player to join...</div>
             ) : (
-              <div className="floating-status" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-  <span>{gameStatus}</span>
-  {timeLeft > 0 && (
-    <span style={{ backgroundColor: '#fff', color: '#3700b3', padding: '2px 8px', borderRadius: '12px', fontSize: '13px' }}>
-      ⏱ {timeLeft}s
-    </span>
-  )}
-</div>
+              <div className="floating-status">{gameStatus}</div>
             )}
             
             <canvas
