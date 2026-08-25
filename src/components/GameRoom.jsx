@@ -440,6 +440,9 @@ export default function GameRoom({ playerInfo }) {
               >🗑️</button>
             </div>
             
+          </div> {/* NEW: Restored missing canvas-wrapper closing tag */}
+        </div> {/* NEW: Restored missing center-canvas closing tag */}
+
        {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
