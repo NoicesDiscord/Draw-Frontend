@@ -132,12 +132,7 @@ export default function GameRoom({ playerInfo }) {
     )
   }
 
-  // --- NEW: Drawer View Space Fixer ---
-  const getDrawerWord = () => {
-    if (!secretWord) return ""
-    // Converts "ICE CREAM" to "I C E    C R E A M" so spaces are unmissable
-    return secretWord.toUpperCase().split('').map(char => char === ' ' ? '\u00A0\u00A0\u00A0\u00A0' : char).join(' ')
-  }
+  
 
   // --- NEW: Prevent accidental back-swipes and refreshes on mobile! ---
   useEffect(() => {
@@ -398,10 +393,10 @@ export default function GameRoom({ playerInfo }) {
           color: #999; font-size: 24px; font-weight: bold; text-align: center; pointer-events: none; width: 90%;
         }
         .floating-status {
-          position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+          position: absolute; top: 15px; left: 110px; /* FIX: Anchored safely to the right of the clock! */
           background-color: rgba(55, 0, 179, 0.85); color: white; padding: 8px 20px; border-radius: 20px;
           font-weight: bold; pointer-events: none; font-size: 16px; 
-          white-space: pre-wrap; text-align: center; width: max-content; max-width: 90%; line-height: 1.4; /* FIX: Allows text to wrap neatly on mobile! */
+          white-space: pre-wrap; text-align: left; width: max-content; max-width: calc(100% - 130px); line-height: 1.4; 
           z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
@@ -502,8 +497,8 @@ export default function GameRoom({ playerInfo }) {
                 🏆 {winner} won the game!
               </div>
             ) : (
-              <div className="floating-status" style={{ letterSpacing: '2px', wordSpacing: '4px', fontSize: '18px' }}>
-                {isMyTurn ? `🌟 YOUR TURN! Draw: ${getDrawerWord()}` : getDynamicHint()}
+              <div className="floating-status" style={{ fontSize: '20px', letterSpacing: '1px' }}>
+                {isMyTurn ? secretWord.toUpperCase() : getDynamicHint()}
               </div>
             )}
             
