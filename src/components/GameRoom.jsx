@@ -74,18 +74,37 @@ export default function GameRoom({ playerInfo }) {
 
     const revealed = new Set(allowedIndices.slice(0, revealCount))
 
-    // 4. Render the final string with massive gaps for spaces
-    let display = []
-    for (let i = 0; i < secretWord.length; i++) {
-      if (secretWord[i] === ' ') {
-        display.push('\u00A0\u00A0\u00A0\u00A0') // Massive gap! No underscore.
-      } else if (revealed.has(i)) {
-        display.push(secretWord[i].toUpperCase())
-      } else {
-        display.push('_')
+    // 4. Render the final output WITH tiny word length numbers!
+    const displayElements = []
+    let currentIndex = 0
+    
+    words.forEach((w, wordIdx) => {
+      let wordChars = []
+      for (let i = 0; i < w.length; i++) {
+        if (revealed.has(currentIndex)) {
+          wordChars.push(w[i].toUpperCase())
+        } else {
+          wordChars.push('_')
+        }
+        currentIndex++
       }
-    }
-    return display.join(' ')
+      currentIndex++ // Skip the space so the index perfectly matches the math above!
+      
+      displayElements.push(
+        <span key={wordIdx} style={{ whiteSpace: 'nowrap' }}>
+          {wordChars.join(' ')}
+          <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8 }}>
+            {w.length}
+          </span>
+        </span>
+      )
+    })
+
+    return (
+      <span style={{ display: 'inline-flex', gap: '20px' }}>
+        {displayElements}
+      </span>
+    )
   }
 
   // --- NEW: Drawer View Space Fixer ---
