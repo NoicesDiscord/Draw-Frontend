@@ -15,7 +15,8 @@ export default function GameRoom({ playerInfo }) {
   const [playerList, setPlayerList] = useState([])
   const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
   const [winner, setWinner] = useState(null)
-  const [currentDrawer, setCurrentDrawer] = useState("") // NEW: Tracks who has the pencil
+  const [currentDrawer, setCurrentDrawer] = useState("") 
+  const [secretWord, setSecretWord] = useState("") // NEW: Stores the actual word to map spaces
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -34,6 +35,46 @@ export default function GameRoom({ playerInfo }) {
 
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
+
+  // --- NEW: Progressive Hint Generator ---
+  const getDynamicHint = () => {
+    if (!secretWord) return ""
+    const validIndices = []
+    for (let i = 0; i < secretWord.length; i++) {
+      if (secretWord[i] !== ' ') validIndices.push(i)
+    }
+    
+    let revealCount = 0
+    if (timeLeft <= 6) revealCount = 3       // 90% time gone (6s left)
+    else if (timeLeft <= 30) revealCount = 2 // 50% time gone (30s left)
+    else if (timeLeft <= 42) revealCount = 1 // 30% time gone (42s left)
+
+    if (revealCount >= validIndices.length) revealCount = validIndices.length - 1
+
+    const revealed = new Set()
+    if (revealCount > 0 && validIndices.length > 0) revealed.add(validIndices[0]) // First letter
+    if (revealCount > 1 && validIndices.length > 1) revealed.add(validIndices[Math.floor(validIndices.length / 2)]) // Middle letter
+    if (revealCount > 2 && validIndices.length > 2) revealed.add(validIndices[validIndices.length - 1]) // Last letter
+
+    let display = []
+    for (let i = 0; i < secretWord.length; i++) {
+      if (secretWord[i] === ' ') {
+        display.push('\u00A0\u00A0\u00A0\u00A0') // Massive gap for spaces!
+      } else if (revealed.has(i)) {
+        display.push(secretWord[i].toUpperCase())
+      } else {
+        display.push('_')
+      }
+    }
+    return display.join(' ')
+  }
+
+  // --- NEW: Drawer View Space Fixer ---
+  const getDrawerWord = () => {
+    if (!secretWord) return ""
+    // Converts "ICE CREAM" to "I C E    C R E A M" so spaces are unmissable
+    return secretWord.toUpperCase().split('').map(char => char === ' ' ? '\u00A0\u00A0\u00A0\u00A0' : char).join(' ')
+  }
 
   // --- NEW: Prevent accidental back-swipes and refreshes on mobile! ---
   useEffect(() => {
@@ -86,28 +127,24 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
-      // Creates a string like "_ _ _ _ _" dynamically based on the length
-      const hints = Array(data.wordLength).fill('_').join(' ')
-      setGameStatus(`✏️ ${data.drawerName} is drawing! ${hints}`)
       setIsMyTurn(data.drawerName === playerInfo.name)
-      setCurrentDrawer(data.drawerName) // NEW: Save their name for the leaderboard!
-      setWinner(null) // Hides the celebration screen when a new round begins!
+      setCurrentDrawer(data.drawerName) 
+      setWinner(null) 
       
-      // NEW: Play the "new round" sound!
+      // NEW: Save the secret word to calculate spaces and progressive hints
+      setSecretWord(data.word || "")
+      
       roundSound.current.volume = 0.5
       roundSound.current.currentTime = 0
       roundSound.current.play().catch(err => console.log("Browser blocked audio:", err))
     })
+
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
-      setGameStatus(`🏆 ${winnerName} won the game!`)
     })
 
-    socketRef.current.on('secret_word', (word) => {
-      // Spaces out the letters so it looks stylish and matches the blank spaces
-      const spacedWord = word.toUpperCase().split('').join(' ')
-      setGameStatus(`🌟 YOUR TURN! Draw: ${spacedWord}`)
-    })
+    // Disabled: We handle this dynamically in the HTML now!
+    socketRef.current.on('secret_word', () => {})
 
     socketRef.current.on('clear_board', () => {
       clearCanvas()
@@ -374,10 +411,16 @@ export default function GameRoom({ playerInfo }) {
               {timeLeft > 0 ? `0:${timeLeft < 10 ? `0${timeLeft}` : timeLeft}` : "0:00"}
             </div>
 
-            {gameStatus === "Waiting for a second player to join..." ? (
+            {!currentDrawer ? (
               <div className="waiting-text">Waiting for a second player to join...</div>
+            ) : winner ? (
+              <div className="floating-status" style={{ background: '#FFD54F', color: '#000' }}>
+                🏆 {winner} won the game!
+              </div>
             ) : (
-              <div className="floating-status">{gameStatus}</div>
+              <div className="floating-status" style={{ letterSpacing: '2px', wordSpacing: '4px', fontSize: '18px' }}>
+                {isMyTurn ? `🌟 YOUR TURN! Draw: ${getDrawerWord()}` : getDynamicHint()}
+              </div>
             )}
             
             <canvas
