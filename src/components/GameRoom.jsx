@@ -36,30 +36,48 @@ export default function GameRoom({ playerInfo }) {
   // NEW: Load the round-start sound into memory
   const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
 
-  // --- NEW: Progressive Hint Generator ---
+  // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
     if (!secretWord) return ""
-    const validIndices = []
-    for (let i = 0; i < secretWord.length; i++) {
-      if (secretWord[i] !== ' ') validIndices.push(i)
-    }
+
+    // 1. Calculate allowed hints per word (strictly max 50% per word)
+    let allowedIndices = []
+    let wordStart = 0
+    const words = secretWord.split(' ')
     
+    for (let w of words) {
+      const maxForWord = Math.floor(w.length / 2) // e.g. "water" (5) = 2, "melons" (6) = 3
+      
+      // Deterministically pick which letters to reveal for this specific word
+      if (maxForWord > 0) allowedIndices.push(wordStart + 0)                  // 1st letter
+      if (maxForWord > 1) allowedIndices.push(wordStart + w.length - 1)       // Last letter
+      if (maxForWord > 2) allowedIndices.push(wordStart + Math.floor(w.length / 2)) // Middle
+      if (maxForWord > 3) allowedIndices.push(wordStart + 1)                  // 2nd letter
+      if (maxForWord > 4) allowedIndices.push(wordStart + w.length - 2)       // 2nd to last
+      
+      wordStart += w.length + 1 // Advance the index past this word AND the space
+    }
+
+    // 2. Hard cap the total allowed hints to a maximum of 5 across the entire phrase
+    allowedIndices = allowedIndices.slice(0, 5)
+
+    // 3. Distribute hints evenly across the 60-second timer
+    const maxHints = allowedIndices.length
     let revealCount = 0
-    if (timeLeft <= 6) revealCount = 3       // 90% time gone (6s left)
-    else if (timeLeft <= 30) revealCount = 2 // 50% time gone (30s left)
-    else if (timeLeft <= 42) revealCount = 1 // 30% time gone (42s left)
+    
+    if (maxHints > 0) {
+      // If maxHints is 5, this triggers every 20% time. If maxHints is 2, it triggers every 33% time!
+      revealCount = Math.floor(((60 - timeLeft) / 60) * (maxHints + 1))
+      revealCount = Math.min(maxHints, revealCount) // Never exceed the allowed hints
+    }
 
-    if (revealCount >= validIndices.length) revealCount = validIndices.length - 1
+    const revealed = new Set(allowedIndices.slice(0, revealCount))
 
-    const revealed = new Set()
-    if (revealCount > 0 && validIndices.length > 0) revealed.add(validIndices[0]) // First letter
-    if (revealCount > 1 && validIndices.length > 1) revealed.add(validIndices[Math.floor(validIndices.length / 2)]) // Middle letter
-    if (revealCount > 2 && validIndices.length > 2) revealed.add(validIndices[validIndices.length - 1]) // Last letter
-
+    // 4. Render the final string with massive gaps for spaces
     let display = []
     for (let i = 0; i < secretWord.length; i++) {
       if (secretWord[i] === ' ') {
-        display.push('\u00A0\u00A0\u00A0\u00A0') // Massive gap for spaces!
+        display.push('\u00A0\u00A0\u00A0\u00A0') // Massive gap! No underscore.
       } else if (revealed.has(i)) {
         display.push(secretWord[i].toUpperCase())
       } else {
