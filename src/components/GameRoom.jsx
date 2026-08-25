@@ -51,7 +51,9 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
-      setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
+      // Creates a string like "_ _ _ _ _" dynamically based on the length
+      const hints = Array(data.wordLength).fill('_').join(' ')
+      setGameStatus(`✏️ ${data.drawerName} is drawing! ${hints}`)
       setIsMyTurn(data.drawerName === playerInfo.name)
       setWinner(null) // Hides the celebration screen when a new round begins!
       
@@ -66,7 +68,9 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('secret_word', (word) => {
-      setGameStatus(`🌟 YOUR TURN! The word is: ${word.toUpperCase()}`)
+      // Spaces out the letters so it looks stylish and matches the blank spaces
+      const spacedWord = word.toUpperCase().split('').join(' ')
+      setGameStatus(`🌟 YOUR TURN! Draw: ${spacedWord}`)
     })
 
     socketRef.current.on('clear_board', () => {
