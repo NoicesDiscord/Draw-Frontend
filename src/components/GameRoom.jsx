@@ -126,7 +126,7 @@ export default function GameRoom({ playerInfo }) {
     })
 
     return (
-      <span style={{ display: 'inline-flex', gap: '20px' }}>
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px 20px' }}>
         {displayElements}
       </span>
     )
@@ -400,7 +400,9 @@ export default function GameRoom({ playerInfo }) {
         .floating-status {
           position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
           background-color: rgba(55, 0, 179, 0.85); color: white; padding: 8px 20px; border-radius: 20px;
-          font-weight: bold; pointer-events: none; font-size: 16px; white-space: nowrap; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+          font-weight: bold; pointer-events: none; font-size: 16px; 
+          white-space: pre-wrap; text-align: center; width: max-content; max-width: 90%; line-height: 1.4; /* FIX: Allows text to wrap neatly on mobile! */
+          z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         /* NEW: Floating Toolbar Styles */
