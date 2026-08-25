@@ -21,6 +21,9 @@ export default function GameRoom({ playerInfo }) {
   const [brushSize, setBrushSize] = useState(5)
   const colors = ['#000000', '#f44336', '#4caf50', '#2196f3', '#ffeb3b', '#ff9800', '#9c27b0', '#ffffff']
 
+  // NEW: Load the round-start sound into memory
+  const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
+
   useEffect(() => {
     const canvas = canvasRef.current
     canvas.width = 800
@@ -48,10 +51,14 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
+      setGameStatus(`✏️ ${data.drawerName} is drawing! Word is ${data.wordLength} letters long.`)
+      setIsMyTurn(data.drawerName === playerInfo.name)
       setWinner(null) // Hides the celebration screen when a new round begins!
-      // --- ADD THIS BLOCK ---
-    socketRef.current.on('timer_update', (time) => {
-      setTimeLeft(time)
+      
+      // NEW: Play the "new round" sound!
+      roundSound.current.volume = 0.5
+      roundSound.current.currentTime = 0
+      roundSound.current.play().catch(err => console.log("Browser blocked audio:", err))
     })
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
