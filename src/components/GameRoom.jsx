@@ -580,37 +580,37 @@ export default function GameRoom({ playerInfo }) {
 
               <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
 
-              {/* Bucket & Undo (Eraser is gone, just select the White color to erase!) */}
-              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+              {/* Paint Bucket & Brush Size Slider */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                 <button 
                   onClick={() => setIsBucketMode(!isBucketMode)}
                   style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
                   title="Paint Bucket (Fill)"
                 >🪣</button>
+                
+                <input 
+                  type="range" min="2" max="25" value={brushSize}
+                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                  style={{ width: '50px', flexShrink: 0, margin: 0 }} 
+                />
+              </div>
+              
+              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
+              
+              {/* Undo & Trash Can (Destructive Actions) */}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 <button 
                   onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
                   style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
                   title="Undo"
                 >↩️</button>
+                
+                <button 
+                  onClick={handleClearBoard}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
+                  title="Clear Board"
+                >🗑️</button>
               </div>
-              
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
-              
-              {/* Brush Size Slider */}
-              <input 
-                type="range" min="2" max="25" value={brushSize}
-                onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                style={{ width: '50px', flexShrink: 0 }} 
-              />
-
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
-              
-              {/* Trash Can */}
-              <button 
-                onClick={handleClearBoard}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 2px', flexShrink: 0 }}
-                title="Clear Board"
-              >🗑️</button>
             </div>
             
           </div> {/* NEW: Restored missing canvas-wrapper closing tag */}
