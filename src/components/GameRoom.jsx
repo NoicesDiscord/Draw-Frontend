@@ -223,6 +223,9 @@ export default function GameRoom({ playerInfo }) {
       contextRef.current.lineWidth = data.size || 5
       contextRef.current.beginPath()
       contextRef.current.moveTo(data.x, data.y)
+      // FIX: Instantly draw a dot for single taps from the network!
+      contextRef.current.lineTo(data.x, data.y)
+      contextRef.current.stroke()
     })
     socketRef.current.on('draw', (data) => {
       contextRef.current.strokeStyle = data.color || '#000000'
@@ -323,6 +326,10 @@ export default function GameRoom({ playerInfo }) {
     contextRef.current.lineWidth = brushSize
     contextRef.current.beginPath()
     contextRef.current.moveTo(x, y)
+    
+    // FIX: Instantly draw a dot locally in case they lift their finger without dragging!
+    contextRef.current.lineTo(x, y)
+    contextRef.current.stroke()
     
     setIsDrawing(true)
     socketRef.current.emit('start', { x, y, color: brushColor, size: brushSize })
