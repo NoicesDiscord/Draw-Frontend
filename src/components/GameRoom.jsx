@@ -65,9 +65,10 @@ export default function GameRoom({ playerInfo }) {
     const maxHints = allowedIndices.length
     let revealCount = 0
     
-    if (maxHints > 0) {
-      // If maxHints is 5, this triggers every 20% time. If maxHints is 2, it triggers every 33% time!
-      revealCount = Math.floor(((60 - timeLeft) / 60) * (maxHints + 1))
+    // FIX: Only calculate hints if the timer is actively ticking (prevents flash at 0)
+    if (maxHints > 0 && timeLeft > 0 && timeLeft <= 60) {
+      const timeElapsed = 60 - Math.min(timeLeft, 60)
+      revealCount = Math.floor((timeElapsed / 60) * (maxHints + 1))
       revealCount = Math.min(maxHints, revealCount) // Never exceed the allowed hints
     }
 
@@ -151,6 +152,7 @@ export default function GameRoom({ playerInfo }) {
       
       // NEW: Save the secret word to calculate spaces and progressive hints
       setSecretWord(data.word || "")
+      setTimeLeft(60) // FIX: Instantly snap clock to 60 so hints don't flash!
       
       roundSound.current.volume = 0.5
       roundSound.current.currentTime = 0
