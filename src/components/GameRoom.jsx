@@ -15,6 +15,7 @@ export default function GameRoom({ playerInfo }) {
   const [playerList, setPlayerList] = useState([])
   const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
   const [winner, setWinner] = useState(null)
+  const [currentDrawer, setCurrentDrawer] = useState("") // NEW: Tracks who has the pencil
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -55,6 +56,7 @@ export default function GameRoom({ playerInfo }) {
       const hints = Array(data.wordLength).fill('_').join(' ')
       setGameStatus(`✏️ ${data.drawerName} is drawing! ${hints}`)
       setIsMyTurn(data.drawerName === playerInfo.name)
+      setCurrentDrawer(data.drawerName) // NEW: Save their name for the leaderboard!
       setWinner(null) // Hides the celebration screen when a new round begins!
       
       // NEW: Play the "new round" sound!
@@ -251,7 +253,17 @@ export default function GameRoom({ playerInfo }) {
                   key={index} 
                   style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #333', color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0', fontWeight: p.name === playerInfo.name ? 'bold' : 'normal', fontSize: '13px' }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px' }}>{index + 1}. {p.name}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px' }}>
+                    {index + 1}. {p.name}
+                  </span>
+                  
+                  {/* NEW: The pulsing clock next to the active drawer! */}
+                  {p.name === currentDrawer && timeLeft > 0 && (
+                    <span style={{ color: '#FFD54F', fontSize: '13px', fontWeight: 'bold', marginRight: 'auto', marginLeft: '8px' }}>
+                      ⏱ {timeLeft}s
+                    </span>
+                  )}
+
                   <span>{p.score}</span>
                 </li>
               ))}
