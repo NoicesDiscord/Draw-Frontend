@@ -5,9 +5,23 @@ export default function ChatBox({ socket, playerInfo }) {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef(null)
 
+  // Load the sound file into memory
+  const successSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3')
+  successSound.volume = 0.5 // Keep it from being too loud
+
   useEffect(() => {
     if (!socket) return
-    const handleNewMessage = (msg) => setMessages((prev) => [...prev, msg])
+    
+    const handleNewMessage = (msg) => {
+      setMessages((prev) => [...prev, msg])
+      
+      // If the server tags this message as a correct guess, play the ding!
+      if (msg.isGuess) {
+        successSound.currentTime = 0 // Resets the audio in case multiple people guess instantly
+        successSound.play().catch(err => console.log("Browser blocked audio:", err))
+      }
+    }
+    
     socket.on('chat_message', handleNewMessage)
     return () => socket.off('chat_message', handleNewMessage)
   }, [socket])
