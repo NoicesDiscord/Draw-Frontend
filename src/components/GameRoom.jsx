@@ -525,7 +525,7 @@ export default function GameRoom({ playerInfo }) {
             />
 
             {/* NEW: Floating Tool Bar overlay */}
-            {/* NEW: Responsive Tool Bar (20 Colors + Undo/Redo) */}
+            {/* NEW: Maximized Space Tool Bar (Colors on Left, Tools on Right) */}
             <div 
               className="toolbar" 
               style={{ 
@@ -537,23 +537,7 @@ export default function GameRoom({ playerInfo }) {
                 justifyContent: 'space-between'
               }}
             >
-              {/* Undo / Redo Buttons */}
-              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                <button 
-                  onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
-                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                  title="Undo"
-                >↩️</button>
-                <button 
-                  onClick={() => { handleRedo(); socketRef.current.emit('redo'); }}
-                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                  title="Redo"
-                >↪️</button>
-              </div>
-
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
-
-              {/* 20 Fast Colors (flex: 1 forces it to ONLY use remaining space!) */}
+              {/* 20 Fast Colors (Pushed to the far left to maximize mobile visibility!) */}
               <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '4px', alignItems: 'center' }}>
                 {presetColors.map(color => (
                   <button
@@ -571,16 +555,18 @@ export default function GameRoom({ playerInfo }) {
 
               <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
 
-              {/* Bucket & Eraser */}
+              {/* Bucket & Undo (Eraser is gone, just select the White color to erase!) */}
               <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                 <button 
                   onClick={() => setIsBucketMode(!isBucketMode)}
                   style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                  title="Paint Bucket (Fill)"
                 >🪣</button>
                 <button 
-                  onClick={() => { setBrushColor('#ffffff'); setIsBucketMode(false); }}
-                  style={{ background: '#ffffff', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                >🧽</button>
+                  onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
+                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                  title="Undo"
+                >↩️</button>
               </div>
               
               <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
@@ -598,6 +584,7 @@ export default function GameRoom({ playerInfo }) {
               <button 
                 onClick={handleClearBoard}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 2px', flexShrink: 0 }}
+                title="Clear Board"
               >🗑️</button>
             </div>
             
