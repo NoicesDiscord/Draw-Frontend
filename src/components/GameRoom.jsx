@@ -368,6 +368,9 @@ export default function GameRoom({ playerInfo }) {
         }
         * { box-sizing: border-box; }
         
+        /* FIX: Forces React's hidden root container to stretch all the way to the bottom! */
+        #root { width: 100%; height: 100%; }
+        
         .game-layout {
           display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 100%; gap: 20px;
           padding: 20px; width: 100%; height: 100%; max-width: 1600px; margin: 0 auto;
