@@ -390,7 +390,13 @@ export default function GameRoom({ playerInfo }) {
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
               className="game-canvas"
-              style={{ cursor: isMyTurn ? 'crosshair' : 'not-allowed' }}
+              style={{ 
+                cursor: !isMyTurn 
+                  ? 'not-allowed' 
+                  : isBucketMode 
+                    ? 'crosshair' 
+                    : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize + 6}" height="${brushSize + 6}"><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="${brushColor.replace('#', '%23')}" stroke="%23000000" stroke-width="2"/><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="none" stroke="%23ffffff" stroke-width="0.5"/></svg>') ${Math.round((brushSize + 6) / 2)} ${Math.round((brushSize + 6) / 2)}, crosshair` 
+              }}
             />
 
             {/* NEW: Floating Tool Bar overlay */}
