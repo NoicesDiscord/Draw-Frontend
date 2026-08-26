@@ -16,7 +16,8 @@ export default function GameRoom({ playerInfo }) {
   const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
   const [winner, setWinner] = useState(null)
   const [currentDrawer, setCurrentDrawer] = useState("") 
-  const [secretWord, setSecretWord] = useState("") // NEW: Stores the actual word to map spaces
+  const [secretWord, setSecretWord] = useState("") 
+  const [currentRound, setCurrentRound] = useState(1) // NEW: Tracks the current round
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -201,6 +202,7 @@ export default function GameRoom({ playerInfo }) {
       // NEW: Save the secret word to calculate spaces and progressive hints
       setSecretWord(data.word || "")
       setTimeLeft(60) // FIX: Instantly snap clock to 60 so hints don't flash!
+      setCurrentRound(data.currentRound || 1) // NEW: Update the round tracker!
       
       roundSound.current.volume = 0.5
       roundSound.current.currentTime = 0
@@ -479,7 +481,12 @@ export default function GameRoom({ playerInfo }) {
         {/* Leaderboard */}
         <div className="sidebar-left">
           <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '8px', color: '#bb86fc', textAlign: 'center', fontSize: '15px' }}>Scores</h3>
+            <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+              <h3 style={{ margin: '0 0 6px 0', color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#aaa', backgroundColor: '#333', padding: '3px 8px', borderRadius: '12px' }}>
+                ROUND {currentRound} OF 3
+              </span>
+            </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
               {playerList.map((p, index) => (
                 <li 
