@@ -142,6 +142,7 @@ export default function App() {
                         value={customWords} 
                         onChange={e => setCustomWords(e.target.value)} 
                         placeholder="e.g. Anime, Naruto, Luffy, Goku"
+                        maxLength="30000"
                         style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '8px', outline: 'none', resize: 'vertical', minHeight: '60px', boxSizing: 'border-box' }}
                       />
                       <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Separate words with commas.</div>
