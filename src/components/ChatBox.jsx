@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-export default function ChatBox({ socket, playerInfo }) {
+export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef(null)
@@ -63,10 +63,25 @@ export default function ChatBox({ socket, playerInfo }) {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Guess the word..."
-          style={{ flexGrow: 1, padding: '12px', border: 'none', outline: 'none', backgroundColor: '#2d2d2d', color: '#fff', minWidth: 0 }}
+          placeholder={isMyTurn ? "You are drawing! 🎨" : "Guess the word..."}
+          disabled={isMyTurn}
+          style={{ 
+            flexGrow: 1, padding: '12px', border: 'none', outline: 'none', minWidth: 0,
+            backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d', 
+            color: isMyTurn ? '#666' : '#fff', 
+            cursor: isMyTurn ? 'not-allowed' : 'text'
+          }}
         />
-        <button type="submit" style={{ padding: '12px 20px', backgroundColor: '#bb86fc', color: '#000', border: 'none', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>
+        <button 
+          type="submit" 
+          disabled={isMyTurn}
+          style={{ 
+            padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0,
+            backgroundColor: isMyTurn ? '#444' : '#bb86fc', 
+            color: isMyTurn ? '#777' : '#000', 
+            cursor: isMyTurn ? 'not-allowed' : 'pointer'
+          }}
+        >
           Send
         </button>
       </form>

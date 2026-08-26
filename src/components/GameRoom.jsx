@@ -620,7 +620,7 @@ export default function GameRoom({ playerInfo }) {
        {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
-            <ChatBox socket={socketRef.current} playerInfo={playerInfo} />
+            <ChatBox socket={socketRef.current} playerInfo={playerInfo} isMyTurn={isMyTurn} />
           )}
         </div>
 
