@@ -74,14 +74,13 @@ export default function GameRoom({ playerInfo }) {
     }
   }
 
-  // NEW: Load the round-start sound into memory
-  const roundSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'))
+  // FIX: Using local sound files
+  const roundSound = useRef(new Audio('/sounds/round-start.mp3'))
+  const dingSound = useRef(new Audio('/sounds/success.mp3'))
+  const winSound = useRef(new Audio('/sounds/win.mp3'))
   
-  // NEW: Load the success "Ding!" sound
-  const dingSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'))
-  
-  // NEW: Load the epic victory fanfare!
-  const winSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'))
+  // NEW: Add a sound for clicking the word buttons
+  const selectSound = useRef(new Audio('/sounds/select.mp3'))
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
@@ -826,6 +825,11 @@ export default function GameRoom({ playerInfo }) {
                     <button 
                       key={w}
                       onClick={() => {
+                        // NEW: Play the selection sound!
+                        const clone = selectSound.current.cloneNode()
+                        clone.volume = 0.6
+                        clone.play().catch(e => console.log(e))
+                        
                         socketRef.current.emit('word_chosen', w)
                         setIsChoosing(false)
                       }}

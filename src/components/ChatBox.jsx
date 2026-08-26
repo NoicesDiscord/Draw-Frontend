@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-// NEW: Load all System Event sounds into memory
-const joinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2127/2127-preview.mp3') 
-const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2128/2128-preview.mp3') 
-const closeSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3') 
-const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3') 
 
-// Balance the volumes so they aren't too loud
+// FIX: Pointing to your local public/sounds/ folder! No more Mixkit static!
+const joinSound = new Audio('/sounds/join.mp3') 
+const leaveSound = new Audio('/sounds/leave.mp3') 
+const closeSound = new Audio('/sounds/close.mp3') 
+const alertSound = new Audio('/sounds/alert.mp3') 
+// Moved success sound here so it uses the same safe clone logic
+const successSound = new Audio('/sounds/success.mp3') 
+
 joinSound.volume = 0.4
 leaveSound.volume = 0.4
 closeSound.volume = 0.5
 alertSound.volume = 0.6
-// FIX: Safely clones the audio node before playing so sounds can overlap without static!
+successSound.volume = 0.5
+
 const playSoundSafely = (audioObj) => {
   const clone = audioObj.cloneNode()
   clone.volume = audioObj.volume
@@ -23,8 +26,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [votedOn, setVotedOn] = useState({}) // NEW: Remembers if you already voted on a kick
   const messagesEndRef = useRef(null)
 
-  const successSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3')
-  successSound.volume = 0.5 
+ 
 
   useEffect(() => {
     if (!socket) return
