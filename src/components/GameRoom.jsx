@@ -221,7 +221,7 @@ export default function GameRoom({ playerInfo }) {
     })
 
     socketRef.current.on('round_update', (data) => {
-      setIsMyTurn(data.drawerName === playerInfo.name)
+      setIsMyTurn(data.drawerName === playerInfo.playerName)
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
       
@@ -254,7 +254,7 @@ export default function GameRoom({ playerInfo }) {
       setWaitingForHost(false)
       setIsChoosing(true)
       setCurrentDrawer(data.drawerName)
-      setIsMyTurn(data.drawerName === playerInfo.name)
+      setIsMyTurn(data.drawerName === playerInfo.playerName)
       setSecretWord("") // Hide the old word
       setWinner(null)
     })
@@ -342,7 +342,7 @@ export default function GameRoom({ playerInfo }) {
       document.removeEventListener('visibilitychange', handleVisibility)
       socketRef.current.disconnect()
     }
-  }, [playerInfo.name])
+  }, [playerInfo.playerName])
 
   const getCoordinates = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.nativeEvent.clientX
@@ -580,7 +580,7 @@ export default function GameRoom({ playerInfo }) {
               {playerList.map((p, index) => (
                 <li 
                   key={index} 
-                  style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #333', color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0', fontWeight: p.name === playerInfo.name ? 'bold' : 'normal', fontSize: '13px' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #333', color: p.name === playerInfo.playerName ? '#03dac6' : '#e0e0e0', fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', fontSize: '13px' }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px' }}>
                     {index + 1}. {p.name}
@@ -789,10 +789,10 @@ export default function GameRoom({ playerInfo }) {
               <ul style={{ listStyle: 'none', padding: 0, maxHeight: '300px', overflowY: 'auto' }}>
                 {playerList.map(p => (
                   <li key={p.id || p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #333', color: '#e0e0e0' }}>
-                    <span style={{ fontWeight: p.name === playerInfo.name ? 'bold' : 'normal', color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0' }}>
-                      {p.name} {p.name === playerInfo.name ? '(You)' : ''} - {p.score} pts
+                    <span style={{ fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', color: p.name === playerInfo.playerName ? '#03dac6' : '#e0e0e0' }}>
+                      {p.name} {p.name === playerInfo.playerName ? '(You)' : ''} - {p.score} pts
                     </span>
-                    {p.name !== playerInfo.name && (
+                    {p.name !== playerInfo.playerName && (
                       <button 
                         onClick={() => {
                           if (window.confirm(`Are you sure you want to start a vote to kick ${p.name}?`)) {
