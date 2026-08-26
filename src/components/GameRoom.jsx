@@ -578,7 +578,7 @@ export default function GameRoom({ playerInfo }) {
 
         @media (max-width: 900px) {
           .game-layout {
-            grid-template-columns: 35fr 65fr; grid-template-rows: 60fr 40fr; gap: 0px; padding: 0px;
+            grid-template-columns: 45fr 55fr; grid-template-rows: 60fr 40fr; gap: 0px; padding: 0px;
           }
           .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
           .sidebar-left { grid-column: 1; grid-row: 2; }
