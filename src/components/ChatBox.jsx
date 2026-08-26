@@ -68,6 +68,12 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
                   <div style={{ color: '#888', fontStyle: 'italic', fontSize: '12px', textAlign: 'center' }}>Vote casted</div>
                 )}
               </div>
+            ) : msg.isCloseGuess ? (
+              /* FIX: Catches the close guess flag and renders it in bright yellow! */
+              <span style={{ color: '#FFD54F', fontWeight: 'bold' }}>
+                <strong style={{ color: '#FFC107' }}>{msg.sender}: </strong>
+                {msg.text}
+              </span>
             ) : msg.isGuess ? (
               <span style={{ color: '#03dac6', fontWeight: 'bold' }}>🎉 {msg.sender} guessed the word!</span>
             ) : (
