@@ -4,6 +4,7 @@ import GameRoom from './components/GameRoom'
 export default function App() {
   const [name, setName] = useState('')
   const [playerInfo, setPlayerInfo] = useState(null)
+  const [error, setError] = useState('') // NEW: Tracks the empty name error!
   
   // NEW: State for Private Room Settings
   const [mode, setMode] = useState('public') // 'public', 'private', 'invite'
@@ -21,6 +22,11 @@ export default function App() {
   }, [])
 
   const handleJoin = () => {
+    if (!name.trim()) {
+      setError('⚠️ You must enter a nickname to play!')
+      return
+    }
+    
     if (name.trim()) {
       const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)]
       const finalName = `${randomAvatar} ${name.trim()}`
@@ -76,7 +82,7 @@ export default function App() {
               className="name-input"
               type="text" 
               value={name} 
-              onChange={(e) => setName(e.target.value)} 
+              onChange={(e) => { setName(e.target.value); setError(''); }} 
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()} 
               placeholder="Enter your nickname..." 
               maxLength="12"
@@ -126,6 +132,13 @@ export default function App() {
                   </div>
                 )}
               </>
+            )}
+            
+            {/* NEW: The glowing red error message! */}
+            {error && (
+              <div style={{ color: '#ff5252', fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', textShadow: '0 2px 4px rgba(0,0,0,0.5)', animation: 'pulse 1.5s infinite' }}>
+                {error}
+              </div>
             )}
             
             <button className="join-btn" onClick={handleJoin}>
