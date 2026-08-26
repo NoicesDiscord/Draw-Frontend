@@ -237,9 +237,15 @@ export default function GameRoom({ playerInfo }) {
       roundSound.current.play().catch(err => console.log("Browser blocked audio:", err))
     })
 
+    // NEW: Catch room errors (like trying to join a full or expired room)
+    socketRef.current.on('room_error', (errorMessage) => {
+      alert(errorMessage); // Pops up "This room is currently full."
+      window.location.href = '/'; // Bounces them back to the clean login screen!
+    })
+
     socketRef.current.on('kicked_from_server', () => {
       alert("You have been kicked from the lobby by a vote.");
-      window.location.reload(); 
+      window.location.href = '/'; // FIX: Also sends kicked players back to the main menu instead of just reloading!
     })
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
