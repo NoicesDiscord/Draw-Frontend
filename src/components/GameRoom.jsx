@@ -19,6 +19,8 @@ export default function GameRoom({ playerInfo }) {
   const [secretWord, setSecretWord] = useState("") 
   const [currentRound, setCurrentRound] = useState(1) // NEW: Tracks the current round
   const [showPlayerModal, setShowPlayerModal] = useState(false)
+  const [isChoosing, setIsChoosing] = useState(false)
+  const [wordChoices, setWordChoices] = useState([])
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -200,6 +202,7 @@ export default function GameRoom({ playerInfo }) {
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
       
+      setIsChoosing(false) // Hide the choosing menu!
       // NEW: Save the secret word to calculate spaces and progressive hints
       setSecretWord(data.word || "")
       setTimeLeft(120) // FIX: Instantly snap clock to 120 so hints don't flash!
@@ -221,6 +224,18 @@ export default function GameRoom({ playerInfo }) {
       winSound.current.volume = 0.7
       winSound.current.currentTime = 0
       winSound.current.play().catch(err => console.log("Audio blocked:", err))
+    })
+    // NEW: The Choosing Phase!
+    socketRef.current.on('choosing_word', (data) => {
+      setIsChoosing(true)
+      setCurrentDrawer(data.drawerName)
+      setIsMyTurn(data.drawerName === playerInfo.name)
+      setSecretWord("") // Hide the old word
+      setWinner(null)
+    })
+
+    socketRef.current.on('your_word_choices', (words) => {
+      setWordChoices(words)
     })
     // FIX 1: Handle everyone leaving the lobby (Solo player fix)
     socketRef.current.on('waiting_for_players', () => {
@@ -670,6 +685,40 @@ export default function GameRoom({ playerInfo }) {
           )}
         </div>
 
+        {/* NEW: Word Choosing Phase Overlay */}
+        {isChoosing && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 100,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}>
+            {isMyTurn ? (
+              <div style={{ background: '#1e1e1e', padding: '30px', borderRadius: '12px', textAlign: 'center', border: '2px solid #bb86fc', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', maxWidth: '90%' }}>
+                <h2 style={{ color: '#03dac6', marginTop: 0 }}>Choose a word to draw!</h2>
+                <h3 style={{ color: '#FFD54F', fontSize: '24px' }}>⏱ {timeLeft}s</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+                  {wordChoices.map(w => (
+                    <button 
+                      key={w}
+                      onClick={() => {
+                        socketRef.current.emit('word_chosen', w)
+                        setIsChoosing(false)
+                      }}
+                      style={{ padding: '12px 20px', fontSize: '18px', background: '#bb86fc', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <h2 style={{ color: '#bb86fc' }}>{currentDrawer} is picking a word...</h2>
+                <h3 style={{ color: '#FFD54F', fontSize: '24px' }}>⏱ {timeLeft}s</h3>
+              </div>
+            )}
+          </div>
+        )}
         {/* NEW: Player List & Vote Kick Modal */}
         {showPlayerModal && (
           <div style={{
