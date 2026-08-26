@@ -219,7 +219,7 @@ export default function App() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
                         <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
                       </div>
-                      <input type="range" min="30" max="180" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
+                      <input type="range" min="30" max="300" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
                     </div>
 
                     <div style={{ marginBottom: '18px' }}>
