@@ -526,7 +526,8 @@ export default function GameRoom({ playerInfo }) {
               </div>
             ) : (
               <div className="floating-status" style={{ fontSize: 'clamp(13px, 4vw, 20px)', letterSpacing: '1px', padding: '6px 14px' }}>
-                {isMyTurn ? secretWord.toUpperCase() : getDynamicHint()}
+                {/* FIX: Replaces every standard space with two forced non-breaking spaces so multi-word prompts are obvious! */}
+                {isMyTurn ? secretWord.toUpperCase().split(' ').join('\u00A0\u00A0') : getDynamicHint()}
               </div>
             )}
             
