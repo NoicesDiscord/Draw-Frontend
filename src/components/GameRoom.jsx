@@ -270,6 +270,7 @@ export default function GameRoom({ playerInfo }) {
     })
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
+      setIsChoosing(false) // FIX: Make sure the overlay never blocks the victory screen!
       
       // NEW: Play the epic celebration sound!
       winSound.current.volume = 0.7
@@ -296,6 +297,7 @@ export default function GameRoom({ playerInfo }) {
       setIsMyTurn(false)
       setTimeLeft(0)
       setWinner(null)
+      setIsChoosing(false) // FIX: Force the overlay to close when left alone!
       clearCanvas()
     })
 
