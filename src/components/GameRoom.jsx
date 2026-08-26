@@ -33,12 +33,18 @@ export default function GameRoom({ playerInfo }) {
   const [brushSize, setBrushSize] = useState(5)
   const [isBucketMode, setIsBucketMode] = useState(false) 
   
-  // NEW: 20 Essential Colors (Includes neons, pastels, and skin tones!)
+  // NEW: 25 Essential Colors (Now with Theme Colors and extra vibrance!)
   const presetColors = [
     '#000000', '#333333', '#777777', '#cccccc', '#ffffff',
     '#ff0000', '#ff6600', '#ffcc00', '#ffff00', '#99cc00', 
     '#00cc00', '#006600', '#00ffff', '#00ccff', '#0000ff', 
-    '#000066', '#9900cc', '#ff00ff', '#ff99cc', '#8b4513'
+    '#000066', '#9900cc', '#ff00ff', '#ff99cc', '#8b4513',
+    // 5 NEW COLORS:
+    '#bb86fc', // Theme Purple
+    '#03dac6', // Theme Teal
+    '#ff1493', // Deep Pink
+    '#32cd32', // Lime Green
+    '#8a2be2'  // Blue Violet
   ]
 
   // --- NEW: Undo / Redo Memory Stacks ---
@@ -723,8 +729,28 @@ export default function GameRoom({ playerInfo }) {
                 justifyContent: 'space-between'
               }}
             >
-              {/* 20 Fast Colors (Pushed to the far left to maximize mobile visibility!) */}
-              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '4px', alignItems: 'center' }}>
+              {/* NEW: Custom Glassmorphism Scrollbar CSS just for the colors! */}
+              <style>{`
+                .color-palette-container::-webkit-scrollbar {
+                  height: 6px; /* Super slim! */
+                }
+                .color-palette-container::-webkit-scrollbar-track {
+                  background: rgba(255, 255, 255, 0.05);
+                  border-radius: 10px;
+                }
+                .color-palette-container::-webkit-scrollbar-thumb {
+                  background: rgba(187, 134, 252, 0.5); /* Semi-transparent theme purple */
+                  border-radius: 10px;
+                  cursor: pointer;
+                }
+                .color-palette-container::-webkit-scrollbar-thumb:hover {
+                  background: rgba(3, 218, 198, 0.8); /* Glows teal on hover! */
+                }
+              `}</style>
+
+              {/* 25 Fast Colors (Pushed to the far left to maximize mobile visibility!) */}
+              {/* FIX: Added className and increased paddingBottom to 8px so the new scrollbar fits perfectly! */}
+              <div className="color-palette-container" style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '8px', alignItems: 'center' }}>
                 {presetColors.map(color => (
                   <button
                     key={color}
