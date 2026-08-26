@@ -75,7 +75,6 @@ export default function GameRoom({ playerInfo }) {
   }
 
   // FIX: Using local sound files
-  const roundSound = useRef(new Audio('/sounds/round-start.mp3'))
   const dingSound = useRef(new Audio('/sounds/success.mp3'))
   const winSound = useRef(new Audio('/sounds/win.mp3'))
   
@@ -251,10 +250,6 @@ export default function GameRoom({ playerInfo }) {
       setSecretWord(data.word || "")
       setTimeLeft(120) // FIX: Instantly snap clock to 120 so hints don't flash!
       setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); // NEW: Update the round tracker!
-      
-      roundSound.current.volume = 0.5
-      roundSound.current.currentTime = 0
-      roundSound.current.play().catch(err => console.log("Browser blocked audio:", err))
     })
 
     // NEW: Catch room errors (like trying to join a full or expired room)
