@@ -322,6 +322,26 @@ export default function GameRoom({ playerInfo }) {
       contextRef.current.lineTo(data.x, data.y)
       contextRef.current.stroke()
     })
+    // NEW: If the server asks, the drawer takes a snapshot of their canvas!
+    socketRef.current.on('request_canvas_state', (targetId) => {
+      if (canvasRef.current) {
+        // toDataURL() instantly turns the whole drawing into a lightweight string
+        const canvasData = canvasRef.current.toDataURL()
+        socketRef.current.emit('send_canvas_state', { targetId, canvasData })
+      }
+    })
+
+    // NEW: The late joiner receives the snapshot and pastes it on their empty canvas!
+    socketRef.current.on('load_canvas_state', (canvasData) => {
+      if (canvasData && contextRef.current && canvasRef.current) {
+        const img = new Image()
+        img.onload = () => {
+          contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+          contextRef.current.drawImage(img, 0, 0)
+        }
+        img.src = canvasData
+      }
+    })
     socketRef.current.on('stop', () => {
       contextRef.current.closePath()
       saveState() // Guessers save the line!
