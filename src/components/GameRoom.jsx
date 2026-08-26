@@ -222,6 +222,31 @@ export default function GameRoom({ playerInfo }) {
       winSound.current.currentTime = 0
       winSound.current.play().catch(err => console.log("Audio blocked:", err))
     })
+    // FIX 1: Handle everyone leaving the lobby (Solo player fix)
+    socketRef.current.on('waiting_for_players', () => {
+      setCurrentDrawer("")
+      setSecretWord("")
+      setIsMyTurn(false)
+      setTimeLeft(0)
+      setWinner(null)
+      clearCanvas()
+    })
+
+    // FIX 2: Handle mobile sleep / background network drops
+    socketRef.current.on('disconnect', (reason) => {
+      // If the drop wasn't intentional (e.g. phone went to sleep, wifi dropped) -> reload!
+      if (reason === 'ping timeout' || reason === 'transport close' || reason === 'transport error') {
+        window.location.reload()
+      }
+    })
+
+    // Backup Mobile Sleep Fix: If they tab back in and the socket is dead, reload.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socketRef.current && !socketRef.current.connected) {
+        window.location.reload()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
 
     // Disabled: We handle this dynamically in the HTML now!
     socketRef.current.on('secret_word', () => {})
@@ -273,7 +298,10 @@ export default function GameRoom({ playerInfo }) {
       dingSound.current.play().catch(err => console.log("Audio blocked:", err))
     })     
 
-    return () => socketRef.current.disconnect()
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      socketRef.current.disconnect()
+    }
   }, [playerInfo.name])
 
   const getCoordinates = (e) => {
