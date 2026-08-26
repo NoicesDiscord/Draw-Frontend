@@ -242,14 +242,20 @@ export default function GameRoom({ playerInfo }) {
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
       if (data.maxRounds) setMaxRounds(data.maxRounds)
-      if (data.hintLevel) setHintLevel(data.hintLevel) // NEW
+      if (data.hintLevel) setHintLevel(data.hintLevel) 
       
-      setIsChoosing(false) // Hide the choosing menu!
-      // NEW: Save the secret word to calculate spaces and progressive hints
+      setIsChoosing(false) 
       setWaitingForHost(false)
       setSecretWord(data.word || "")
-      setTimeLeft(120) // FIX: Instantly snap clock to 120 so hints don't flash!
-      setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); // NEW: Update the round tracker!
+      setTimeLeft(120) 
+      setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); 
+
+      // NEW: Play the selection sound for the guessers so they know the drawing phase started!
+      if (data.drawerName !== playerInfo.playerName) {
+        const clone = selectSound.current.cloneNode()
+        clone.volume = 0.6
+        clone.play().catch(err => console.log("Audio blocked:", err))
+      }
     })
 
     // NEW: Catch room errors (like trying to join a full or expired room)
