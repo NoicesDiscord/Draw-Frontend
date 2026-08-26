@@ -1,4 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
+// NEW: Load all System Event sounds into memory
+const joinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2127/2127-preview.mp3') 
+const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2128/2128-preview.mp3') 
+const closeSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3') 
+const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3') 
+
+// Balance the volumes so they aren't too loud
+joinSound.volume = 0.4
+leaveSound.volume = 0.4
+closeSound.volume = 0.5
+alertSound.volume = 0.6
 
 export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [messages, setMessages] = useState([])
@@ -22,6 +33,22 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
     }
     
     socket.on('chat_message', handleNewMessage)
+    // NEW: Play sound effects based on the specific message type!
+      if (msg.sender === "System") {
+        if (msg.text.includes("joined the lobby")) {
+          joinSound.currentTime = 0; joinSound.play().catch(e => console.log(e));
+        } else if (msg.text.includes("left the lobby")) {
+          leaveSound.currentTime = 0; leaveSound.play().catch(e => console.log(e));
+        }
+      }
+      
+      if (msg.type === 'votekick') {
+        alertSound.currentTime = 0; alertSound.play().catch(e => console.log(e));
+      }
+      
+      if (msg.isCloseGuess) {
+        closeSound.currentTime = 0; closeSound.play().catch(e => console.log(e));
+      }
     return () => socket.off('chat_message', handleNewMessage)
   }, [socket])
 
