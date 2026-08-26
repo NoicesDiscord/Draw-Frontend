@@ -12,6 +12,7 @@ export default function App() {
   const [rounds, setRounds] = useState(3)
   const [drawTime, setDrawTime] = useState(120)
   const [customWords, setCustomWords] = useState('') // NEW: State for custom word list
+  const [hintLevel, setHintLevel] = useState(2) // NEW: 1 = Low, 2 = Normal, 3 = High
 
   const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
 
@@ -42,7 +43,7 @@ export default function App() {
       } else if (mode === 'private') {
         setPlayerInfo({ 
           playerName: finalName, 
-          privateSettings: { maxPlayers, rounds, drawTime, customWords: parsedWords } 
+          privateSettings: { maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords } 
         })
       } else {
         setPlayerInfo({ playerName: finalName })
@@ -131,6 +132,16 @@ export default function App() {
                         <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
                       </div>
                       <input type="range" min="30" max="180" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
+                    </div>
+                    {/* NEW: Hint Frequency Slider */}
+                    <div style={{ marginBottom: '15px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '14px', marginBottom: '8px' }}>
+                        <span>Hint Amount</span>
+                        <span style={{ color: '#03dac6', fontWeight: 'bold' }}>
+                          {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal (Default)' : 'High'}
+                        </span>
+                      </div>
+                      <input type="range" min="1" max="3" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
                     </div>
 
                     {/* NEW: Custom Words Text Box */}
