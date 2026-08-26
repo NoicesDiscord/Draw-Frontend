@@ -18,6 +18,7 @@ export default function GameRoom({ playerInfo }) {
   const [currentDrawer, setCurrentDrawer] = useState("") 
   const [secretWord, setSecretWord] = useState("") 
   const [currentRound, setCurrentRound] = useState(1) // NEW: Tracks the current round
+  const [showPlayerModal, setShowPlayerModal] = useState(false)
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -209,6 +210,10 @@ export default function GameRoom({ playerInfo }) {
       roundSound.current.play().catch(err => console.log("Browser blocked audio:", err))
     })
 
+    socketRef.current.on('kicked_from_server', () => {
+      alert("You have been kicked from the lobby by a vote.");
+      window.location.reload(); 
+    })
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
       
@@ -480,7 +485,11 @@ export default function GameRoom({ playerInfo }) {
         
         {/* Leaderboard */}
         <div className="sidebar-left">
-          <div style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div 
+            onClick={() => setShowPlayerModal(true)}
+            title="Click to manage lobby players"
+            style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+          >
             <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
               <h3 style={{ margin: '0 0 6px 0', color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
               <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#aaa', backgroundColor: '#333', padding: '3px 8px', borderRadius: '12px' }}>
@@ -522,7 +531,7 @@ export default function GameRoom({ playerInfo }) {
               color: '#000', fontSize: '24px', fontWeight: '900', 
               fontFamily: 'monospace', zIndex: 50, pointerEvents: 'none', border: '2px solid #000'
             }}>
-              {timeLeft > 0 ? `0:${timeLeft < 10 ? `0${timeLeft}` : timeLeft}` : "0:00"}
+              {timeLeft > 0 ? timeLeft : "0"}
             </div>
 
             {!currentDrawer ? (
@@ -630,6 +639,47 @@ export default function GameRoom({ playerInfo }) {
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} isMyTurn={isMyTurn} />
           )}
         </div>
+
+        {/* NEW: Player List & Vote Kick Modal */}
+        {showPlayerModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 200,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <div style={{ background: '#1e1e1e', border: '1px solid #333', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+              <h2 style={{ color: '#bb86fc', marginTop: 0, textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Lobby Players</h2>
+              <ul style={{ listStyle: 'none', padding: 0, maxHeight: '300px', overflowY: 'auto' }}>
+                {playerList.map(p => (
+                  <li key={p.id || p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #333', color: '#e0e0e0' }}>
+                    <span style={{ fontWeight: p.name === playerInfo.name ? 'bold' : 'normal', color: p.name === playerInfo.name ? '#03dac6' : '#e0e0e0' }}>
+                      {p.name} {p.name === playerInfo.name ? '(You)' : ''} - {p.score} pts
+                    </span>
+                    {p.name !== playerInfo.name && (
+                      <button 
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to start a vote to kick ${p.name}?`)) {
+                            socketRef.current.emit('initiate_votekick', p.id);
+                            setShowPlayerModal(false);
+                          }
+                        }}
+                        style={{ background: '#ff3b30', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                      >
+                        Kick
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={() => setShowPlayerModal(false)} 
+                style={{ width: '100%', padding: '12px', background: '#333', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* NEW: Cinematic Game Over Overlay goes HERE, outside the sidebar div! */}
         {winner && (
