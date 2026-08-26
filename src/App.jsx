@@ -11,6 +11,7 @@ export default function App() {
   const [maxPlayers, setMaxPlayers] = useState(8)
   const [rounds, setRounds] = useState(3)
   const [drawTime, setDrawTime] = useState(120)
+  const [customWords, setCustomWords] = useState('') // NEW: State for custom word list
 
   const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
 
@@ -33,13 +34,15 @@ export default function App() {
       
       const inviteRoom = new URLSearchParams(window.location.search).get('room')
 
-      // FIX: Send the new structured object so the backend knows what type of room to create/join!
+      // FIX: Take their comma-separated list and turn it into a clean Array for the server
+      let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
+
       if (inviteRoom) {
         setPlayerInfo({ playerName: finalName, roomId: inviteRoom })
       } else if (mode === 'private') {
         setPlayerInfo({ 
           playerName: finalName, 
-          privateSettings: { maxPlayers, rounds, drawTime } 
+          privateSettings: { maxPlayers, rounds, drawTime, customWords: parsedWords } 
         })
       } else {
         setPlayerInfo({ playerName: finalName })
@@ -123,11 +126,25 @@ export default function App() {
                       <input type="range" min="1" max="10" value={rounds} onChange={e => setRounds(e.target.value)} style={{ width: '100%' }} />
                     </div>
 
-                    <div style={{ marginBottom: '5px' }}>
+                    <div style={{ marginBottom: '15px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '14px', marginBottom: '8px' }}>
                         <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
                       </div>
                       <input type="range" min="30" max="180" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
+                    </div>
+
+                    {/* NEW: Custom Words Text Box */}
+                    <div style={{ marginBottom: '5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '14px', marginBottom: '8px' }}>
+                        <span>Custom Words (Optional)</span>
+                      </div>
+                      <textarea 
+                        value={customWords} 
+                        onChange={e => setCustomWords(e.target.value)} 
+                        placeholder="e.g. Anime, Naruto, Luffy, Goku"
+                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '8px', outline: 'none', resize: 'vertical', minHeight: '60px', boxSizing: 'border-box' }}
+                      />
+                      <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Separate words with commas.</div>
                     </div>
                   </div>
                 )}
