@@ -23,6 +23,7 @@ export default function GameRoom({ playerInfo }) {
   const [isHost, setIsHost] = useState(false)
   const [waitingForHost, setWaitingForHost] = useState(false)
   const [maxRounds, setMaxRounds] = useState(3)
+  const [hintLevel, setHintLevel] = useState(2) // NEW: Catches the host's setting
   const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
@@ -105,11 +106,22 @@ export default function GameRoom({ playerInfo }) {
     const maxHints = allowedIndices.length
     let revealCount = 0
     
-    // FIX: Scaled the hint math to work dynamically over a 120-second round!
-    if (maxHints > 0 && timeLeft > 0 && timeLeft <= 120) {
-      const timeElapsed = 120 - Math.min(timeLeft, 120)
-      revealCount = Math.floor((timeElapsed / 120) * (maxHints + 1))
-      revealCount = Math.min(maxHints, revealCount) // Never exceed the allowed hints
+    // NEW: Dynamically calculate allowed hints based on the Host's slider!
+    let dynamicMaxHints = 0;
+    if (secretWord.length > 2) {
+      if (hintLevel == 1) dynamicMaxHints = Math.floor(secretWord.length / 4); // Low
+      if (hintLevel == 2) dynamicMaxHints = Math.floor(secretWord.length / 3); // Normal
+      if (hintLevel == 3) dynamicMaxHints = Math.floor(secretWord.length / 2); // High
+      
+      // Safety lock: Never reveal the entire word (always keep at least 2 letters hidden)
+      if (dynamicMaxHints >= secretWord.length - 1) dynamicMaxHints = secretWord.length - 2;
+      if (dynamicMaxHints < 0) dynamicMaxHints = 0;
+    }
+
+    if (dynamicMaxHints > 0 && timeLeft > 0 && timeLeft <= 120) {
+      const timeElapsed = 120 - Math.min(timeLeft, 120);
+      revealCount = Math.floor((timeElapsed / 120) * (dynamicMaxHints + 1));
+      revealCount = Math.min(dynamicMaxHints, revealCount); 
     }
 
     const revealed = new Set(allowedIndices.slice(0, revealCount))
@@ -202,6 +214,7 @@ export default function GameRoom({ playerInfo }) {
       setIsHost(data.isHost)
       setIsPrivate(data.isPrivate)
       setMaxRounds(data.maxRounds)
+      if (data.hintLevel) setHintLevel(data.hintLevel) // NEW
     })
 
     // NEW: Put everyone in the lobby in a waiting state until the host clicks start
@@ -224,6 +237,8 @@ export default function GameRoom({ playerInfo }) {
       setIsMyTurn(data.drawerName === playerInfo.playerName)
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
+      if (data.maxRounds) setMaxRounds(data.maxRounds)
+      if (data.hintLevel) setHintLevel(data.hintLevel) // NEW
       
       setIsChoosing(false) // Hide the choosing menu!
       // NEW: Save the secret word to calculate spaces and progressive hints
