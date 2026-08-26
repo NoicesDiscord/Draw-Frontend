@@ -19,6 +19,11 @@ export default function GameRoom({ playerInfo }) {
   const [secretWord, setSecretWord] = useState("") 
   const [currentRound, setCurrentRound] = useState(1) // NEW: Tracks the current round
   const [showPlayerModal, setShowPlayerModal] = useState(false)
+  const [roomId, setRoomId] = useState(null)
+  const [isHost, setIsHost] = useState(false)
+  const [waitingForHost, setWaitingForHost] = useState(false)
+  const [maxRounds, setMaxRounds] = useState(3)
+  const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
 
@@ -190,8 +195,26 @@ export default function GameRoom({ playerInfo }) {
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
     setIsSocketReady(true)
 
-    socketRef.current.emit('join_game', playerInfo.name)
+    socketRef.current.emit('join_game', playerInfo) // FIX: Sends the whole object containing settings!
+    // NEW: Catch room settings when joining!
+    socketRef.current.on('room_joined', (data) => {
+      setRoomId(data.roomId)
+      setIsHost(data.isHost)
+      setIsPrivate(data.isPrivate)
+      setMaxRounds(data.maxRounds)
+    })
 
+    // NEW: Put everyone in the lobby in a waiting state until the host clicks start
+    socketRef.current.on('waiting_for_host', () => {
+      setWaitingForHost(true)
+      setCurrentDrawer("")
+      setSecretWord("")
+      setIsMyTurn(false)
+      setTimeLeft(0)
+      setWinner(null)
+      setIsChoosing(false)
+      clearCanvas()
+    })
     socketRef.current.on('update_players', (playersArray) => {
       const sortedPlayers = playersArray.sort((a, b) => b.score - a.score)
       setPlayerList(sortedPlayers)
@@ -204,9 +227,10 @@ export default function GameRoom({ playerInfo }) {
       
       setIsChoosing(false) // Hide the choosing menu!
       // NEW: Save the secret word to calculate spaces and progressive hints
+      setWaitingForHost(false)
       setSecretWord(data.word || "")
       setTimeLeft(120) // FIX: Instantly snap clock to 120 so hints don't flash!
-      setCurrentRound(data.currentRound || 1) // NEW: Update the round tracker!
+      setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); // NEW: Update the round tracker!
       
       roundSound.current.volume = 0.5
       roundSound.current.currentTime = 0
@@ -227,6 +251,7 @@ export default function GameRoom({ playerInfo }) {
     })
     // NEW: The Choosing Phase!
     socketRef.current.on('choosing_word', (data) => {
+      setWaitingForHost(false)
       setIsChoosing(true)
       setCurrentDrawer(data.drawerName)
       setIsMyTurn(data.drawerName === playerInfo.name)
@@ -535,11 +560,21 @@ export default function GameRoom({ playerInfo }) {
             title="Click to manage lobby players"
             style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
           >
-            <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid #333', paddingBottom: '12px', position: 'relative' }}>
               <h3 style={{ margin: '0 0 6px 0', color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#aaa', backgroundColor: '#333', padding: '3px 8px', borderRadius: '12px' }}>
-                ROUND {currentRound} OF 3
-              </span>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#aaa', backgroundColor: '#333', padding: '3px 8px', borderRadius: '12px' }}>
+                  ROUND {currentRound} OF {maxRounds}
+                </span>
+                {isPrivate && (
+                  <button onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
+                    alert("Invite link copied!");
+                  }} style={{ background: '#333', color: '#03dac6', border: '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    + INVITE
+                  </button>
+                )}
+              </div>
             </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
               {playerList.map((p, index) => (
@@ -580,7 +615,30 @@ export default function GameRoom({ playerInfo }) {
             </div>
 
             {!currentDrawer ? (
-              <div className="waiting-text">Waiting for a second player to join...</div>
+              <div className="waiting-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', pointerEvents: 'auto' }}>
+                {waitingForHost ? (
+                  <>
+                    <div style={{ color: '#bb86fc' }}>Waiting for host to start the game...</div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      {isHost && playerList.length >= 2 && (
+                        <button onClick={() => socketRef.current.emit('start_private_game')} style={{ padding: '12px 20px', background: '#03dac6', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
+                          🚀 Start Game
+                        </button>
+                      )}
+                      {isPrivate && (
+                        <button onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
+                          alert("Invite link copied to clipboard!");
+                        }} style={{ padding: '12px 20px', background: '#bb86fc', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
+                          📋 Copy Invite Link
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div>Waiting for a second player to join...</div>
+                )}
+              </div>
             ) : winner ? (
               <div className="floating-status" style={{ background: '#FFD54F', color: '#000' }}>
                 🏆 {winner} won the game!
