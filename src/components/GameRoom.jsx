@@ -97,10 +97,10 @@ export default function GameRoom({ playerInfo }) {
     const maxHints = allowedIndices.length
     let revealCount = 0
     
-    // FIX: Only calculate hints if the timer is actively ticking (prevents flash at 0)
-    if (maxHints > 0 && timeLeft > 0 && timeLeft <= 60) {
-      const timeElapsed = 60 - Math.min(timeLeft, 60)
-      revealCount = Math.floor((timeElapsed / 60) * (maxHints + 1))
+    // FIX: Scaled the hint math to work dynamically over a 120-second round!
+    if (maxHints > 0 && timeLeft > 0 && timeLeft <= 120) {
+      const timeElapsed = 120 - Math.min(timeLeft, 120)
+      revealCount = Math.floor((timeElapsed / 120) * (maxHints + 1))
       revealCount = Math.min(maxHints, revealCount) // Never exceed the allowed hints
     }
 
@@ -201,7 +201,7 @@ export default function GameRoom({ playerInfo }) {
       
       // NEW: Save the secret word to calculate spaces and progressive hints
       setSecretWord(data.word || "")
-      setTimeLeft(60) // FIX: Instantly snap clock to 60 so hints don't flash!
+      setTimeLeft(120) // FIX: Instantly snap clock to 120 so hints don't flash!
       setCurrentRound(data.currentRound || 1) // NEW: Update the round tracker!
       
       roundSound.current.volume = 0.5
