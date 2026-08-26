@@ -30,11 +30,9 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         successSound.currentTime = 0 
         successSound.play().catch(err => console.log("Browser blocked audio:", err))
       }
-    }
-    
-    socket.on('chat_message', handleNewMessage)
-    // NEW: Play sound effects based on the specific message type!
-      if (msg.sender === "System") {
+
+      // FIX: Moved the audio logic INSIDE the function so it can read the 'msg' variable!
+      if (msg.sender === "System" && msg.text) {
         if (msg.text.includes("joined the lobby")) {
           joinSound.currentTime = 0; joinSound.play().catch(e => console.log(e));
         } else if (msg.text.includes("left the lobby")) {
@@ -49,6 +47,10 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
       if (msg.isCloseGuess) {
         closeSound.currentTime = 0; closeSound.play().catch(e => console.log(e));
       }
+    }
+    
+    socket.on('chat_message', handleNewMessage)
+
     return () => socket.off('chat_message', handleNewMessage)
   }, [socket])
 
