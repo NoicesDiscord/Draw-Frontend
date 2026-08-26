@@ -404,11 +404,13 @@ export default function GameRoom({ playerInfo }) {
 
   const stopDrawing = () => {
     if (!isMyTurn) return 
+    if (!isDrawing) return // FIX: Ignore ghost events! Only save state if we were actually drawing a line!
+    
     contextRef.current.closePath()
     setIsDrawing(false)
     socketRef.current.emit('stop')
     
-    // NEW: Drawer saves state immediately after lifting their mouse/finger
+    // Drawer saves state immediately after lifting their mouse/finger
     saveState()
     redoStack.current = []
   }
