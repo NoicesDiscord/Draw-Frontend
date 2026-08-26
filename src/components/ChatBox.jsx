@@ -10,6 +10,12 @@ joinSound.volume = 0.4
 leaveSound.volume = 0.4
 closeSound.volume = 0.5
 alertSound.volume = 0.6
+// FIX: Safely clones the audio node before playing so sounds can overlap without static!
+const playSoundSafely = (audioObj) => {
+  const clone = audioObj.cloneNode()
+  clone.volume = audioObj.volume
+  clone.play().catch(e => console.log(e))
+}
 
 export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [messages, setMessages] = useState([])
@@ -27,25 +33,23 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
       setMessages((prev) => [...prev, msg])
       
       if (msg.isGuess) {
-        successSound.currentTime = 0 
-        successSound.play().catch(err => console.log("Browser blocked audio:", err))
+        playSoundSafely(successSound);
       }
 
-      // FIX: Moved the audio logic INSIDE the function so it can read the 'msg' variable!
       if (msg.sender === "System" && msg.text) {
         if (msg.text.includes("joined the lobby")) {
-          joinSound.currentTime = 0; joinSound.play().catch(e => console.log(e));
+          playSoundSafely(joinSound);
         } else if (msg.text.includes("left the lobby")) {
-          leaveSound.currentTime = 0; leaveSound.play().catch(e => console.log(e));
+          playSoundSafely(leaveSound);
         }
       }
       
       if (msg.type === 'votekick') {
-        alertSound.currentTime = 0; alertSound.play().catch(e => console.log(e));
+        playSoundSafely(alertSound);
       }
       
       if (msg.isCloseGuess) {
-        closeSound.currentTime = 0; closeSound.play().catch(e => console.log(e));
+        playSoundSafely(closeSound);
       }
     }
     
