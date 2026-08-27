@@ -32,6 +32,7 @@ export default function GameRoom({ playerInfo }) {
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
   const [isBucketMode, setIsBucketMode] = useState(false) 
+  const [showColorPicker, setShowColorPicker] = useState(false) // NEW: Controls the pop-up color menu!
   
   // NEW: 25 Essential Colors (Now with Theme Colors and extra vibrance!)
   const presetColors = [
@@ -554,21 +555,23 @@ export default function GameRoom({ playerInfo }) {
           z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* NEW: Floating Toolbar Styles */
+        /* NEW: Docked & Compact Toolbar Styles */
         .toolbar {
           position: absolute;
-          bottom: 15px;
+          bottom: 0px; /* FIX: Snapped perfectly to the bottom edge of the canvas container! */
           left: 50%;
           transform: translateX(-50%);
-          background-color: rgba(20, 20, 20, 0.85);
-          padding: 10px 15px;
-          border-radius: 30px;
+          background-color: rgba(20, 20, 20, 0.95);
+          padding: 8px 16px; /* FIX: Made the toolbar noticeably slimmer */
+          border-radius: 16px 16px 0 0; /* FIX: Flat on the bottom, rounded on the top! */
           display: flex;
           gap: 12px;
           align-items: center;
           border: 1px solid #444;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+          border-bottom: none; /* Smooth visual transition into the bottom edge */
+          box-shadow: 0 -4px 15px rgba(0,0,0,0.5); /* FIX: Shadow pushes UP since it's on the floor now */
           transition: opacity 0.3s ease;
+          z-index: 50;
         }
         .color-btn {
           width: 24px; height: 24px; border-radius: 50%; cursor: pointer; transition: transform 0.1s;
@@ -595,7 +598,7 @@ export default function GameRoom({ playerInfo }) {
           .waiting-text { font-size: 20px; }
           .floating-status { font-size: 15px; padding: 6px 14px; top: 15px; }
           
-          .toolbar { bottom: 10px; padding: 8px 12px; gap: 8px; }
+          .toolbar { bottom: 0px; padding: 6px 12px; gap: 8px; border-radius: 12px 12px 0 0; }
           .color-btn { width: 20px; height: 20px; }
         }
       `}</style>
@@ -718,56 +721,70 @@ export default function GameRoom({ playerInfo }) {
               }}
             />
 
-            {/* NEW: Floating Tool Bar overlay */}
-            {/* NEW: Maximized Space Tool Bar (Colors on Left, Tools on Right) */}
+           {/* NEW: Docked & Compact Tool Bar */}
             <div 
               className="toolbar" 
               style={{ 
                 opacity: isMyTurn ? 1 : 0.3, 
                 pointerEvents: isMyTurn ? 'auto' : 'none',
-                width: '96vw', 
-                maxWidth: '700px', 
-                boxSizing: 'border-box',
-                justifyContent: 'space-between'
+                width: 'max-content', // FIX: Hugs the tools tightly!
+                maxWidth: '96vw', 
+                boxSizing: 'border-box'
               }}
             >
-              {/* NEW: Custom Glassmorphism Scrollbar CSS just for the colors! */}
-              <style>{`
-                .color-palette-container::-webkit-scrollbar {
-                  height: 6px; /* Super slim! */
-                }
-                .color-palette-container::-webkit-scrollbar-track {
-                  background: rgba(255, 255, 255, 0.05);
-                  border-radius: 10px;
-                }
-                .color-palette-container::-webkit-scrollbar-thumb {
-                  background: rgba(187, 134, 252, 0.5); /* Semi-transparent theme purple */
-                  border-radius: 10px;
-                  cursor: pointer;
-                }
-                .color-palette-container::-webkit-scrollbar-thumb:hover {
-                  background: rgba(3, 218, 198, 0.8); /* Glows teal on hover! */
-                }
-              `}</style>
+              {/* 1. The Single Active Color Block & Popup Grid */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
+                    backgroundColor: brushColor, // Shows whatever is currently selected!
+                    border: '2px solid #fff',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
+                    flexShrink: 0
+                  }}
+                  title="Click to choose a color"
+                />
 
-              {/* 25 Fast Colors (Pushed to the far left to maximize mobile visibility!) */}
-              {/* FIX: Added className and increased paddingBottom to 8px so the new scrollbar fits perfectly! */}
-              <div className="color-palette-container" style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, paddingBottom: '8px', alignItems: 'center' }}>
-                {presetColors.map(color => (
-                  <button
-                    key={color}
-                    onClick={() => { setBrushColor(color); setIsBucketMode(false); }}
-                    style={{
-                      width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0, cursor: 'pointer', padding: 0,
-                      backgroundColor: color,
-                      border: brushColor === color ? '2px solid #fff' : '1px solid #444',
-                      boxShadow: brushColor === color ? '0 0 5px rgba(255,255,255,0.8)' : 'none'
-                    }}
-                  />
-                ))}
+                {/* The 2-Row Color Menu Popup! */}
+                {showColorPicker && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '45px', // Pops up perfectly above the toolbar!
+                    left: '-5px', // Anchors securely to the left
+                    backgroundColor: 'rgba(20, 20, 20, 0.95)',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: '1px solid #555',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(13, minmax(20px, 24px))', // 25 colors forces exactly 2 rows!
+                    gap: '6px',
+                    boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
+                    zIndex: 200,
+                    width: 'max-content'
+                  }}>
+                    {presetColors.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => { 
+                          setBrushColor(color); 
+                          setIsBucketMode(false); 
+                          setShowColorPicker(false); // Instantly closes the menu!
+                        }}
+                        style={{
+                          aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0,
+                          backgroundColor: color,
+                          border: brushColor === color ? '2px solid #fff' : '1px solid #333',
+                          transform: brushColor === color ? 'scale(1.15)' : 'scale(1)',
+                          transition: 'transform 0.1s'
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
+              <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
 
               {/* Paint Bucket & Brush Size Slider */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
