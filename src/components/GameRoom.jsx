@@ -512,14 +512,19 @@ const presetColors = [
   return (
     <>
       <style>{`
+        /* FIX 1: Impenetrable Lockdown - The browser is now strictly forbidden from scrolling the body! */
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; touch-action: none; 
-          overscroll-behavior: none; 
+          position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; 
+          width: 100% !important; height: 100vh !important; height: 100dvh !important; 
+          overflow: hidden !important; touch-action: none; overscroll-behavior: none; 
         }
         * { box-sizing: border-box; }
         
-        #root { width: 100%; height: 100%; }
+        #root { 
+          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+          width: 100%; height: 100%; overflow: hidden;
+        }
         
         .game-layout {
           display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 100%; gap: 20px;
@@ -592,39 +597,41 @@ const presetColors = [
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            display: block !important; /* Destroy the grid, we are using absolute screen coordinates now! */
-            width: 100vw !important;
-            height: 100dvh !important;
+            display: block !important; 
+            width: 100% !important; height: 100% !important;
           }
           
-          /* FIX: Bolted directly to the top 42% of the phone screen using 'position: fixed'. 
-             It is now physically impossible for the browser to scroll it away! */
+          /* FIX: Canvas is pinned safely to the absolute top. */
           .layout-guesser .center-canvas { 
-            position: fixed !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-            width: 100vw !important; 
+            position: absolute !important; 
+            top: 0 !important; left: 0 !important; right: 0 !important;
             height: 42dvh !important; 
-            z-index: 100 !important; 
-            background-color: #1e1e1e;
-            border-bottom: 2px solid #222; 
+            z-index: 200 !important; 
+            background-color: #1e1e1e; border-bottom: 2px solid #222; 
             display: flex; align-items: center; justify-content: center;
           }
           
-          /* FIX: Scores and Chat are bolted directly underneath the canvas taking the remaining 58% */
+          /* FIX: Scores pinned to the bottom left */
           .layout-guesser .sidebar-left { 
-            position: fixed !important; 
-            top: 42dvh !important; 
-            left: 0 !important; 
-            width: 35vw !important; 
-            height: 58dvh !important; 
+            position: absolute !important; 
+            top: 42dvh !important; bottom: 0 !important; left: 0 !important; 
+            width: 35vw !important; height: auto !important; 
+            z-index: 100 !important;
           }
+          
+          /* FIX: Chat pinned to the bottom right */
           .layout-guesser .sidebar-right { 
-            position: fixed !important; 
-            top: 42dvh !important; 
-            right: 0 !important; 
-            width: 65vw !important; 
-            height: 58dvh !important; 
+            position: absolute !important; 
+            top: 42dvh !important; bottom: 0 !important; right: 0 !important; 
+            width: 65vw !important; height: auto !important;
+            z-index: 100 !important;
+          }
+
+          /* CRITICAL FIX: Traps the ChatBox so it scrolls internally! */
+          .layout-guesser .sidebar-right > div {
+            height: 100% !important; max-height: 100% !important;
+            display: flex !important; flex-direction: column !important;
+            overflow: hidden !important;
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
@@ -657,7 +664,6 @@ const presetColors = [
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
           }
           .game-canvas { 
-            /* FIX: Prevents canvas from spilling out. It scales automatically to fit inside the 42dvh row! */
             width: auto !important; max-width: 100vw !important; 
             height: auto !important; max-height: 100% !important; 
             border-radius: 0 !important; border: none !important; 
