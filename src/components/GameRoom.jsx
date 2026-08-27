@@ -717,17 +717,28 @@ const presetColors = [
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
             grid-template-columns: 45fr 55fr !important; 
-            grid-template-rows: 2fr auto 0.5fr !important; 
+            /* FIX: Top row (Chat/Scores) gets a massive '1fr'. Bottom row 'auto' cleanly wraps the Canvas + Tools! */
+            grid-template-rows: 1fr auto !important; 
           }
           .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; overflow: hidden; }
           .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; overflow: hidden; }
           .layout-drawer .sidebar-right form { display: none !important; } 
           .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
-          .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
+          .layout-drawer .center-canvas { grid-column: 1 / span 2 !important; grid-row: 2 !important; }
+          
+          /* FIX: Turns the wrapper into a column so the Canvas and Toolbar stack perfectly on top of each other! */
+          .layout-drawer .canvas-wrapper {
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          
+          /* FIX: Pulls the toolbar out of absolute position and drops it cleanly into the document flow below the canvas */
           .layout-drawer .toolbar { 
-            position: absolute !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
+            position: relative !important; 
+            bottom: auto !important; left: auto !important; transform: none !important;
             border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
+            margin-top: 15px !important; margin-bottom: 15px !important;
           }
 
           /* --- MISC UI TWEAKS --- */
