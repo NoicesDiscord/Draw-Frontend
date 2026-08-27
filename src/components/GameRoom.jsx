@@ -516,11 +516,11 @@ export default function GameRoom({ playerInfo }) {
       <style>{`
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; 
+          /* FIX: 100dvh tells mobile browsers to dynamically resize when the keyboard opens! */
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; touch-action: none; 
         }
         * { box-sizing: border-box; }
         
-        /* FIX: Forces React's hidden root container to stretch all the way to the bottom! */
         #root { width: 100%; height: 100%; }
         
         .game-layout {
@@ -539,8 +539,10 @@ export default function GameRoom({ playerInfo }) {
           padding: 10px; border-radius: 8px; border: 1px solid #333; min-height: 0; min-width: 0; position: relative; 
         }
         .game-canvas {
-          background-color: #ffffff; touch-action: none; width: 100%; height: auto;
-          aspect-ratio: 4/3; border-radius: 4px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); border: 2px solid #333;
+          background-color: #ffffff; touch-action: none; 
+          /* FIX: Bulletproof 4:3 Aspect Ratio so it NEVER stretches or warps on any device! */
+          max-width: 100%; max-height: 100%; width: auto; height: auto; aspect-ratio: 4 / 3;
+          border-radius: 4px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); border: 2px solid #333;
         }
         
         .waiting-text {
@@ -582,28 +584,50 @@ export default function GameRoom({ playerInfo }) {
         }
 
         @media (max-width: 900px) {
-          .game-layout {
-            grid-template-columns: 45fr 55fr; grid-template-rows: 60fr 40fr; gap: 0px; padding: 0px;
-          }
-          .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
-          .sidebar-left { grid-column: 1; grid-row: 2; }
-          .sidebar-right { grid-column: 2; grid-row: 2; }
+          .game-layout { gap: 0px; padding: 0px; }
           
+          /* --- GUESSER MOBILE LAYOUT --- */
+          .layout-guesser.game-layout {
+            grid-template-columns: 40fr 60fr; 
+            /* FIX: Canvas gets EXACTLY 35% of the screen so Chat and Scores ALWAYS fit underneath! */
+            grid-template-rows: minmax(150px, 35dvh) 1fr; 
+          }
+          .layout-guesser .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
+          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; }
+          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; }
+
+          /* --- DRAWER MOBILE LAYOUT --- */
+          .layout-drawer.game-layout { display: block; }
+          .layout-drawer .center-canvas { height: 100dvh; padding-bottom: 45px; }
+          .layout-drawer .sidebar-left { display: none; } /* Hide scores to maximize drawing space! */
+          .layout-drawer .sidebar-right {
+            position: absolute; top: 15px; right: 10px; 
+            width: 200px; height: 35dvh; 
+            z-index: 100; pointer-events: none; /* Let them draw right through the chat! */
+          }
+          .layout-drawer .sidebar-right > div {
+            background-color: rgba(20, 20, 20, 0.4) !important; /* Make chat transparent */
+            border: 1px solid rgba(255,255,255,0.1) !important;
+          }
+          .layout-drawer .sidebar-right form { display: none !important; } /* Hide the typing box */
+          
+          /* UNIVERSAL CANVAS FIX (Cleans up the borders) */
           .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
-          .game-canvas { border-radius: 0 !important; border: none !important; aspect-ratio: auto !important; height: 100% !important; }
+          .game-canvas { border-radius: 0 !important; border: none !important; }
           
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
           .sidebar-left > div { border-right: 2px solid #222 !important; }
 
           .waiting-text { font-size: 20px; }
-          .floating-status { font-size: 15px; padding: 6px 14px; top: 15px; }
+          .floating-status { font-size: 15px; padding: 6px 14px; top: 15px; left: 60px; }
           
           .toolbar { bottom: 0px; padding: 6px 12px; gap: 8px; border-radius: 12px 12px 0 0; }
           .color-btn { width: 20px; height: 20px; }
         }
       `}</style>
 
-      <div className="game-layout">
+      {/* FIX: Dynamically applies a different layout depending on if you are drawing or guessing! */}
+      <div className={`game-layout ${isMyTurn ? 'layout-drawer' : 'layout-guesser'}`}>
         
         {/* Leaderboard */}
         <div className="sidebar-left">
