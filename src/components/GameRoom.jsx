@@ -592,18 +592,40 @@ const presetColors = [
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            grid-template-columns: 35fr 65fr; 
-            /* FIX: 42dvh allocates EXACTLY 42% of the screen height to the canvas. 
-               When the keyboard opens, it dynamically shrinks the canvas, keeping it visible! */
-            grid-template-rows: 42dvh minmax(0, 1fr); 
+            display: block !important; /* Destroy the grid, we are using absolute screen coordinates now! */
+            width: 100vw !important;
+            height: 100dvh !important;
           }
+          
+          /* FIX: Bolted directly to the top 42% of the phone screen using 'position: fixed'. 
+             It is now physically impossible for the browser to scroll it away! */
           .layout-guesser .center-canvas { 
-            grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; 
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 100vw !important; 
+            height: 42dvh !important; 
+            z-index: 100 !important; 
             background-color: #1e1e1e;
+            border-bottom: 2px solid #222; 
+            display: flex; align-items: center; justify-content: center;
           }
-          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
-          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
+          
+          /* FIX: Scores and Chat are bolted directly underneath the canvas taking the remaining 58% */
+          .layout-guesser .sidebar-left { 
+            position: fixed !important; 
+            top: 42dvh !important; 
+            left: 0 !important; 
+            width: 35vw !important; 
+            height: 58dvh !important; 
+          }
+          .layout-guesser .sidebar-right { 
+            position: fixed !important; 
+            top: 42dvh !important; 
+            right: 0 !important; 
+            width: 65vw !important; 
+            height: 58dvh !important; 
+          }
           
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
