@@ -586,39 +586,26 @@ const presetColors = [
 
 
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
+        /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
-          .game-layout { gap: 0px; padding: 0px; }
+          .game-layout { display: grid !important; gap: 0px; padding: 0px; }
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            display: flex !important;
-            flex-direction: column !important;
-            height: 100dvh !important;
-            overflow: hidden !important;
+            grid-template-columns: 35fr 65fr; 
+            /* FIX: 42dvh allocates EXACTLY 42% of the screen height to the canvas. 
+               When the keyboard opens, it dynamically shrinks the canvas, keeping it visible! */
+            grid-template-rows: 42dvh minmax(0, 1fr); 
           }
-          /* FIX: Canvas is locked to the top and forbidden from shrinking when the keyboard pops up! */
           .layout-guesser .center-canvas { 
-            flex: 0 0 38vh !important; 
-            width: 100vw !important;
-            border-bottom: 2px solid #222; 
-            background: #121212;
+            grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            background-color: #1e1e1e;
           }
-          /* FIX: Scores and Chat sit side-by-side underneath, sharing the remaining keyboard space cleanly */
-          .layout-guesser .sidebar-left { 
-            display: flex !important;
-            flex: 1 1 auto !important;
-            height: auto !important;
-            max-height: calc(62dvh - 50px);
-            overflow: hidden;
-          }
-          .layout-guesser .sidebar-right { 
-            flex: 1 1 auto !important;
-            height: auto !important;
-            max-height: calc(62dvh - 50px);
-            overflow: hidden;
-          }
+          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
+          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
           
-          /* DRAWER LAYOUT */
+          /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
             grid-template-columns: 40fr 60fr; 
             grid-template-rows: 1fr auto 1fr; 
@@ -632,7 +619,7 @@ const presetColors = [
             bottom: -70px; border-radius: 16px; border-bottom: 1px solid #444; 
           }
 
-          /* MOBILE POPUPS */
+          /* --- MOBILE POPUPS --- */
           .color-popup {
             position: fixed !important; bottom: 75px !important; left: 10px !important; right: 10px !important; 
             width: auto !important; grid-template-columns: repeat(10, 1fr) !important; 
@@ -642,17 +629,23 @@ const presetColors = [
             position: fixed !important; bottom: 75px !important; left: 50% !important; transform: translateX(-50%) !important;
           }
 
-          /* UNIVERSAL MOBILE CANVAS FIXES */
-          .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
+          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
+          .canvas-wrapper { 
+            padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; 
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+          }
           .game-canvas { 
-            width: 100vw !important; max-width: 100vw !important; height: auto !important; max-height: none !important; 
-            border-radius: 0 !important; border: none !important; aspect-ratio: 4 / 3; 
+            /* FIX: Prevents canvas from spilling out. It scales automatically to fit inside the 42dvh row! */
+            width: auto !important; max-width: 100vw !important; 
+            height: auto !important; max-height: 100% !important; 
+            border-radius: 0 !important; border: none !important; 
+            aspect-ratio: 4 / 3; margin: 0 auto;
           }
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
           .sidebar-left > div { border-right: 2px solid #222 !important; }
           .waiting-text { font-size: 20px; }
 
-          /* MOBILE FLOATING UI */
+          /* --- MOBILE FLOATING UI --- */
           .game-clock {
             font-size: 15px !important; padding: 2px 6px !important; top: 10px !important; left: 10px !important; border-width: 1px !important;
           }
