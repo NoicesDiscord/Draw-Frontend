@@ -719,15 +719,33 @@ const presetColors = [
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
             grid-template-columns: 40fr 60fr !important; 
-            grid-template-rows: 1fr auto 1fr !important; 
+            /* FIX: '2fr' forces the top row to expand, gracefully shifting the canvas downward! */
+            grid-template-rows: 2fr auto 0.5fr !important; 
           }
-          .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; }
-          .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; }
+          .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; overflow: hidden; }
+          .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; overflow: hidden; }
           .layout-drawer .sidebar-right form { display: none !important; } 
-          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; } 
+          
+          /* FIX: Forces the chat box to stretch into the newly created top space */
+          .layout-drawer .sidebar-right > div { 
+            background: rgba(30, 30, 30, 0.7) !important; 
+            height: 100% !important; 
+            display: flex !important; 
+            flex-direction: column !important; 
+            overflow: hidden !important; 
+          } 
+          
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
+          
+          /* FIX: Rescues the tools! 'position: fixed' pulls them out of the hidden canvas wrapper and anchors them to the bottom of your phone screen! */
           .layout-drawer .toolbar { 
-            bottom: -70px; border-radius: 16px; border-bottom: 1px solid #444; 
+            position: fixed !important;
+            bottom: 15px !important; 
+            left: 50% !important; 
+            transform: translateX(-50%) !important;
+            border-radius: 16px !important; 
+            border: 1px solid #444 !important; 
+            z-index: 300 !important;
           }
 
           /* --- MOBILE POPUPS --- */
