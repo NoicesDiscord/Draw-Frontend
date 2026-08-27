@@ -164,45 +164,76 @@ const presetColors = [
 
   
 
-  // --- FIX: Keep the layout locked to the space ABOVE the phone keyboard ---
-  // The old "height:100%" trick freezes the layout at the pre-keyboard viewport
-  // size, so when the keyboard opens the canvas either gets covered or shoved
-  // off-screen. Instead we track window.visualViewport (the part of the
-  // screen actually visible once the keyboard eats into it) and feed its
-  // live height into a CSS variable. Every "100%" in the stylesheet below
-  // chains up to this variable, so the whole grid (canvas + chat) shrinks to
-  // fit the visible area in real time — canvas stays on screen, chat input
-  // stays right above the keyboard, exactly like skribbl.io.
+  // --- FIX: Canvas stays a FIXED size. Only the chat area below it shrinks
+  // to fit whatever space is left above the keyboard — exactly like skribbl.io.
+  //
+  // window.visualViewport.height shrinks when the Android/iOS keyboard opens;
+  // window.innerHeight normally does not. We use that gap to tell "keyboard
+  // just opened" apart from "phone was actually rotated/resized": we track the
+  // tallest visualViewport height we've seen (= the real, keyboard-closed
+  // screen height) and only recompute the canvas's fixed height from that.
+  // The chat area is always sized to whatever is left of the CURRENT
+  // (possibly keyboard-shrunk) visible height, so it — not the canvas —
+  // is what shrinks, and its input stays pinned right above the keyboard.
+  const restingViewportHeightRef = useRef(
+    window.visualViewport ? window.visualViewport.height : window.innerHeight
+  )
+
   useEffect(() => {
     const vv = window.visualViewport
 
-    const setAppHeight = () => {
-      const height = vv ? vv.height : window.innerHeight
+    const applyHeights = () => {
+      const liveHeight = vv ? vv.height : window.innerHeight
       const offsetTop = vv ? vv.offsetTop : 0
-      document.documentElement.style.setProperty('--app-height', `${height}px`)
-      // Some mobile browsers (mainly iOS Safari) nudge the visual viewport
-      // down slightly when the keyboard opens instead of only shrinking it.
-      // Compensating with a translateY keeps the canvas pinned in place
-      // instead of sliding out from under the status bar.
-      document.documentElement.style.setProperty('--app-offset-top', `${offsetTop}px`)
+
+      // Grow (never shrink) our "resting" baseline — this is what the screen
+      // looks like with the keyboard closed.
+      if (liveHeight > restingViewportHeightRef.current) {
+        restingViewportHeightRef.current = liveHeight
+      }
+      const restingHeight = restingViewportHeightRef.current
+
+      // Canvas: fixed 40% of the RESTING height. Never changes when the
+      // keyboard opens/closes.
+      const canvasHeight = Math.round(restingHeight * 0.4)
+
+      // Chat: whatever is actually still visible below the canvas right now.
+      // This is what shrinks so the input box + last few messages stay
+      // visible above the keyboard, instead of getting hidden under it.
+      const chatHeight = Math.max(120, Math.round(liveHeight - canvasHeight))
+
+      const root = document.documentElement.style
+      root.setProperty('--app-height', `${restingHeight}px`)
+      root.setProperty('--app-offset-top', `${offsetTop}px`)
+      root.setProperty('--canvas-h', `${canvasHeight}px`)
+      root.setProperty('--chat-h', `${chatHeight}px`)
     }
 
-    setAppHeight()
+    applyHeights()
+
+    const handleOrientation = () => {
+      // Screen genuinely rotated/resized — reset the resting baseline so we
+      // don't keep using the old orientation's height.
+      restingViewportHeightRef.current = vv ? vv.height : window.innerHeight
+      applyHeights()
+    }
 
     if (vv) {
-      vv.addEventListener('resize', setAppHeight)
-      vv.addEventListener('scroll', setAppHeight)
+      vv.addEventListener('resize', applyHeights)
+      vv.addEventListener('scroll', applyHeights)
     } else {
-      window.addEventListener('resize', setAppHeight)
+      window.addEventListener('resize', applyHeights)
     }
+    window.addEventListener('orientationchange', handleOrientation)
 
     return () => {
       if (vv) {
-        vv.removeEventListener('resize', setAppHeight)
-        vv.removeEventListener('scroll', setAppHeight)
+        vv.removeEventListener('resize', applyHeights)
+        vv.removeEventListener('scroll', applyHeights)
       } else {
-        window.removeEventListener('resize', setAppHeight)
+        window.removeEventListener('resize', applyHeights)
       }
+      window.removeEventListener('orientationchange', handleOrientation)
     }
   }, [])
 
@@ -558,6 +589,9 @@ const presetColors = [
            instead of a frozen '100%'/'100vh'. That variable shrinks the instant the
            keyboard opens, so this whole layout shrinks with it and stays fully on
            screen instead of being covered or scrolled away. */
+                /* FIX: Lock to --app-height (kept live by the visualViewport code above)
+           instead of a frozen '100%'/'100vh'. This is the STABLE resting
+           height (keyboard closed), so the whole layout doesn't jump around. */
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
           position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
@@ -648,9 +682,12 @@ const presetColors = [
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            /* FIX: Strict 40% Canvas / 60% Chat split. When the keyboard opens, both areas shrink gracefully in place! */
+            /* FIX: Canvas row is a FIXED pixel height (--canvas-h) that never
+               changes when the keyboard opens. Chat row (--chat-h) is the
+               live remaining visible space, so IT shrinks instead — same as
+               skribbl.io. Falls back to the old 40%/60% split before JS runs. */
             grid-template-columns: 35fr 65fr !important; 
-            grid-template-rows: 40% 60% !important; 
+            grid-template-rows: var(--canvas-h, 40%) var(--chat-h, 60%) !important; 
           }
           
           /* FIX: Canvas is locked into the top 40% cell */
