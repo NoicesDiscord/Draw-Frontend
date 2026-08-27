@@ -27,6 +27,7 @@ export default function GameRoom({ playerInfo }) {
   const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
+  const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -457,7 +458,20 @@ const presetColors = [
       dingSound.current.volume = 0.6
       dingSound.current.currentTime = 0
       dingSound.current.play().catch(err => console.log("Audio blocked:", err))
-    })     
+    })    
+
+    // FIX: Listen to the chat! If the server says it's a guess, add that player to the winners list!
+    socketRef.current.on('chat_message', (data) => {
+      if (data.isGuess) {
+        setCorrectGuessers(prev => prev.includes(data.sender) ? prev : [...prev, data.sender]);
+      }
+    })
+
+    // FIX: Automatically wipe the winners list clean whenever the game state resets!
+    socketRef.current.on('round_update', () => setCorrectGuessers([]));
+    socketRef.current.on('waiting_for_players', () => setCorrectGuessers([]));
+    socketRef.current.on('waiting_for_host', () => setCorrectGuessers([]));
+    socketRef.current.on('choosing_word', () => setCorrectGuessers([]));
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility)
@@ -810,26 +824,48 @@ const presetColors = [
                 )}
               </div>
             </div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
-              {playerList.map((p, index) => (
-                <li 
-                  key={index} 
-                  style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #333', color: p.name === playerInfo.playerName ? '#03dac6' : '#e0e0e0', fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', fontSize: '13px' }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '5px' }}>
-                    {index + 1}. {p.name}
-                  </span>
-                  
-                  {/* NEW: The pulsing clock next to the active drawer! */}
-                  {p.name === currentDrawer && timeLeft > 0 && (
-                    <span style={{ color: '#FFD54F', fontSize: '13px', fontWeight: 'bold', marginRight: 'auto', marginLeft: '8px' }}>
-                      ⏱ {timeLeft}s
+            {/* FIX: Beautifully redesigned modern player cards! No more timer, bigger fonts, and dynamic highlighting! */}
+            <ul style={{ listStyle: 'none', padding: '0 5px', margin: 0, overflowY: 'auto', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {playerList.map((p, index) => {
+                const isMe = p.name === playerInfo.playerName;
+                const isDrawer = p.name === currentDrawer;
+                const hasGuessed = correctGuessers.includes(p.name);
+                
+                return (
+                  <li 
+                    key={index} 
+                    style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                      padding: '10px 14px', borderRadius: '12px',
+                      backgroundColor: hasGuessed ? 'rgba(3, 218, 198, 0.15)' : (isMe ? 'rgba(187, 134, 252, 0.15)' : '#252525'),
+                      border: hasGuessed ? '1px solid #03dac6' : (isMe ? '1px solid #bb86fc' : '1px solid transparent'),
+                      transition: 'all 0.2s', boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+                      {/* The Rank Circle */}
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: hasGuessed ? '#03dac6' : '#444', color: hasGuessed ? '#000' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', flexShrink: 0 }}>
+                        {index + 1}
+                      </div>
+                      
+                      {/* The Name and Status Text */}
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isMe ? '#bb86fc' : '#e0e0e0'), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          {p.name} {isMe && '(You)'}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
+                          {hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : 'Guesser')}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* The Points */}
+                    <span style={{ fontSize: '16px', fontWeight: '900', color: hasGuessed ? '#03dac6' : '#fff', flexShrink: 0 }}>
+                      {p.score}
                     </span>
-                  )}
-
-                  <span>{p.score}</span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -873,9 +909,19 @@ const presetColors = [
                 🏆 {winner} won the game!
               </div>
             ) : (
-              <div className="floating-status" style={{ fontSize: 'clamp(13px, 4vw, 20px)', letterSpacing: '1px', padding: '6px 14px' }}>
-                {/* FIX: Replaces every standard space with two forced non-breaking spaces so multi-word prompts are obvious! */}
-                {isMyTurn ? secretWord.toUpperCase().split(' ').join('\u00A0\u00A0') : getDynamicHint()}
+              <div 
+                className="floating-status" 
+                style={{ 
+                  fontSize: 'clamp(13px, 4vw, 20px)', letterSpacing: '1px', padding: '6px 14px',
+                  /* FIX: The bar turns bright Teal if you guessed the word correctly! */
+                  backgroundColor: correctGuessers.includes(playerInfo.playerName) ? 'rgba(3, 218, 198, 0.9)' : 'rgba(55, 0, 179, 0.85)',
+                  color: correctGuessers.includes(playerInfo.playerName) ? '#000' : 'white'
+                }}
+              >
+                {/* FIX: Fully reveals the word for the Drawer AND for any Guesser who solved it! */}
+                {(isMyTurn || correctGuessers.includes(playerInfo.playerName)) 
+                  ? secretWord.toUpperCase().split(' ').join('\u00A0\u00A0') 
+                  : getDynamicHint()}
               </div>
             )}
             
