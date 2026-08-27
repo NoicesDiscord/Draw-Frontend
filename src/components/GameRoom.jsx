@@ -167,7 +167,7 @@ const presetColors = [
 // --- FIX: RESTORED THE FROZEN CANVAS LOGIC ---
   // We track the tallest screen height (keyboard closed) and freeze the canvas to 42% of THAT height.
   // When the keyboard opens, ONLY the chat area shrinks, while the canvas stays perfectly frozen and clear!
-  // --- FIX: RESTORED THE FROZEN CANVAS LOGIC + HIDDEN CHAT BAR ---
+  // --- FIX: Stable Viewport Logic. No more hiding inputs, no more offsetTop math! ---
   const restingViewportHeightRef = useRef(
     window.visualViewport ? window.visualViewport.height : window.innerHeight
   )
@@ -177,32 +177,22 @@ const presetColors = [
 
     const applyHeights = () => {
       const liveHeight = vv ? vv.height : window.innerHeight
-      const offsetTop = vv ? vv.offsetTop : 0
-
+      
+      // Track the height of the screen when the keyboard is CLOSED
       if (liveHeight > restingViewportHeightRef.current) {
         restingViewportHeightRef.current = liveHeight
       }
       const restingHeight = restingViewportHeightRef.current
 
-      // 1. Canvas stays a FIXED pixel height.
+      // Canvas height is forever frozen based on the closed keyboard height
       const canvasHeight = Math.floor(restingHeight * 0.42)
-
-      // 2. Chat shrinks dynamically.
+      // Chat height dynamically shrinks to whatever space is left
       const chatHeight = Math.max(60, liveHeight - canvasHeight)
-      
-      // 3. NEW: Detect the keyboard to hide the chat bar!
-      const isKeyboardOpen = liveHeight < restingHeight - 50
-      // If open, shrink to 1px (invisible but keeps focus). If closed, return to 55px!
-      const formHeight = isKeyboardOpen ? 1 : 55
-      const formOpacity = isKeyboardOpen ? 0 : 1
 
       const root = document.documentElement.style
       root.setProperty('--app-height', `${liveHeight}px`)
-      root.setProperty('--app-offset-top', `${offsetTop}px`)
       root.setProperty('--canvas-h', `${canvasHeight}px`)
       root.setProperty('--chat-h', `${chatHeight}px`)
-      root.setProperty('--form-h', `${formHeight}px`)
-      root.setProperty('--form-opacity', `${formOpacity}`)
     }
 
     applyHeights()
@@ -608,9 +598,8 @@ const presetColors = [
         * { box-sizing: border-box; }
         
         #root { 
-          position: absolute; top: 0; left: 0; right: 0;
-          width: 100%; height: var(--app-height, 100%); overflow: hidden;
-          transform: translateY(var(--app-offset-top, 0px));
+          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+          width: 100%; height: 100%; overflow: hidden;
         }
         
         .game-layout {
@@ -703,7 +692,7 @@ const presetColors = [
           .layout-guesser .sidebar-left { 
             grid-column: 1 !important; grid-row: 2 !important; 
             width: 100% !important; height: 100% !important; overflow: hidden !important;
-            padding-bottom: var(--form-h, 55px) !important; /* FIX: Dynamically reclaims space! */
+            padding-bottom: 55px !important; /* Protects scores from chat bar */
           }
           .layout-guesser .sidebar-right { 
             grid-column: 2 !important; grid-row: 2 !important; 
@@ -713,20 +702,16 @@ const presetColors = [
             height: 100% !important; max-height: 100% !important;
             display: flex !important; flex-direction: column !important;
             overflow: hidden !important;
-            padding-bottom: var(--form-h, 55px) !important; /* FIX: Chat history stretches to the keyboard! */
+            padding-bottom: 55px !important; /* Protects messages from chat bar */
           }
 
           /* EDGE-TO-EDGE CHAT INPUT BAR */
           .layout-guesser .sidebar-right form {
             position: absolute !important;
             bottom: 0 !important; left: 0 !important;
-            width: 100vw !important; 
-            height: var(--form-h, 55px) !important; /* FIX: Shrinks to 1px when keyboard opens */
-            opacity: var(--form-opacity, 1) !important; /* FIX: Becomes transparent */
+            width: 100vw !important; height: 55px !important;
             background-color: #1e1e1e !important; border-top: 2px solid #333 !important;
             z-index: 300 !important;
-            overflow: hidden !important;
-            transition: opacity 0.15s ease !important; /* Smooth fade effect */
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
@@ -740,7 +725,6 @@ const presetColors = [
           .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
-          /* Drawer tools safely pinned */
           .layout-drawer .toolbar { 
             position: absolute !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
             border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
