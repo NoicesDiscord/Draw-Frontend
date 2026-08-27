@@ -165,21 +165,8 @@ const presetColors = [
 
   
 
-  // --- FIX: Canvas stays a FIXED size. Only the chat area below it shrinks
-  // to fit whatever space is left above the keyboard — exactly like skribbl.io.
-  //
-  // window.visualViewport.height shrinks when the Android/iOS keyboard opens;
-  // window.innerHeight normally does not. We use that gap to tell "keyboard
-  // just opened" apart from "phone was actually rotated/resized": we track the
-  // tallest visualViewport height we've seen (= the real, keyboard-closed
-  // screen height) and only recompute the canvas's fixed height from that.
-  // The chat area is always sized to whatever is left of the CURRENT
-  // (possibly keyboard-shrunk) visible height, so it — not the canvas —
-  // is what shrinks, and its input stays pinned right above the keyboard.
-  const restingViewportHeightRef = useRef(
-    window.visualViewport ? window.visualViewport.height : window.innerHeight
-  )
-
+  // CRITICAL FIX: Stop trying to trick the browser with 'restingHeight'. 
+  // We need to dynamically shrink the entire app to match the live keyboard space!
   useEffect(() => {
     const vv = window.visualViewport
 
@@ -187,24 +174,14 @@ const presetColors = [
       const liveHeight = vv ? vv.height : window.innerHeight
       const offsetTop = vv ? vv.offsetTop : 0
 
-      // Grow (never shrink) our "resting" baseline — this is what the screen
-      // looks like with the keyboard closed.
-      if (liveHeight > restingViewportHeightRef.current) {
-        restingViewportHeightRef.current = liveHeight
-      }
-      const restingHeight = restingViewportHeightRef.current
-
-      // Canvas: fixed 40% of the RESTING height. Never changes when the
-      // keyboard opens/closes.
-      const canvasHeight = Math.round(restingHeight * 0.4)
-
-      // Chat: whatever is actually still visible below the canvas right now.
-      // This is what shrinks so the input box + last few messages stay
-      // visible above the keyboard, instead of getting hidden under it.
-      const chatHeight = Math.max(120, Math.round(liveHeight - canvasHeight))
+      // FIX: Canvas scales dynamically to take EXACTLY 42% of whatever screen space is available!
+      const canvasHeight = Math.floor(liveHeight * 0.42)
+      // Chat takes the remaining 58%
+      const chatHeight = liveHeight - canvasHeight
 
       const root = document.documentElement.style
-      root.setProperty('--app-height', `${restingHeight}px`)
+      // THE MAGIC LINE: Shrink the entire app to fit perfectly above the keyboard!
+      root.setProperty('--app-height', `${liveHeight}px`)
       root.setProperty('--app-offset-top', `${offsetTop}px`)
       root.setProperty('--canvas-h', `${canvasHeight}px`)
       root.setProperty('--chat-h', `${chatHeight}px`)
@@ -212,12 +189,7 @@ const presetColors = [
 
     applyHeights()
 
-    const handleOrientation = () => {
-      // Screen genuinely rotated/resized — reset the resting baseline so we
-      // don't keep using the old orientation's height.
-      restingViewportHeightRef.current = vv ? vv.height : window.innerHeight
-      applyHeights()
-    }
+    const handleOrientation = () => applyHeights()
 
     if (vv) {
       vv.addEventListener('resize', applyHeights)
@@ -687,21 +659,18 @@ const presetColors = [
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
        /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
-          /* FIX: Bolting the entire game layout to the visual screen bounds using Claude's variables! */
+          /* Lock the entire layout directly to our JavaScript's shrinking boundary! */
           .game-layout { 
             position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
             display: grid !important; gap: 0px !important; padding: 0px !important; 
-            width: 100% !important; height: 100% !important;
+            width: 100% !important; height: var(--app-height) !important;
           }
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
             grid-template-columns: 45fr 55fr !important; 
-            /* RESTORED: Claude's JS variables that shrink perfectly when the keyboard opens! */
-            grid-template-rows: var(--canvas-h, 40%) var(--chat-h, 60%) !important; 
+            grid-template-rows: var(--canvas-h) var(--chat-h) !important; 
           }
-          
-          /* Canvas is locked into the top row */
           .layout-guesser .center-canvas { 
             grid-column: 1 / span 2 !important; grid-row: 1 !important; 
             width: 100% !important; height: 100% !important;
@@ -710,33 +679,28 @@ const presetColors = [
             overflow: hidden !important; z-index: 200 !important; 
           }
           
-          /* Scores and Chat are locked into the bottom row */
           .layout-guesser .sidebar-left { 
             grid-column: 1 !important; grid-row: 2 !important; 
             width: 100% !important; height: 100% !important; overflow: hidden !important;
-            padding-bottom: 55px !important; /* Protects from the chat bar! */
+            padding-bottom: 55px !important; /* Protects scores from chat bar */
           }
           .layout-guesser .sidebar-right { 
             grid-column: 2 !important; grid-row: 2 !important; 
             width: 100% !important; height: 100% !important; overflow: hidden !important;
           }
-
-          /* Traps the ChatBox so it scrolls internally! */
           .layout-guesser .sidebar-right > div {
             height: 100% !important; max-height: 100% !important;
             display: flex !important; flex-direction: column !important;
             overflow: hidden !important;
-            padding-bottom: 55px !important; /* Protects messages from getting hidden under the bar! */
+            padding-bottom: 55px !important; /* Protects messages from chat bar */
           }
-          
-          /* --- EDGE-TO-EDGE CHAT INPUT BAR --- */
-          /* FIX: Uses 'absolute' instead of 'fixed' so it stays trapped inside Claude's safe shrinking container! */
+
+          /* EDGE-TO-EDGE CHAT INPUT BAR */
           .layout-guesser .sidebar-right form {
             position: absolute !important;
             bottom: 0 !important; left: 0 !important;
             width: 100vw !important; height: 55px !important;
-            background-color: #1e1e1e !important;
-            border-top: 2px solid #333 !important;
+            background-color: #1e1e1e !important; border-top: 2px solid #333 !important;
             z-index: 300 !important;
           }
           
@@ -751,48 +715,24 @@ const presetColors = [
           .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
-          /* Rescues the mobile drawer tools securely */
+          /* Drawer tools safely pinned */
           .layout-drawer .toolbar { 
             position: absolute !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
             border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
           }
 
-          /* --- MOBILE POPUPS --- */
-          .color-popup {
-            position: fixed !important; bottom: 75px !important; left: 10px !important; right: 10px !important; 
-            width: auto !important; grid-template-columns: repeat(10, 1fr) !important; 
-            padding: 12px !important; gap: 8px !important; border-radius: 16px !important;
-          }
-          .size-popup {
-            position: fixed !important; bottom: 75px !important; left: 50% !important; transform: translateX(-50%) !important;
-          }
-
-          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
-          .canvas-wrapper { 
-            padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; 
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden;
-          }
-          .game-canvas { 
-            width: auto !important; max-width: 100vw !important; 
-            height: auto !important; max-height: 100% !important; 
-            border-radius: 0 !important; border: none !important; 
-            aspect-ratio: 4 / 3; margin: 0 auto;
-          }
+          /* --- MISC UI TWEAKS --- */
+          .color-popup { position: fixed !important; bottom: 75px !important; left: 10px !important; right: 10px !important; width: auto !important; grid-template-columns: repeat(10, 1fr) !important; padding: 12px !important; gap: 8px !important; border-radius: 16px !important; }
+          .size-popup { position: fixed !important; bottom: 75px !important; left: 50% !important; transform: translateX(-50%) !important; }
+          .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          .game-canvas { width: auto !important; max-width: 100vw !important; height: auto !important; max-height: 100% !important; border-radius: 0 !important; border: none !important; aspect-ratio: 4 / 3; margin: 0 auto; }
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
           .sidebar-left > div { border-right: 2px solid #222 !important; }
           .waiting-text { font-size: 20px; }
-
-          /* --- MOBILE FLOATING UI --- */
-          .game-clock {
-            font-size: 15px !important; padding: 2px 6px !important; top: 10px !important; left: 10px !important; border-width: 1px !important;
-          }
-          .floating-status { 
-            top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; 
-            font-size: 13px !important; padding: 4px 12px !important; width: max-content !important;
-            max-width: 80% !important; text-align: center !important;
-          }
-
-          /* --- COMPACT MOBILE SCOREBOARD --- */
+          .game-clock { font-size: 15px !important; padding: 2px 6px !important; top: 10px !important; left: 10px !important; border-width: 1px !important; }
+          .floating-status { top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 13px !important; padding: 4px 12px !important; width: max-content !important; max-width: 80% !important; text-align: center !important; }
+          
+          /* COMPACT SCOREBOARD */
           .sidebar-left ul li { padding: 8px 10px !important; }
           .sidebar-left ul li > div { gap: 8px !important; }
           .sidebar-left ul li > div > div:first-child { width: 22px !important; height: 22px !important; font-size: 11px !important; } 
