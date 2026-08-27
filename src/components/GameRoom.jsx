@@ -164,6 +164,48 @@ const presetColors = [
 
   
 
+  // --- FIX: Keep the layout locked to the space ABOVE the phone keyboard ---
+  // The old "height:100%" trick freezes the layout at the pre-keyboard viewport
+  // size, so when the keyboard opens the canvas either gets covered or shoved
+  // off-screen. Instead we track window.visualViewport (the part of the
+  // screen actually visible once the keyboard eats into it) and feed its
+  // live height into a CSS variable. Every "100%" in the stylesheet below
+  // chains up to this variable, so the whole grid (canvas + chat) shrinks to
+  // fit the visible area in real time — canvas stays on screen, chat input
+  // stays right above the keyboard, exactly like skribbl.io.
+  useEffect(() => {
+    const vv = window.visualViewport
+
+    const setAppHeight = () => {
+      const height = vv ? vv.height : window.innerHeight
+      const offsetTop = vv ? vv.offsetTop : 0
+      document.documentElement.style.setProperty('--app-height', `${height}px`)
+      // Some mobile browsers (mainly iOS Safari) nudge the visual viewport
+      // down slightly when the keyboard opens instead of only shrinking it.
+      // Compensating with a translateY keeps the canvas pinned in place
+      // instead of sliding out from under the status bar.
+      document.documentElement.style.setProperty('--app-offset-top', `${offsetTop}px`)
+    }
+
+    setAppHeight()
+
+    if (vv) {
+      vv.addEventListener('resize', setAppHeight)
+      vv.addEventListener('scroll', setAppHeight)
+    } else {
+      window.addEventListener('resize', setAppHeight)
+    }
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', setAppHeight)
+        vv.removeEventListener('scroll', setAppHeight)
+      } else {
+        window.removeEventListener('resize', setAppHeight)
+      }
+    }
+  }, [])
+
   // --- NEW: Prevent accidental back-swipes and refreshes on mobile! ---
   useEffect(() => {
     // 1. Push a dummy state to trap the first back-swipe
@@ -512,18 +554,22 @@ const presetColors = [
   return (
     <>
       <style>{`
-        /* FIX 1: Impenetrable Lockdown - Using '100%' instead of '100dvh' stops the mobile keyboard scroll bug completely! */
+        /* FIX: Lock to --app-height (kept live by the visualViewport listener above)
+           instead of a frozen '100%'/'100vh'. That variable shrinks the instant the
+           keyboard opens, so this whole layout shrinks with it and stays fully on
+           screen instead of being covered or scrolled away. */
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
-          position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; 
-          width: 100% !important; height: 100% !important; /* 100% is the secret to stopping the scroll jump! */
+          position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
+          width: 100% !important; height: var(--app-height, 100%) !important;
           overflow: hidden !important; touch-action: none; overscroll-behavior: none; 
         }
         * { box-sizing: border-box; }
         
         #root { 
-          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-          width: 100%; height: 100%; overflow: hidden;
+          position: absolute; top: 0; left: 0; right: 0;
+          width: 100%; height: var(--app-height, 100%); overflow: hidden;
+          transform: translateY(var(--app-offset-top, 0px));
         }
         
         .game-layout {
