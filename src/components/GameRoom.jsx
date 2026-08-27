@@ -33,6 +33,7 @@ export default function GameRoom({ playerInfo }) {
   const [brushSize, setBrushSize] = useState(5)
   const [isBucketMode, setIsBucketMode] = useState(false) 
   const [showColorPicker, setShowColorPicker] = useState(false) // NEW: Controls the pop-up color menu!
+  const [showSizePicker, setShowSizePicker] = useState(false) // NEW: Controls the Blue Dot menu!
   
   // NEW: 25 Essential Colors (Now with Theme Colors and extra vibrance!)
   // FIX: Upgraded to exactly 30 colors to create a perfect 3-row mobile grid!
@@ -513,7 +514,6 @@ const presetColors = [
       <style>{`
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
-          /* FIX: 100dvh handles the virtual keyboard gracefully, and overscroll-behavior stops the screen from jumping! */
           position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; touch-action: none; 
           overscroll-behavior: none; 
         }
@@ -536,9 +536,9 @@ const presetColors = [
           flex-grow: 1; display: flex; align-items: center; justify-content: center; background-color: #1e1e1e;
           padding: 10px; border-radius: 8px; border: 1px solid #333; min-height: 0; min-width: 0; position: relative; 
         }
+        
         .game-canvas {
           background-color: #ffffff; touch-action: none; 
-          /* FIX: Bulletproof 4:3 Aspect Ratio so it NEVER stretches or warps on any device! */
           max-width: 100%; max-height: 100%; width: auto; height: auto; aspect-ratio: 4 / 3;
           border-radius: 4px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); border: 2px solid #333;
         }
@@ -547,67 +547,49 @@ const presetColors = [
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
           color: #999; font-size: 24px; font-weight: bold; text-align: center; pointer-events: none; width: 90%;
         }
+        
         .floating-status {
-          position: absolute; top: 15px; left: 110px; /* FIX: Anchored safely to the right of the clock! */
+          position: absolute; top: 15px; left: 110px; 
           background-color: rgba(55, 0, 179, 0.85); color: white; padding: 8px 20px; border-radius: 20px;
           font-weight: bold; pointer-events: none; font-size: 16px; 
           white-space: pre-wrap; text-align: left; width: max-content; max-width: calc(100% - 130px); line-height: 1.4; 
           z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-          /* NEW: Dedicated Desktop Clock Styles */
+
+        /* --- DESKTOP POPUPS & UI --- */
         .game-clock {
           position: absolute; top: 15px; left: 15px;
           background-color: rgba(255, 255, 255, 0.85); padding: 2px 8px; border-radius: 6px;
           color: #000; font-size: 24px; font-weight: 900; 
           font-family: monospace; z-index: 50; pointer-events: none; border: 2px solid #000;
         }
-          /* NEW: Dedicated Color Popup Styles */
+        
         .color-popup {
-          position: absolute;
-          bottom: 45px;
-          left: -5px;
-          background-color: rgba(20, 20, 20, 0.95);
-          padding: 10px;
-          border-radius: 12px;
-          border: 1px solid #555;
-          display: grid;
-          grid-template-columns: repeat(15, minmax(20px, 24px)); /* FIX: 15 columns x 2 rows = 30 colors! */
-          gap: 6px;
-          box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
-          z-index: 200;
-          width: max-content;
+          position: absolute; bottom: 45px; left: -5px;
+          background-color: rgba(20, 20, 20, 0.95); padding: 10px; border-radius: 12px;
+          border: 1px solid #555; display: grid; grid-template-columns: repeat(15, minmax(20px, 24px)); 
+          gap: 6px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 200; width: max-content;
+        }
+        
+        .size-popup {
+          position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+          background-color: rgba(20, 20, 20, 0.95); padding: 8px 12px; border-radius: 12px;
+          border: 1px solid #555; display: flex; gap: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 200;
         }
 
-        /* NEW: Docked & Compact Toolbar Styles */
         .toolbar {
-          position: absolute;
-          bottom: 0px; /* FIX: Snapped perfectly to the bottom edge of the canvas container! */
-          left: 50%;
-          transform: translateX(-50%);
-          background-color: rgba(20, 20, 20, 0.95);
-          padding: 8px 16px; /* FIX: Made the toolbar noticeably slimmer */
-          border-radius: 16px 16px 0 0; /* FIX: Flat on the bottom, rounded on the top! */
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          border: 1px solid #444;
-          border-bottom: none; /* Smooth visual transition into the bottom edge */
-          box-shadow: 0 -4px 15px rgba(0,0,0,0.5); /* FIX: Shadow pushes UP since it's on the floor now */
-          transition: opacity 0.3s ease;
-          z-index: 50;
-        }
-        .color-btn {
-          width: 24px; height: 24px; border-radius: 50%; cursor: pointer; transition: transform 0.1s;
-        }
-        .color-btn:hover { transform: scale(1.15); }
-        .color-btn.eraser {
-          background: linear-gradient(135deg, #fff 40%, #ff0000 45%, #ff0000 55%, #fff 60%);
+          position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
+          background-color: rgba(20, 20, 20, 0.95); padding: 8px 16px; border-radius: 16px 16px 0 0; 
+          display: flex; gap: 12px; align-items: center; border: 1px solid #444; border-bottom: none; 
+          box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: opacity 0.3s ease; z-index: 50;
         }
 
+
+        /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
           .game-layout { gap: 0px; padding: 0px; }
           
-          /* --- GUESSER MOBILE LAYOUT --- */
+          /* GUESSER LAYOUT */
           .layout-guesser.game-layout {
             grid-template-columns: 35fr 65fr; 
             grid-template-rows: auto minmax(0, 1fr); 
@@ -616,7 +598,7 @@ const presetColors = [
           .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
           .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
           
-          /* --- DRAWER MOBILE LAYOUT --- */
+          /* DRAWER LAYOUT */
           .layout-drawer.game-layout { 
             grid-template-columns: 40fr 60fr; 
             grid-template-rows: 1fr auto 1fr; 
@@ -625,81 +607,42 @@ const presetColors = [
           .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; }
           .layout-drawer .sidebar-right form { display: none !important; } 
           .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; } 
-          
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
-          
           .layout-drawer .toolbar { 
-            bottom: -70px; 
-            border-radius: 16px; 
-            border-bottom: 1px solid #444; 
+            bottom: -70px; border-radius: 16px; border-bottom: 1px solid #444; 
+          }
 
-            /* FIX: Break out of the toolbar and span Edge-to-Edge with 3 perfect rows! */
+          /* MOBILE POPUPS */
           .color-popup {
-            position: fixed !important; /* Forces it to relative to the screen, not the toolbar */
-            bottom: 75px !important; /* Sits cleanly right above your mobile toolbar */
-            left: 10px !important; 
-            right: 10px !important; /* Stretches from left edge to right edge */
-            width: auto !important; 
-            grid-template-columns: repeat(10, 1fr) !important; /* FIX: 10 columns x 3 rows = 30 colors! */
-            padding: 12px !important;
-            gap: 8px !important;
-            border-radius: 16px !important;
+            position: fixed !important; bottom: 75px !important; left: 10px !important; right: 10px !important; 
+            width: auto !important; grid-template-columns: repeat(10, 1fr) !important; 
+            padding: 12px !important; gap: 8px !important; border-radius: 16px !important;
           }
+          .size-popup {
+            position: fixed !important; bottom: 75px !important; left: 50% !important; transform: translateX(-50%) !important;
           }
 
-          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
+          /* UNIVERSAL MOBILE CANVAS FIXES */
           .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
-          
           .game-canvas { 
-            width: 100vw !important; max-width: 100vw !important; 
-            height: auto !important; max-height: none !important; 
-            border-radius: 0 !important; border: none !important; 
-            aspect-ratio: 4 / 3; 
+            width: 100vw !important; max-width: 100vw !important; height: auto !important; max-height: none !important; 
+            border-radius: 0 !important; border: none !important; aspect-ratio: 4 / 3; 
           }
-          
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
           .sidebar-left > div { border-right: 2px solid #222 !important; }
           .waiting-text { font-size: 20px; }
 
-          /* FIX: Mobile Clock is now smaller and hugged tightly to the corner */
+          /* MOBILE FLOATING UI */
           .game-clock {
-            font-size: 15px !important; 
-            padding: 2px 6px !important;
-            top: 10px !important;
-            left: 10px !important;
-            border-width: 1px !important;
+            font-size: 15px !important; padding: 2px 6px !important; top: 10px !important; left: 10px !important; border-width: 1px !important;
           }
-
-          /* FIX: Word/Hint is now dead-center at the top of the canvas for BOTH roles! */
           .floating-status { 
-            top: 10px !important; 
-            left: 50% !important; 
-            transform: translateX(-50%) !important; 
-            font-size: 13px !important; 
-            padding: 4px 12px !important; 
-            width: max-content !important;
-            max-width: 80% !important;
-            text-align: center !important;
+            top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; 
+            font-size: 13px !important; padding: 4px 12px !important; width: max-content !important;
+            max-width: 80% !important; text-align: center !important;
           }
-        }
-
-          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
-          .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
-          
-          /* FIX: Edge to Edge, No Side Gaps, Zero Stretching! */
-          .game-canvas { 
-            width: 100vw !important; max-width: 100vw !important; 
-            height: auto !important; max-height: none !important; 
-            border-radius: 0 !important; border: none !important; 
-            aspect-ratio: 4 / 3; 
-          }
-          
-          .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
-          .sidebar-left > div { border-right: 2px solid #222 !important; }
-          .waiting-text { font-size: 20px; }
         }
       `}</style>
-
       {/* FIX: Dynamically applies a different layout depending on if you are drawing or guessing! */}
       <div className={`game-layout ${isMyTurn ? 'layout-drawer' : 'layout-guesser'}`}>
         
@@ -864,7 +807,7 @@ const presetColors = [
 
                 <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
 
-                {/* Paint Bucket & Brush Size Slider */}
+                {/* NEW: Paint Bucket & Blue Dot Brush Size Picker */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                   <button 
                     onClick={() => setIsBucketMode(!isBucketMode)}
@@ -872,22 +815,60 @@ const presetColors = [
                     title="Paint Bucket (Fill)"
                   >🪣</button>
                   
-                  <input 
-                    type="range" min="2" max="25" value={brushSize}
-                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                    style={{ width: '50px', flexShrink: 0, margin: 0 }} 
-                  />
+                  {/* The Active Blue Dot Button */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => setShowSizePicker(!showSizePicker)}
+                      style={{ 
+                        width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
+                        background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' 
+                      }}
+                      title="Brush Size"
+                    >
+                      <div style={{ width: `${Math.min(brushSize, 26)}px`, height: `${Math.min(brushSize, 26)}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
+                    </button>
+
+                    {/* The Drop-up Menu with 5 Predefined Levels */}
+                    {showSizePicker && (
+                      <div className="size-popup">
+                        {[4, 8, 14, 20, 26].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => { 
+                              setBrushSize(size); 
+                              setIsBucketMode(false);
+                              setShowSizePicker(false); // Closes instantly on click!
+                            }}
+                            style={{
+                              width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer', padding: 0,
+                              backgroundColor: 'transparent',
+                              border: brushSize === size ? '2px solid #fff' : '1px solid transparent',
+                              display: 'flex', justifyContent: 'center', alignItems: 'center'
+                            }}
+                          >
+                            <div style={{ width: `${size}px`, height: `${size}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
                 
-                {/* Undo & Trash Can (Destructive Actions) */}
+                {/* NEW: Undo, Redo, & Trash Can */}
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                   <button 
                     onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
                     style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
                     title="Undo"
                   >↩️</button>
+
+                  <button 
+                    onClick={() => { handleRedo(); socketRef.current.emit('redo'); }}
+                    style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                    title="Redo"
+                  >↪️</button>
                   
                   <button 
                     onClick={handleClearBoard}
