@@ -557,6 +557,13 @@ export default function GameRoom({ playerInfo }) {
           white-space: pre-wrap; text-align: left; width: max-content; max-width: calc(100% - 130px); line-height: 1.4; 
           z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
+          /* NEW: Dedicated Desktop Clock Styles */
+        .game-clock {
+          position: absolute; top: 15px; left: 15px;
+          background-color: rgba(255, 255, 255, 0.85); padding: 2px 8px; border-radius: 6px;
+          color: #000; font-size: 24px; font-weight: 900; 
+          font-family: monospace; z-index: 50; pointer-events: none; border: 2px solid #000;
+        }
 
         /* NEW: Docked & Compact Toolbar Styles */
         .toolbar {
@@ -590,33 +597,65 @@ export default function GameRoom({ playerInfo }) {
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
             grid-template-columns: 35fr 65fr; 
-            /* FIX: 'auto' locks canvas to the top. 'minmax(0, 1fr)' forces the chat to perfectly shrink when the keyboard opens without pushing the canvas away! */
             grid-template-rows: auto minmax(0, 1fr); 
           }
           .layout-guesser .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
           .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
           .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
-          .layout-guesser .floating-status { top: 10px; left: 10px; } /* Sits nicely over the canvas */
           
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
             grid-template-columns: 40fr 60fr; 
-            /* FIX: Top gap (Scores/Chat), Middle (Canvas), Bottom gap (Tools) */
             grid-template-rows: 1fr auto 1fr; 
           }
           .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; }
           .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; }
-          .layout-drawer .sidebar-right form { display: none !important; } /* Hide chat input to give drawer more room to read guesses! */
-          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; } /* Make chat slightly transparent */
+          .layout-drawer .sidebar-right form { display: none !important; } 
+          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; } 
           
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
           .layout-drawer .toolbar { 
-            bottom: -70px; /* FIX: Pushes the toolbar completely OUT of the canvas into the bottom black space! */
+            bottom: -70px; 
             border-radius: 16px; 
             border-bottom: 1px solid #444; 
           }
-          .layout-drawer .floating-status { top: -45px; left: 50%; transform: translateX(-50%); width: max-content; } /* Centers the hint above the canvas */
+
+          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
+          .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
+          
+          .game-canvas { 
+            width: 100vw !important; max-width: 100vw !important; 
+            height: auto !important; max-height: none !important; 
+            border-radius: 0 !important; border: none !important; 
+            aspect-ratio: 4 / 3; 
+          }
+          
+          .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
+          .sidebar-left > div { border-right: 2px solid #222 !important; }
+          .waiting-text { font-size: 20px; }
+
+          /* FIX: Mobile Clock is now smaller and hugged tightly to the corner */
+          .game-clock {
+            font-size: 15px !important; 
+            padding: 2px 6px !important;
+            top: 10px !important;
+            left: 10px !important;
+            border-width: 1px !important;
+          }
+
+          /* FIX: Word/Hint is now dead-center at the top of the canvas for BOTH roles! */
+          .floating-status { 
+            top: 10px !important; 
+            left: 50% !important; 
+            transform: translateX(-50%) !important; 
+            font-size: 13px !important; 
+            padding: 4px 12px !important; 
+            width: max-content !important;
+            max-width: 80% !important;
+            text-align: center !important;
+          }
+        }
 
           /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
           .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
@@ -689,13 +728,8 @@ export default function GameRoom({ playerInfo }) {
         <div className="center-canvas">
           <div className="canvas-wrapper">
             
-            {/* NEW: Permanent Digital Clock overlay at the top-left */}
-            <div style={{
-              position: 'absolute', top: '15px', left: '15px',
-              backgroundColor: 'rgba(255, 255, 255, 0.7)', padding: '2px 8px', borderRadius: '6px',
-              color: '#000', fontSize: '24px', fontWeight: '900', 
-              fontFamily: 'monospace', zIndex: 50, pointerEvents: 'none', border: '2px solid #000'
-            }}>
+            {/* FIX: Uses CSS classes now so it can shrink on mobile! */}
+            <div className="game-clock">
               {timeLeft > 0 ? timeLeft : "0"}
             </div>
 
