@@ -564,6 +564,22 @@ export default function GameRoom({ playerInfo }) {
           color: #000; font-size: 24px; font-weight: 900; 
           font-family: monospace; z-index: 50; pointer-events: none; border: 2px solid #000;
         }
+          /* NEW: Dedicated Color Popup Styles */
+        .color-popup {
+          position: absolute;
+          bottom: 45px;
+          left: -5px;
+          background-color: rgba(20, 20, 20, 0.95);
+          padding: 10px;
+          border-radius: 12px;
+          border: 1px solid #555;
+          display: grid;
+          grid-template-columns: repeat(13, minmax(20px, 24px)); /* Desktop: 2 long rows */
+          gap: 6px;
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+          z-index: 200;
+          width: max-content;
+        }
 
         /* NEW: Docked & Compact Toolbar Styles */
         .toolbar {
@@ -619,6 +635,15 @@ export default function GameRoom({ playerInfo }) {
             bottom: -70px; 
             border-radius: 16px; 
             border-bottom: 1px solid #444; 
+
+            /* FIX: Stop Color Palette from overflowing by forcing a perfect 5x5 square! */
+          .color-popup {
+            left: 0px !important;
+            grid-template-columns: repeat(5, 1fr) !important; /* Perfect 5x5 Grid for 25 colors! */
+            width: max-content !important;
+            padding: 8px !important;
+            gap: 8px !important;
+          }
           }
 
           /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
@@ -812,23 +837,9 @@ export default function GameRoom({ playerInfo }) {
                     title="Click to choose a color"
                   />
 
-                  {/* The 2-Row Color Menu Popup! */}
+                  {/* The Color Menu Popup! */}
                   {showColorPicker && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '45px', // Pops up perfectly above the toolbar!
-                      left: '-5px', // Anchors securely to the left
-                      backgroundColor: 'rgba(20, 20, 20, 0.95)',
-                      padding: '10px',
-                      borderRadius: '12px',
-                      border: '1px solid #555',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(13, minmax(20px, 24px))', // 25 colors forces exactly 2 rows!
-                      gap: '6px',
-                      boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
-                      zIndex: 200,
-                      width: 'max-content'
-                    }}>
+                    <div className="color-popup">
                       {presetColors.map(color => (
                         <button
                           key={color}
