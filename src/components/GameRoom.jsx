@@ -685,9 +685,9 @@ const presetColors = [
 
 
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
-        /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
+       /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
-          /* FIX: Bolting the entire game layout to the visual screen bounds */
+          /* FIX: Bolting the entire game layout to the visual screen bounds using Claude's variables! */
           .game-layout { 
             position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
             display: grid !important; gap: 0px !important; padding: 0px !important; 
@@ -696,12 +696,12 @@ const presetColors = [
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            /* FIX: Rebalanced the columns to give the Scoreboard more room (45%) so names and avatars fit! */
             grid-template-columns: 45fr 55fr !important; 
+            /* RESTORED: Claude's JS variables that shrink perfectly when the keyboard opens! */
             grid-template-rows: var(--canvas-h, 40%) var(--chat-h, 60%) !important; 
           }
           
-          /* FIX: Canvas is locked into the top 40% cell */
+          /* Canvas is locked into the top row */
           .layout-guesser .center-canvas { 
             grid-column: 1 / span 2 !important; grid-row: 1 !important; 
             width: 100% !important; height: 100% !important;
@@ -710,47 +710,38 @@ const presetColors = [
             overflow: hidden !important; z-index: 200 !important; 
           }
           
-          /* FIX: Scores pinned to the left, but we lift 'bottom' to 55px to make room for the new chat bar! */
+          /* Scores and Chat are locked into the bottom row */
           .layout-guesser .sidebar-left { 
-            position: absolute !important; 
-            top: 42dvh !important; bottom: 55px !important; left: 0 !important; 
-            width: 45vw !important; height: auto !important; 
-            z-index: 100 !important;
+            grid-column: 1 !important; grid-row: 2 !important; 
+            width: 100% !important; height: 100% !important; overflow: hidden !important;
+            padding-bottom: 55px !important; /* Protects from the chat bar! */
           }
-          
-          /* FIX: Chat pinned to the right, also lifted 55px off the floor! */
           .layout-guesser .sidebar-right { 
-            position: absolute !important; 
-            top: 42dvh !important; bottom: 55px !important; right: 0 !important; 
-            width: 55vw !important; height: auto !important;
-            z-index: 100 !important;
+            grid-column: 2 !important; grid-row: 2 !important; 
+            width: 100% !important; height: 100% !important; overflow: hidden !important;
           }
 
-          /* CRITICAL FIX: Traps the ChatBox so it scrolls internally! */
+          /* Traps the ChatBox so it scrolls internally! */
           .layout-guesser .sidebar-right > div {
             height: 100% !important; max-height: 100% !important;
             display: flex !important; flex-direction: column !important;
             overflow: hidden !important;
+            padding-bottom: 55px !important; /* Protects messages from getting hidden under the bar! */
           }
           
-          /* --- NEW: EDGE-TO-EDGE CHAT INPUT BAR --- */
-          /* Rips the form out of the narrow sidebar and stretches it 100vw across the entire floor! */
+          /* --- EDGE-TO-EDGE CHAT INPUT BAR --- */
+          /* FIX: Uses 'absolute' instead of 'fixed' so it stays trapped inside Claude's safe shrinking container! */
           .layout-guesser .sidebar-right form {
-            position: fixed !important;
+            position: absolute !important;
             bottom: 0 !important; left: 0 !important;
             width: 100vw !important; height: 55px !important;
             background-color: #1e1e1e !important;
             border-top: 2px solid #333 !important;
             z-index: 300 !important;
-            display: flex !important;
-            align-items: center !important;
-            padding: 0 10px !important;
-            box-sizing: border-box !important;
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
-            /* FIX: Matches the Guesser's 45/55 split, and shifts the canvas downward using the 2fr row! */
             grid-template-columns: 45fr 55fr !important; 
             grid-template-rows: 2fr auto 0.5fr !important; 
           }
@@ -760,9 +751,9 @@ const presetColors = [
           .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
-          /* FIX: Rescues the missing mobile drawer tools! */
+          /* Rescues the mobile drawer tools securely */
           .layout-drawer .toolbar { 
-            position: fixed !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
+            position: absolute !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
             border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
           }
 
@@ -801,8 +792,7 @@ const presetColors = [
             max-width: 80% !important; text-align: center !important;
           }
 
-          /* --- NEW: COMPACT MOBILE SCOREBOARD --- */
-          /* Shrinks the padding, gaps, and fonts so the Rank Circle, Name, and Points fit perfectly inside the 45vw width! */
+          /* --- COMPACT MOBILE SCOREBOARD --- */
           .sidebar-left ul li { padding: 8px 10px !important; }
           .sidebar-left ul li > div { gap: 8px !important; }
           .sidebar-left ul li > div > div:first-child { width: 22px !important; height: 22px !important; font-size: 11px !important; } 
