@@ -710,14 +710,20 @@ const presetColors = [
             overflow: hidden !important; z-index: 200 !important; 
           }
           
-          /* FIX: Scores and Chat are locked into the bottom 60% cell */
+          /* FIX: Scores pinned to the left, but we lift 'bottom' to 55px to make room for the new chat bar! */
           .layout-guesser .sidebar-left { 
-            grid-column: 1 !important; grid-row: 2 !important; 
-            width: 100% !important; height: 100% !important; overflow: hidden !important;
+            position: absolute !important; 
+            top: 42dvh !important; bottom: 55px !important; left: 0 !important; 
+            width: 45vw !important; height: auto !important; 
+            z-index: 100 !important;
           }
+          
+          /* FIX: Chat pinned to the right, also lifted 55px off the floor! */
           .layout-guesser .sidebar-right { 
-            grid-column: 2 !important; grid-row: 2 !important; 
-            width: 100% !important; height: 100% !important; overflow: hidden !important;
+            position: absolute !important; 
+            top: 42dvh !important; bottom: 55px !important; right: 0 !important; 
+            width: 55vw !important; height: auto !important;
+            z-index: 100 !important;
           }
 
           /* CRITICAL FIX: Traps the ChatBox so it scrolls internally! */
@@ -725,6 +731,21 @@ const presetColors = [
             height: 100% !important; max-height: 100% !important;
             display: flex !important; flex-direction: column !important;
             overflow: hidden !important;
+          }
+          
+          /* --- NEW: EDGE-TO-EDGE CHAT INPUT BAR --- */
+          /* Rips the form out of the narrow sidebar and stretches it 100vw across the entire floor! */
+          .layout-guesser .sidebar-right form {
+            position: fixed !important;
+            bottom: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 55px !important;
+            background-color: #1e1e1e !important;
+            border-top: 2px solid #333 !important;
+            z-index: 300 !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 0 10px !important;
+            box-sizing: border-box !important;
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
