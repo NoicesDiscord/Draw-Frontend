@@ -696,11 +696,8 @@ const presetColors = [
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            /* FIX: Canvas row is a FIXED pixel height (--canvas-h) that never
-               changes when the keyboard opens. Chat row (--chat-h) is the
-               live remaining visible space, so IT shrinks instead — same as
-               skribbl.io. Falls back to the old 40%/60% split before JS runs. */
-            grid-template-columns: 35fr 65fr !important; 
+            /* FIX: Rebalanced the columns to give the Scoreboard more room (45%) so names and avatars fit! */
+            grid-template-columns: 45fr 55fr !important; 
             grid-template-rows: var(--canvas-h, 40%) var(--chat-h, 60%) !important; 
           }
           
@@ -732,34 +729,20 @@ const presetColors = [
           
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
-            grid-template-columns: 40fr 60fr !important; 
-            /* FIX: '2fr' forces the top row to expand, gracefully shifting the canvas downward! */
+            /* FIX: Matches the Guesser's 45/55 split, and shifts the canvas downward using the 2fr row! */
+            grid-template-columns: 45fr 55fr !important; 
             grid-template-rows: 2fr auto 0.5fr !important; 
           }
           .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; overflow: hidden; }
           .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; overflow: hidden; }
           .layout-drawer .sidebar-right form { display: none !important; } 
-          
-          /* FIX: Forces the chat box to stretch into the newly created top space */
-          .layout-drawer .sidebar-right > div { 
-            background: rgba(30, 30, 30, 0.7) !important; 
-            height: 100% !important; 
-            display: flex !important; 
-            flex-direction: column !important; 
-            overflow: hidden !important; 
-          } 
-          
+          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
           .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
           
-          /* FIX: Rescues the tools! 'position: fixed' pulls them out of the hidden canvas wrapper and anchors them to the bottom of your phone screen! */
+          /* FIX: Rescues the missing mobile drawer tools! */
           .layout-drawer .toolbar { 
-            position: fixed !important;
-            bottom: 15px !important; 
-            left: 50% !important; 
-            transform: translateX(-50%) !important;
-            border-radius: 16px !important; 
-            border: 1px solid #444 !important; 
-            z-index: 300 !important;
+            position: fixed !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
+            border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
           }
 
           /* --- MOBILE POPUPS --- */
@@ -796,6 +779,16 @@ const presetColors = [
             font-size: 13px !important; padding: 4px 12px !important; width: max-content !important;
             max-width: 80% !important; text-align: center !important;
           }
+
+          /* --- NEW: COMPACT MOBILE SCOREBOARD --- */
+          /* Shrinks the padding, gaps, and fonts so the Rank Circle, Name, and Points fit perfectly inside the 45vw width! */
+          .sidebar-left ul li { padding: 8px 10px !important; }
+          .sidebar-left ul li > div { gap: 8px !important; }
+          .sidebar-left ul li > div > div:first-child { width: 22px !important; height: 22px !important; font-size: 11px !important; } 
+          .sidebar-left ul li > div > div:nth-child(2) span:first-child { font-size: 12px !important; } 
+          .sidebar-left ul li > div > div:nth-child(2) span:last-child { font-size: 10px !important; } 
+          .sidebar-left ul li > span { font-size: 14px !important; } 
+          .sidebar-left h3 { font-size: 14px !important; margin-bottom: 4px !important; } 
         }
       `}</style>
       {/* FIX: Dynamically applies a different layout depending on if you are drawing or guessing! */}
