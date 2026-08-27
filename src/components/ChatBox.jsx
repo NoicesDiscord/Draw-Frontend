@@ -123,7 +123,8 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', borderTop: '1px solid #333', marginTop: 'auto' }}>
+      {/* FIX: Moved background colors to the form wrapper so the character counter sits beautifully inside the text box! */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
         <input
           type="text"
           value={inputValue}
@@ -132,16 +133,27 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
           disabled={isMyTurn}
           style={{ 
             flexGrow: 1, padding: '12px', border: 'none', outline: 'none', minWidth: 0,
-            backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d', 
+            backgroundColor: 'transparent', /* Lets the form background show through! */
             color: isMyTurn ? '#666' : '#fff', 
             cursor: isMyTurn ? 'not-allowed' : 'text'
           }}
         />
+        
+        {/* NEW: Live Character Counter! Only appears when a guesser starts typing. */}
+        {!isMyTurn && inputValue.length > 0 && (
+          <div style={{ 
+            color: '#03dac6', fontWeight: '900', fontSize: '15px', 
+            padding: '0 12px', opacity: 0.9, fontFamily: 'monospace'
+          }}>
+            {inputValue.length}
+          </div>
+        )}
+
         <button 
           type="submit" 
           disabled={isMyTurn}
           style={{ 
-            padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0,
+            padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0, height: '100%',
             backgroundColor: isMyTurn ? '#444' : '#bb86fc', 
             color: isMyTurn ? '#777' : '#000', 
             cursor: isMyTurn ? 'not-allowed' : 'pointer'
