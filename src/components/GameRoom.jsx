@@ -167,6 +167,7 @@ const presetColors = [
 // --- FIX: RESTORED THE FROZEN CANVAS LOGIC ---
   // We track the tallest screen height (keyboard closed) and freeze the canvas to 42% of THAT height.
   // When the keyboard opens, ONLY the chat area shrinks, while the canvas stays perfectly frozen and clear!
+  // --- FIX: RESTORED THE FROZEN CANVAS LOGIC + HIDDEN CHAT BAR ---
   const restingViewportHeightRef = useRef(
     window.visualViewport ? window.visualViewport.height : window.innerHeight
   )
@@ -178,24 +179,30 @@ const presetColors = [
       const liveHeight = vv ? vv.height : window.innerHeight
       const offsetTop = vv ? vv.offsetTop : 0
 
-      // 1. Grow (never shrink) our "resting" baseline — this is what the screen looks like with the keyboard closed.
       if (liveHeight > restingViewportHeightRef.current) {
         restingViewportHeightRef.current = liveHeight
       }
       const restingHeight = restingViewportHeightRef.current
 
-      // 2. Canvas stays a FIXED pixel height based on the resting height. It will NEVER shrink when the keyboard opens!
+      // 1. Canvas stays a FIXED pixel height.
       const canvasHeight = Math.floor(restingHeight * 0.42)
 
-      // 3. Chat absorbs the keyboard impact by shrinking dynamically to whatever is left.
+      // 2. Chat shrinks dynamically.
       const chatHeight = Math.max(60, liveHeight - canvasHeight)
+      
+      // 3. NEW: Detect the keyboard to hide the chat bar!
+      const isKeyboardOpen = liveHeight < restingHeight - 50
+      // If open, shrink to 1px (invisible but keeps focus). If closed, return to 55px!
+      const formHeight = isKeyboardOpen ? 1 : 55
+      const formOpacity = isKeyboardOpen ? 0 : 1
 
       const root = document.documentElement.style
-      // The app wrapper shrinks to the live height so the browser doesn't scroll
       root.setProperty('--app-height', `${liveHeight}px`)
       root.setProperty('--app-offset-top', `${offsetTop}px`)
       root.setProperty('--canvas-h', `${canvasHeight}px`)
       root.setProperty('--chat-h', `${chatHeight}px`)
+      root.setProperty('--form-h', `${formHeight}px`)
+      root.setProperty('--form-opacity', `${formOpacity}`)
     }
 
     applyHeights()
@@ -673,7 +680,6 @@ const presetColors = [
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
       /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
-          /* Lock the layout to the dynamic shrinking app height! */
           .game-layout { 
             position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
             display: grid !important; gap: 0px !important; padding: 0px !important; 
@@ -683,7 +689,6 @@ const presetColors = [
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
             grid-template-columns: 45fr 55fr !important; 
-            /* FIX: Canvas uses the FROZEN --canvas-h. Chat uses the SHRINKING --chat-h. */
             grid-template-rows: var(--canvas-h, 42vh) var(--chat-h, 58vh) !important; 
           }
           
@@ -698,7 +703,7 @@ const presetColors = [
           .layout-guesser .sidebar-left { 
             grid-column: 1 !important; grid-row: 2 !important; 
             width: 100% !important; height: 100% !important; overflow: hidden !important;
-            padding-bottom: 55px !important; /* Protects scores from chat bar */
+            padding-bottom: var(--form-h, 55px) !important; /* FIX: Dynamically reclaims space! */
           }
           .layout-guesser .sidebar-right { 
             grid-column: 2 !important; grid-row: 2 !important; 
@@ -708,16 +713,20 @@ const presetColors = [
             height: 100% !important; max-height: 100% !important;
             display: flex !important; flex-direction: column !important;
             overflow: hidden !important;
-            padding-bottom: 55px !important; /* Protects messages from chat bar */
+            padding-bottom: var(--form-h, 55px) !important; /* FIX: Chat history stretches to the keyboard! */
           }
 
           /* EDGE-TO-EDGE CHAT INPUT BAR */
           .layout-guesser .sidebar-right form {
             position: absolute !important;
             bottom: 0 !important; left: 0 !important;
-            width: 100vw !important; height: 55px !important;
+            width: 100vw !important; 
+            height: var(--form-h, 55px) !important; /* FIX: Shrinks to 1px when keyboard opens */
+            opacity: var(--form-opacity, 1) !important; /* FIX: Becomes transparent */
             background-color: #1e1e1e !important; border-top: 2px solid #333 !important;
             z-index: 300 !important;
+            overflow: hidden !important;
+            transition: opacity 0.15s ease !important; /* Smooth fade effect */
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
