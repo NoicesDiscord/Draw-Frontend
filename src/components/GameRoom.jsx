@@ -35,18 +35,15 @@ export default function GameRoom({ playerInfo }) {
   const [showColorPicker, setShowColorPicker] = useState(false) // NEW: Controls the pop-up color menu!
   
   // NEW: 25 Essential Colors (Now with Theme Colors and extra vibrance!)
-  const presetColors = [
-    '#000000', '#333333', '#777777', '#cccccc', '#ffffff',
-    '#ff0000', '#ff6600', '#ffcc00', '#ffff00', '#99cc00', 
-    '#00cc00', '#006600', '#00ffff', '#00ccff', '#0000ff', 
-    '#000066', '#9900cc', '#ff00ff', '#ff99cc', '#8b4513',
-    // 5 NEW COLORS:
-    '#bb86fc', // Theme Purple
-    '#03dac6', // Theme Teal
-    '#ff1493', // Deep Pink
-    '#32cd32', // Lime Green
-    '#8a2be2'  // Blue Violet
-  ]
+  // FIX: Upgraded to exactly 30 colors to create a perfect 3-row mobile grid!
+const presetColors = [
+  '#000000', '#444444', '#888888', '#CCCCCC', '#FFFFFF', // Grays & White
+  '#800000', '#FF0000', '#FF7F7F', '#FF1493', '#FFB6C1', // Reds & Pinks
+  '#5C4033', '#8B4513', '#FFA500', '#FFD700', '#FFDAB9', // Browns & Oranges
+  '#006400', '#008000', '#00FF00', '#ADFF2F', '#FFFF00', // Greens & Yellows
+  '#000080', '#0000FF', '#1E90FF', '#00FFFF', '#E0FFFF', // Blues & Cyans
+  '#4B0082', '#800080', '#FF00FF', '#DA70D6', '#E6E6FA'  // Purples & Lavenders
+];
 
   // --- NEW: Undo / Redo Memory Stacks ---
   const undoStack = useRef([])
@@ -574,7 +571,7 @@ export default function GameRoom({ playerInfo }) {
           border-radius: 12px;
           border: 1px solid #555;
           display: grid;
-          grid-template-columns: repeat(13, minmax(20px, 24px)); /* Desktop: 2 long rows */
+          grid-template-columns: repeat(15, minmax(20px, 24px)); /* FIX: 15 columns x 2 rows = 30 colors! */
           gap: 6px;
           box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
           z-index: 200;
@@ -636,13 +633,17 @@ export default function GameRoom({ playerInfo }) {
             border-radius: 16px; 
             border-bottom: 1px solid #444; 
 
-            /* FIX: Stop Color Palette from overflowing by forcing a perfect 5x5 square! */
+            /* FIX: Break out of the toolbar and span Edge-to-Edge with 3 perfect rows! */
           .color-popup {
-            left: 0px !important;
-            grid-template-columns: repeat(5, 1fr) !important; /* Perfect 5x5 Grid for 25 colors! */
-            width: max-content !important;
-            padding: 8px !important;
+            position: fixed !important; /* Forces it to relative to the screen, not the toolbar */
+            bottom: 75px !important; /* Sits cleanly right above your mobile toolbar */
+            left: 10px !important; 
+            right: 10px !important; /* Stretches from left edge to right edge */
+            width: auto !important; 
+            grid-template-columns: repeat(10, 1fr) !important; /* FIX: 10 columns x 3 rows = 30 colors! */
+            padding: 12px !important;
             gap: 8px !important;
+            border-radius: 16px !important;
           }
           }
 
