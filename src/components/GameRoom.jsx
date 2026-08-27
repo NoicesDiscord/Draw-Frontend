@@ -589,14 +589,34 @@ const presetColors = [
         @media (max-width: 900px) {
           .game-layout { gap: 0px; padding: 0px; }
           
-          /* GUESSER LAYOUT */
+          /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            grid-template-columns: 35fr 65fr; 
-            grid-template-rows: auto minmax(0, 1fr); 
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100dvh !important;
+            overflow: hidden !important;
           }
-          .layout-guesser .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
-          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
-          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
+          /* FIX: Canvas is locked to the top and forbidden from shrinking when the keyboard pops up! */
+          .layout-guesser .center-canvas { 
+            flex: 0 0 38vh !important; 
+            width: 100vw !important;
+            border-bottom: 2px solid #222; 
+            background: #121212;
+          }
+          /* FIX: Scores and Chat sit side-by-side underneath, sharing the remaining keyboard space cleanly */
+          .layout-guesser .sidebar-left { 
+            display: flex !important;
+            flex: 1 1 auto !important;
+            height: auto !important;
+            max-height: calc(62dvh - 50px);
+            overflow: hidden;
+          }
+          .layout-guesser .sidebar-right { 
+            flex: 1 1 auto !important;
+            height: auto !important;
+            max-height: calc(62dvh - 50px);
+            overflow: hidden;
+          }
           
           /* DRAWER LAYOUT */
           .layout-drawer.game-layout { 
