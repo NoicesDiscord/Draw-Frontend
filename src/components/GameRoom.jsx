@@ -164,9 +164,13 @@ const presetColors = [
   }
 
   
+// --- FIX: RESTORED THE FROZEN CANVAS LOGIC ---
+  // We track the tallest screen height (keyboard closed) and freeze the canvas to 42% of THAT height.
+  // When the keyboard opens, ONLY the chat area shrinks, while the canvas stays perfectly frozen and clear!
+  const restingViewportHeightRef = useRef(
+    window.visualViewport ? window.visualViewport.height : window.innerHeight
+  )
 
-  // CRITICAL FIX: Stop trying to trick the browser with 'restingHeight'. 
-  // We need to dynamically shrink the entire app to match the live keyboard space!
   useEffect(() => {
     const vv = window.visualViewport
 
@@ -174,13 +178,20 @@ const presetColors = [
       const liveHeight = vv ? vv.height : window.innerHeight
       const offsetTop = vv ? vv.offsetTop : 0
 
-      // FIX: Canvas scales dynamically to take EXACTLY 42% of whatever screen space is available!
-      const canvasHeight = Math.floor(liveHeight * 0.42)
-      // Chat takes the remaining 58%
-      const chatHeight = liveHeight - canvasHeight
+      // 1. Grow (never shrink) our "resting" baseline — this is what the screen looks like with the keyboard closed.
+      if (liveHeight > restingViewportHeightRef.current) {
+        restingViewportHeightRef.current = liveHeight
+      }
+      const restingHeight = restingViewportHeightRef.current
+
+      // 2. Canvas stays a FIXED pixel height based on the resting height. It will NEVER shrink when the keyboard opens!
+      const canvasHeight = Math.floor(restingHeight * 0.42)
+
+      // 3. Chat absorbs the keyboard impact by shrinking dynamically to whatever is left.
+      const chatHeight = Math.max(60, liveHeight - canvasHeight)
 
       const root = document.documentElement.style
-      // THE MAGIC LINE: Shrink the entire app to fit perfectly above the keyboard!
+      // The app wrapper shrinks to the live height so the browser doesn't scroll
       root.setProperty('--app-height', `${liveHeight}px`)
       root.setProperty('--app-offset-top', `${offsetTop}px`)
       root.setProperty('--canvas-h', `${canvasHeight}px`)
@@ -189,7 +200,10 @@ const presetColors = [
 
     applyHeights()
 
-    const handleOrientation = () => applyHeights()
+    const handleOrientation = () => {
+      restingViewportHeightRef.current = vv ? vv.height : window.innerHeight
+      applyHeights()
+    }
 
     if (vv) {
       vv.addEventListener('resize', applyHeights)
@@ -657,20 +671,22 @@ const presetColors = [
 
 
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
-       /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
+      /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
-          /* Lock the entire layout directly to our JavaScript's shrinking boundary! */
+          /* Lock the layout to the dynamic shrinking app height! */
           .game-layout { 
             position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
             display: grid !important; gap: 0px !important; padding: 0px !important; 
-            width: 100% !important; height: var(--app-height) !important;
+            width: 100% !important; height: var(--app-height, 100%) !important;
           }
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
             grid-template-columns: 45fr 55fr !important; 
-            grid-template-rows: var(--canvas-h) var(--chat-h) !important; 
+            /* FIX: Canvas uses the FROZEN --canvas-h. Chat uses the SHRINKING --chat-h. */
+            grid-template-rows: var(--canvas-h, 42vh) var(--chat-h, 58vh) !important; 
           }
+          
           .layout-guesser .center-canvas { 
             grid-column: 1 / span 2 !important; grid-row: 1 !important; 
             width: 100% !important; height: 100% !important;
