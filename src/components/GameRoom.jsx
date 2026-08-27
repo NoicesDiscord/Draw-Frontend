@@ -516,8 +516,9 @@ export default function GameRoom({ playerInfo }) {
       <style>{`
         body, html {
           margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
-          /* FIX: 100dvh tells mobile browsers to dynamically resize when the keyboard opens! */
+          /* FIX: 100dvh handles the virtual keyboard gracefully, and overscroll-behavior stops the screen from jumping! */
           position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; touch-action: none; 
+          overscroll-behavior: none; 
         }
         * { box-sizing: border-box; }
         
@@ -588,41 +589,49 @@ export default function GameRoom({ playerInfo }) {
           
           /* --- GUESSER MOBILE LAYOUT --- */
           .layout-guesser.game-layout {
-            grid-template-columns: 40fr 60fr; 
-            /* FIX: Canvas gets EXACTLY 35% of the screen so Chat and Scores ALWAYS fit underneath! */
-            grid-template-rows: minmax(150px, 35dvh) 1fr; 
+            grid-template-columns: 35fr 65fr; 
+            /* FIX: 'auto' locks canvas to the top. 'minmax(0, 1fr)' forces the chat to perfectly shrink when the keyboard opens without pushing the canvas away! */
+            grid-template-rows: auto minmax(0, 1fr); 
           }
           .layout-guesser .center-canvas { grid-column: 1 / span 2; grid-row: 1; border-bottom: 2px solid #222; }
-          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; }
-          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; }
-
-          /* --- DRAWER MOBILE LAYOUT --- */
-          .layout-drawer.game-layout { display: block; }
-          .layout-drawer .center-canvas { height: 100dvh; padding-bottom: 45px; }
-          .layout-drawer .sidebar-left { display: none; } /* Hide scores to maximize drawing space! */
-          .layout-drawer .sidebar-right {
-            position: absolute; top: 15px; right: 10px; 
-            width: 200px; height: 35dvh; 
-            z-index: 100; pointer-events: none; /* Let them draw right through the chat! */
-          }
-          .layout-drawer .sidebar-right > div {
-            background-color: rgba(20, 20, 20, 0.4) !important; /* Make chat transparent */
-            border: 1px solid rgba(255,255,255,0.1) !important;
-          }
-          .layout-drawer .sidebar-right form { display: none !important; } /* Hide the typing box */
+          .layout-guesser .sidebar-left { grid-column: 1; grid-row: 2; min-height: 0; }
+          .layout-guesser .sidebar-right { grid-column: 2; grid-row: 2; min-height: 0; }
+          .layout-guesser .floating-status { top: 10px; left: 10px; } /* Sits nicely over the canvas */
           
-          /* UNIVERSAL CANVAS FIX (Cleans up the borders) */
+          /* --- DRAWER MOBILE LAYOUT --- */
+          .layout-drawer.game-layout { 
+            grid-template-columns: 40fr 60fr; 
+            /* FIX: Top gap (Scores/Chat), Middle (Canvas), Bottom gap (Tools) */
+            grid-template-rows: 1fr auto 1fr; 
+          }
+          .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; }
+          .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; }
+          .layout-drawer .sidebar-right form { display: none !important; } /* Hide chat input to give drawer more room to read guesses! */
+          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; } /* Make chat slightly transparent */
+          
+          .layout-drawer .center-canvas { grid-column: 1 / span 2; grid-row: 2; }
+          
+          .layout-drawer .toolbar { 
+            bottom: -70px; /* FIX: Pushes the toolbar completely OUT of the canvas into the bottom black space! */
+            border-radius: 16px; 
+            border-bottom: 1px solid #444; 
+          }
+          .layout-drawer .floating-status { top: -45px; left: 50%; transform: translateX(-50%); width: max-content; } /* Centers the hint above the canvas */
+
+          /* --- UNIVERSAL MOBILE CANVAS FIXES --- */
           .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; }
-          .game-canvas { border-radius: 0 !important; border: none !important; }
+          
+          /* FIX: Edge to Edge, No Side Gaps, Zero Stretching! */
+          .game-canvas { 
+            width: 100vw !important; max-width: 100vw !important; 
+            height: auto !important; max-height: none !important; 
+            border-radius: 0 !important; border: none !important; 
+            aspect-ratio: 4 / 3; 
+          }
           
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
           .sidebar-left > div { border-right: 2px solid #222 !important; }
-
           .waiting-text { font-size: 20px; }
-          .floating-status { font-size: 15px; padding: 6px 14px; top: 15px; left: 60px; }
-          
-          .toolbar { bottom: 0px; padding: 6px 12px; gap: 8px; border-radius: 12px 12px 0 0; }
-          .color-btn { width: 20px; height: 20px; }
         }
       `}</style>
 
@@ -745,104 +754,104 @@ export default function GameRoom({ playerInfo }) {
               }}
             />
 
-           {/* NEW: Docked & Compact Tool Bar */}
-            <div 
-              className="toolbar" 
-              style={{ 
-                opacity: isMyTurn ? 1 : 0.3, 
-                pointerEvents: isMyTurn ? 'auto' : 'none',
-                width: 'max-content', // FIX: Hugs the tools tightly!
-                maxWidth: '96vw', 
-                boxSizing: 'border-box'
-              }}
-            >
-              {/* 1. The Single Active Color Block & Popup Grid */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <button
-                  onClick={() => setShowColorPicker(!showColorPicker)}
-                  style={{
-                    width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
-                    backgroundColor: brushColor, // Shows whatever is currently selected!
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
-                    flexShrink: 0
-                  }}
-                  title="Click to choose a color"
-                />
+           {/* FIX: Completely hides the toolbar from Guessers for a clean view! */}
+            {isMyTurn && (
+              <div 
+                className="toolbar" 
+                style={{ 
+                  width: 'max-content', // Hugs the tools tightly!
+                  maxWidth: '96vw', 
+                  boxSizing: 'border-box'
+                }}
+              >
+                {/* 1. The Single Active Color Block & Popup Grid */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
+                      backgroundColor: brushColor, // Shows whatever is currently selected!
+                      border: '2px solid #fff',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
+                      flexShrink: 0
+                    }}
+                    title="Click to choose a color"
+                  />
 
-                {/* The 2-Row Color Menu Popup! */}
-                {showColorPicker && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '45px', // Pops up perfectly above the toolbar!
-                    left: '-5px', // Anchors securely to the left
-                    backgroundColor: 'rgba(20, 20, 20, 0.95)',
-                    padding: '10px',
-                    borderRadius: '12px',
-                    border: '1px solid #555',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(13, minmax(20px, 24px))', // 25 colors forces exactly 2 rows!
-                    gap: '6px',
-                    boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
-                    zIndex: 200,
-                    width: 'max-content'
-                  }}>
-                    {presetColors.map(color => (
-                      <button
-                        key={color}
-                        onClick={() => { 
-                          setBrushColor(color); 
-                          setIsBucketMode(false); 
-                          setShowColorPicker(false); // Instantly closes the menu!
-                        }}
-                        style={{
-                          aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0,
-                          backgroundColor: color,
-                          border: brushColor === color ? '2px solid #fff' : '1px solid #333',
-                          transform: brushColor === color ? 'scale(1.15)' : 'scale(1)',
-                          transition: 'transform 0.1s'
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+                  {/* The 2-Row Color Menu Popup! */}
+                  {showColorPicker && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '45px', // Pops up perfectly above the toolbar!
+                      left: '-5px', // Anchors securely to the left
+                      backgroundColor: 'rgba(20, 20, 20, 0.95)',
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: '1px solid #555',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(13, minmax(20px, 24px))', // 25 colors forces exactly 2 rows!
+                      gap: '6px',
+                      boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
+                      zIndex: 200,
+                      width: 'max-content'
+                    }}>
+                      {presetColors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => { 
+                            setBrushColor(color); 
+                            setIsBucketMode(false); 
+                            setShowColorPicker(false); // Instantly closes the menu!
+                          }}
+                          style={{
+                            aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0,
+                            backgroundColor: color,
+                            border: brushColor === color ? '2px solid #fff' : '1px solid #333',
+                            transform: brushColor === color ? 'scale(1.15)' : 'scale(1)',
+                            transition: 'transform 0.1s'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
+                <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
 
-              {/* Paint Bucket & Brush Size Slider */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                <button 
-                  onClick={() => setIsBucketMode(!isBucketMode)}
-                  style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                  title="Paint Bucket (Fill)"
-                >🪣</button>
+                {/* Paint Bucket & Brush Size Slider */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                  <button 
+                    onClick={() => setIsBucketMode(!isBucketMode)}
+                    style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                    title="Paint Bucket (Fill)"
+                  >🪣</button>
+                  
+                  <input 
+                    type="range" min="2" max="25" value={brushSize}
+                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                    style={{ width: '50px', flexShrink: 0, margin: 0 }} 
+                  />
+                </div>
                 
-                <input 
-                  type="range" min="2" max="25" value={brushSize}
-                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                  style={{ width: '50px', flexShrink: 0, margin: 0 }} 
-                />
-              </div>
-              
-              <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
-              
-              {/* Undo & Trash Can (Destructive Actions) */}
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
-                <button 
-                  onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
-                  style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                  title="Undo"
-                >↩️</button>
+                <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
                 
-                <button 
-                  onClick={handleClearBoard}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
-                  title="Clear Board"
-                >🗑️</button>
+                {/* Undo & Trash Can (Destructive Actions) */}
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                  <button 
+                    onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
+                    style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                    title="Undo"
+                  >↩️</button>
+                  
+                  <button 
+                    onClick={handleClearBoard}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
+                    title="Clear Board"
+                  >🗑️</button>
+                </div>
               </div>
-            </div>
-            
+            )}
+
           </div> {/* NEW: Restored missing canvas-wrapper closing tag */}
         </div> {/* NEW: Restored missing center-canvas closing tag */}
 
