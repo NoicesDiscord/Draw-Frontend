@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 
-// FIX: Pointing to your local public/sounds/ folder! No more Mixkit static!
 const joinSound = new Audio('/sounds/join.mp3') 
 const leaveSound = new Audio('/sounds/leave.mp3') 
 const closeSound = new Audio('/sounds/close.mp3') 
@@ -31,29 +30,16 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
     const handleNewMessage = (msg) => {
       setMessages((prev) => [...prev, msg])
       
-      if (msg.isGuess) {
-        playSoundSafely(successSound);
-      }
-
+      if (msg.isGuess) playSoundSafely(successSound);
       if (msg.sender === "System" && msg.text) {
-        if (msg.text.includes("joined the lobby")) {
-          playSoundSafely(joinSound);
-        } else if (msg.text.includes("left the lobby")) {
-          playSoundSafely(leaveSound);
-        }
+        if (msg.text.includes("joined the lobby")) playSoundSafely(joinSound);
+        else if (msg.text.includes("left the lobby")) playSoundSafely(leaveSound);
       }
-      
-      if (msg.type === 'votekick') {
-        playSoundSafely(alertSound);
-      }
-      
-      if (msg.isCloseGuess) {
-        playSoundSafely(closeSound);
-      }
+      if (msg.type === 'votekick') playSoundSafely(alertSound);
+      if (msg.isCloseGuess) playSoundSafely(closeSound);
     }
     
     socket.on('chat_message', handleNewMessage)
-
     return () => socket.off('chat_message', handleNewMessage)
   }, [socket])
 
@@ -74,14 +60,14 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid #333', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#1e1e1e' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--border-main)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-panel)', transition: 'all 0.3s ease' }}>
       
       <div style={{ flexGrow: 1, height: '0px', overflowY: 'scroll', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((msg, index) => (
           <div key={index} style={{ fontSize: '14px', lineHeight: '1.4' }}>
             
             {msg.type === 'votekick' ? (
-              <div style={{ backgroundColor: '#2d2d2d', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #ff9800', marginTop: '5px' }}>
+              <div style={{ backgroundColor: 'var(--bg-chat-form)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #ff9800', marginTop: '5px', transition: 'background-color 0.3s ease' }}>
                 <div style={{ color: '#ff9800', fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>
                   ⚠️ {msg.text}
                 </div>
@@ -95,7 +81,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
                     </button>
                   </div>
                 ) : (
-                  <div style={{ color: '#888', fontStyle: 'italic', fontSize: '12px', textAlign: 'center' }}>Vote casted</div>
+                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12px', textAlign: 'center' }}>Vote casted</div>
                 )}
               </div>
             ) : msg.isCloseGuess ? (
@@ -106,7 +92,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
             ) : msg.isGuess ? (
               <span style={{ color: '#03dac6', fontWeight: 'bold' }}>🎉 {msg.sender} guessed the word!</span>
             ) : (
-              <span style={{ color: '#e0e0e0' }}>
+              <span style={{ color: 'var(--text-main)', transition: 'color 0.3s ease' }}>
                 <strong style={{ color: '#bb86fc' }}>{msg.sender}: </strong>
                 {msg.text}
               </span>
@@ -117,10 +103,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* FIX: Restored the <form> wrapper so your GameRoom CSS aligns it properly! */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
-        
-        {/* FIX: Replaced the <input> with a 1-row <textarea> to permanently defeat Chrome's Autofill heuristics */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid var(--border-main)', marginTop: 'auto', backgroundColor: isMyTurn ? 'var(--bg-chat-disabled)' : 'var(--bg-chat-form)', transition: 'all 0.3s ease' }}>
         <textarea
           rows="1"
           autoComplete="off"
@@ -128,10 +111,10 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
           autoCapitalize="off"
           spellCheck="false"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value.replace(/\n/g, ''))} // Prevents pasting newlines
+          onChange={(e) => setInputValue(e.target.value.replace(/\n/g, ''))} 
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              e.preventDefault(); // Stops Enter from making a new line
+              e.preventDefault(); 
               handleSubmit(e);
             }
           }}
@@ -140,10 +123,11 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
           style={{ 
             flexGrow: 1, padding: '16px 12px', border: 'none', outline: 'none', minWidth: 0,
             backgroundColor: 'transparent',
-            color: isMyTurn ? '#666' : '#fff', 
+            color: isMyTurn ? 'var(--text-muted)' : 'var(--text-main)', 
             cursor: isMyTurn ? 'not-allowed' : 'text',
             resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap',
-            fontFamily: 'inherit', fontSize: '16px', lineHeight: '1.2'
+            fontFamily: 'inherit', fontSize: '16px', lineHeight: '1.2',
+            transition: 'color 0.3s ease'
           }}
         />
         
@@ -161,9 +145,10 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
           disabled={isMyTurn}
           style={{ 
             padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0, height: '100%',
-            backgroundColor: isMyTurn ? '#444' : '#bb86fc', 
-            color: isMyTurn ? '#777' : '#000', 
-            cursor: isMyTurn ? 'not-allowed' : 'pointer'
+            backgroundColor: isMyTurn ? 'var(--border-main)' : '#bb86fc', 
+            color: isMyTurn ? 'var(--text-muted)' : '#000', 
+            cursor: isMyTurn ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease'
           }}
         >
           Send

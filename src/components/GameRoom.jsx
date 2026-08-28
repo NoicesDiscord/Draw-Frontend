@@ -27,7 +27,18 @@ export default function GameRoom({ playerInfo }) {
   const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
+  
   const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
+
+  // --- NEW: Theme Toggle State & Effect ---
+  const [isLightMode, setIsLightMode] = useState(false)
+  useEffect(() => {
+    if (isLightMode) {
+      document.body.classList.add('light-mode')
+    } else {
+      document.body.classList.remove('light-mode')
+    }
+  }, [isLightMode])
 
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
@@ -582,18 +593,33 @@ const presetColors = [
   return (
     <>
       <style>{`
-        /* FIX: Lock to --app-height (kept live by the visualViewport listener above)
-           instead of a frozen '100%'/'100vh'. That variable shrinks the instant the
-           keyboard opens, so this whole layout shrinks with it and stays fully on
-           screen instead of being covered or scrolled away. */
-                /* FIX: Lock to --app-height (kept live by the visualViewport code above)
-           instead of a frozen '100%'/'100vh'. This is the STABLE resting
-           height (keyboard closed), so the whole layout doesn't jump around. */
+        :root {
+          --bg-body: #121212;
+          --bg-panel: #1e1e1e;
+          --bg-player: #252525;
+          --bg-chat-form: #2d2d2d;
+          --bg-chat-disabled: #1a1a1a;
+          --border-main: #333333;
+          --text-main: #e0e0e0;
+          --text-muted: #aaaaaa;
+        }
+        .light-mode {
+          --bg-body: #e4e6eb;
+          --bg-panel: #ffffff;
+          --bg-player: #f0f2f5;
+          --bg-chat-form: #f0f2f5;
+          --bg-chat-disabled: #e4e6eb;
+          --border-main: #cccccc;
+          --text-main: #1c1e21;
+          --text-muted: #65676b;
+        }
+
         body, html {
-          margin: 0; padding: 0; background-color: #121212; color: #e0e0e0; font-family: sans-serif;
+          margin: 0; padding: 0; background-color: var(--bg-body); color: var(--text-main); font-family: sans-serif;
           position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
           width: 100% !important; height: var(--app-height, 100%) !important;
           overflow: hidden !important; touch-action: none; overscroll-behavior: none; 
+          transition: background-color 0.3s ease, color 0.3s ease;
         }
         * { box-sizing: border-box; }
         
@@ -614,8 +640,9 @@ const presetColors = [
         .sidebar-right { grid-column: 3; }
         
         .canvas-wrapper {
-          flex-grow: 1; display: flex; align-items: center; justify-content: center; background-color: #1e1e1e;
-          padding: 10px; border-radius: 8px; border: 1px solid #333; min-height: 0; min-width: 0; position: relative; 
+          flex-grow: 1; display: flex; align-items: center; justify-content: center; background-color: var(--bg-panel);
+          padding: 10px; border-radius: 8px; border: 1px solid var(--border-main); min-height: 0; min-width: 0; position: relative; 
+          transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
         .game-canvas {
@@ -770,25 +797,26 @@ const presetColors = [
           <div 
             onClick={() => setShowPlayerModal(true)}
             title="Click to manage lobby players"
-            style={{ backgroundColor: '#1e1e1e', padding: '10px', borderRadius: '8px', border: '1px solid #333', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+            style={{ backgroundColor: 'var(--bg-panel)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-main)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease' }}
           >
-            <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid #333', paddingBottom: '12px', position: 'relative' }}>
+            <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-main)', paddingBottom: '12px', position: 'relative', transition: 'border-color 0.3s ease' }}>
               <h3 style={{ margin: '0 0 6px 0', color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#aaa', backgroundColor: '#333', padding: '3px 8px', borderRadius: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease' }}>
                   ROUND {currentRound} OF {maxRounds}
                 </span>
                 {isPrivate && (
-                  <button onClick={() => {
+                  <button onClick={(e) => {
+                    e.stopPropagation(); // Prevents opening the modal when clicking invite
                     navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
                     alert("Invite link copied!");
-                  }} style={{ background: '#333', color: '#03dac6', border: '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  }} style={{ background: 'var(--border-main)', color: '#03dac6', border: '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.3s ease' }}>
                     + INVITE
                   </button>
                 )}
               </div>
             </div>
-            {/* FIX: Beautifully redesigned modern player cards! No more timer, bigger fonts, and dynamic highlighting! */}
+            
             <ul style={{ listStyle: 'none', padding: '0 5px', margin: 0, overflowY: 'auto', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {playerList.map((p, index) => {
                 const isMe = p.name === playerInfo.playerName;
@@ -801,30 +829,27 @@ const presetColors = [
                     style={{ 
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                       padding: '10px 14px', borderRadius: '12px',
-                      backgroundColor: hasGuessed ? 'rgba(3, 218, 198, 0.15)' : (isMe ? 'rgba(187, 134, 252, 0.15)' : '#252525'),
+                      backgroundColor: hasGuessed ? 'rgba(3, 218, 198, 0.15)' : (isMe ? 'rgba(187, 134, 252, 0.15)' : 'var(--bg-player)'),
                       border: hasGuessed ? '1px solid #03dac6' : (isMe ? '1px solid #bb86fc' : '1px solid transparent'),
-                      transition: 'all 0.2s', boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                      transition: 'all 0.3s ease', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-                      {/* The Rank Circle */}
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: hasGuessed ? '#03dac6' : '#444', color: hasGuessed ? '#000' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', flexShrink: 0 }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: hasGuessed ? '#03dac6' : 'var(--border-main)', color: hasGuessed ? '#000' : 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', flexShrink: 0, transition: 'all 0.3s ease' }}>
                         {index + 1}
                       </div>
                       
-                      {/* The Name and Status Text */}
                       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isMe ? '#bb86fc' : '#e0e0e0'), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isMe ? '#bb86fc' : 'var(--text-main)'), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', transition: 'color 0.3s ease' }}>
                           {p.name} {isMe && '(You)'}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', transition: 'color 0.3s ease' }}>
                           {hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : 'Guesser')}
                         </span>
                       </div>
                     </div>
                     
-                    {/* The Points */}
-                    <span style={{ fontSize: '16px', fontWeight: '900', color: hasGuessed ? '#03dac6' : '#fff', flexShrink: 0 }}>
+                    <span style={{ fontSize: '16px', fontWeight: '900', color: hasGuessed ? '#03dac6' : 'var(--text-main)', flexShrink: 0, transition: 'color 0.3s ease' }}>
                       {p.score}
                     </span>
                   </li>
@@ -1086,12 +1111,23 @@ const presetColors = [
             backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 200,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
           }}>
-            <div style={{ background: '#1e1e1e', border: '1px solid #333', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-              <h2 style={{ color: '#bb86fc', marginTop: 0, textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Lobby Players</h2>
+            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}>
+              
+              {/* NEW: Title & Theme Toggle Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '15px', marginBottom: '15px', transition: 'border-color 0.3s ease' }}>
+                <h2 style={{ color: '#bb86fc', margin: 0 }}>Lobby Players</h2>
+                <button 
+                  onClick={() => setIsLightMode(!isLightMode)}
+                  style={{ background: 'var(--bg-player)', border: '1px solid var(--border-main)', color: 'var(--text-main)', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s ease' }}
+                >
+                  {isLightMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                </button>
+              </div>
+
               <ul style={{ listStyle: 'none', padding: 0, maxHeight: '300px', overflowY: 'auto' }}>
                 {playerList.map(p => (
-                  <li key={p.id || p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #333', color: '#e0e0e0' }}>
-                    <span style={{ fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', color: p.name === playerInfo.playerName ? '#03dac6' : '#e0e0e0' }}>
+                  <li key={p.id || p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border-main)', color: 'var(--text-main)', transition: 'all 0.3s ease' }}>
+                    <span style={{ fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', color: p.name === playerInfo.playerName ? '#03dac6' : 'var(--text-main)', transition: 'color 0.3s ease' }}>
                       {p.name} {p.name === playerInfo.playerName ? '(You)' : ''} - {p.score} pts
                     </span>
                     {p.name !== playerInfo.playerName && (
@@ -1112,7 +1148,7 @@ const presetColors = [
               </ul>
               <button 
                 onClick={() => setShowPlayerModal(false)} 
-                style={{ width: '100%', padding: '12px', background: '#333', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold' }}
+                style={{ width: '100%', padding: '12px', background: 'var(--border-main)', color: 'var(--text-main)', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold', transition: 'all 0.3s ease' }}
               >
                 Close
               </button>
