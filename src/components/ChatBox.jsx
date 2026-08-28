@@ -13,7 +13,7 @@ leaveSound.volume = 0.4
 closeSound.volume = 0.5
 alertSound.volume = 0.6
 successSound.volume = 0.5
-
+ 
 const playSoundSafely = (audioObj) => {
   const clone = audioObj.cloneNode()
   clone.volume = audioObj.volume
