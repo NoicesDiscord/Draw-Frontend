@@ -5,7 +5,7 @@ export default function App() {
   const [name, setName] = useState('')
   const [playerInfo, setPlayerInfo] = useState(null)
   const [error, setError] = useState('') 
-  
+   
   const [mode, setMode] = useState('public') 
   const [maxPlayers, setMaxPlayers] = useState(8)
   const [rounds, setRounds] = useState(3)
