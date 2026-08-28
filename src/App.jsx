@@ -133,8 +133,22 @@ export default function App() {
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             border-left: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
-            border-radius: 30px; padding: 45px 40px; width: 100%; max-width: 460px; 
+            border-radius: 30px; padding: 35px 30px; width: 100%; max-width: 550px; 
             text-align: center; animation: floatCard 6s ease-in-out infinite; 
+          }
+
+          .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+          }
+
+          @media (max-width: 500px) {
+            .settings-grid { grid-template-columns: 1fr; gap: 12px; }
+            .glass-card { padding: 25px 20px; max-height: 95vh; overflow-y: auto; }
+            .settings-box { padding: 15px; margin-bottom: 15px; }
+            .game-subtitle { margin: 0 0 20px 0; }
           }
           
           .game-title { 
@@ -223,8 +237,8 @@ export default function App() {
                 {/* --- CREATE PRIVATE LOBBY --- */}
                 {mode === 'private' && (
                   <div className="settings-box">
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
+                    <div style={{ marginBottom: '15px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
                         <span>Room Password (Optional)</span>
                       </div>
                       <input 
@@ -233,43 +247,45 @@ export default function App() {
                         onChange={e => setPassword(e.target.value)} 
                         placeholder="Leave blank for an open room"
                         maxLength="20"
-                        style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', outline: 'none', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', outline: 'none', boxSizing: 'border-box' }}
                       />
                     </div>
 
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
-                        <span>Max Players</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{maxPlayers}</span>
+                    <div className="settings-grid">
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                          <span>Max Players</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{maxPlayers}</span>
+                        </div>
+                        <input type="range" min="2" max="8" value={maxPlayers} onChange={e => setMaxPlayers(e.target.value)} style={{ width: '100%' }} />
                       </div>
-                      <input type="range" min="2" max="8" value={maxPlayers} onChange={e => setMaxPlayers(e.target.value)} style={{ width: '100%' }} />
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                          <span>Total Rounds</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{rounds}</span>
+                        </div>
+                        <input type="range" min="1" max="10" value={rounds} onChange={e => setRounds(e.target.value)} style={{ width: '100%' }} />
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                          <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
+                        </div>
+                        <input type="range" min="30" max="300" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                          <span>Hint Amount</span>
+                          <span style={{ color: '#03dac6', fontWeight: 'bold' }}>
+                            {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal' : 'High'}
+                          </span>
+                        </div>
+                        <input type="range" min="1" max="3" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
+                      </div>
                     </div>
 
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
-                        <span>Total Rounds</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{rounds}</span>
-                      </div>
-                      <input type="range" min="1" max="10" value={rounds} onChange={e => setRounds(e.target.value)} style={{ width: '100%' }} />
-                    </div>
-
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
-                        <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
-                      </div>
-                      <input type="range" min="30" max="300" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
-                    </div>
-
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
-                        <span>Hint Amount</span>
-                        <span style={{ color: '#03dac6', fontWeight: 'bold' }}>
-                          {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal' : 'High'}
-                        </span>
-                      </div>
-                      <input type="range" min="1" max="3" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
-                    </div>
-
-                    <div style={{ marginBottom: '5px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
+                    <div style={{ marginBottom: '0px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
                         <span>Custom Words (Optional)</span>
                       </div>
                       <textarea 
@@ -277,9 +293,9 @@ export default function App() {
                         onChange={e => setCustomWords(e.target.value)} 
                         placeholder="e.g. Anime, Naruto, Luffy, Goku"
                         maxLength="30000"
-                        style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', outline: 'none', resize: 'vertical', minHeight: '70px', boxSizing: 'border-box', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)' }}
+                        style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', outline: 'none', resize: 'vertical', minHeight: '50px', boxSizing: 'border-box', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)' }}
                       />
-                      <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>Separate words with commas.</div>
+                      <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Separate words with commas.</div>
                     </div>
                   </div>
                 )}
