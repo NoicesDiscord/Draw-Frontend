@@ -13,7 +13,7 @@ leaveSound.volume = 0.4
 closeSound.volume = 0.5
 alertSound.volume = 0.6
 successSound.volume = 0.5
- 
+
 const playSoundSafely = (audioObj) => {
   const clone = audioObj.cloneNode()
   clone.volume = audioObj.volume
@@ -25,8 +25,6 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [inputValue, setInputValue] = useState('')
   const [votedOn, setVotedOn] = useState({}) // NEW: Remembers if you already voted on a kick
   const messagesEndRef = useRef(null)
-
- 
 
   useEffect(() => {
     if (!socket) return
@@ -65,7 +63,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   }, [messages])
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
     if (!inputValue.trim()) return
     socket.emit('chat_message', inputValue)
     setInputValue('')
@@ -123,31 +121,32 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* FIX: Moved background colors to the form wrapper so the character counter sits beautifully inside the text box! */}
-      <form autoComplete="off" onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
         <input
           type="text"
           id="chat-guess-input"
-          name="chat-guess-input"
-          autoComplete="nope"
+          autoComplete="new-password"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
-          data-lpignore="true"
-          data-form-type="other"
+          enterKeyHint="send"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSubmit(e);
+            }
+          }}
           placeholder={isMyTurn ? "You are drawing! 🎨" : "Guess the word..."}
           disabled={isMyTurn}
           style={{ 
             flexGrow: 1, padding: '12px', border: 'none', outline: 'none', minWidth: 0,
-            backgroundColor: 'transparent', /* Lets the form background show through! */
+            backgroundColor: 'transparent',
             color: isMyTurn ? '#666' : '#fff', 
             cursor: isMyTurn ? 'not-allowed' : 'text'
           }}
         />
         
-        {/* NEW: Live Character Counter! Only appears when a guesser starts typing. */}
         {!isMyTurn && inputValue.length > 0 && (
           <div style={{ 
             color: '#03dac6', fontWeight: '900', fontSize: '15px', 
@@ -158,7 +157,8 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         )}
 
         <button 
-          type="submit" 
+          type="button" 
+          onClick={handleSubmit}
           disabled={isMyTurn}
           style={{ 
             padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0, height: '100%',
@@ -169,7 +169,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         >
           Send
         </button>
-      </form>
+      </div>
     </div>
   )
 }
