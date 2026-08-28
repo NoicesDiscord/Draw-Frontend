@@ -29,6 +29,9 @@ export default function GameRoom({ playerInfo }) {
   const [wordChoices, setWordChoices] = useState([])
   
   const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
+  
+  const [turnSummary, setTurnSummary] = useState(null) // NEW: Holds the round end scores
+  const summarySound = useRef(new Audio('/sounds/summary.mp3')) // NEW: Sound effect for round end screen
 
   // --- NEW: Theme Toggle State & Effect ---
   const [isLightMode, setIsLightMode] = useState(false)
@@ -337,6 +340,7 @@ const presetColors = [
     })
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
+      setTurnSummary(null) // NEW: Clear summary just in case
       setIsChoosing(false) // FIX: Make sure the overlay never blocks the victory screen!
       
       // NEW: Play the epic celebration sound!
@@ -344,10 +348,20 @@ const presetColors = [
       winSound.current.currentTime = 0
       winSound.current.play().catch(err => console.log("Audio blocked:", err))
     })
+    
+    // NEW: Listener for the end-of-turn score summary!
+    socketRef.current.on('turn_summary', (data) => {
+      setTurnSummary(data)
+      const clone = summarySound.current.cloneNode()
+      clone.volume = 0.6
+      clone.play().catch(err => console.log("Audio blocked:", err))
+    })
+
     // NEW: The Choosing Phase!
     socketRef.current.on('choosing_word', (data) => {
       setWaitingForHost(false)
       setIsChoosing(true)
+      setTurnSummary(null) // NEW: Hide summary overlay!
       setCurrentDrawer(data.drawerName)
       setIsMyTurn(data.drawerName === playerInfo.playerName)
       setSecretWord("") // Hide the old word
@@ -1063,8 +1077,34 @@ const presetColors = [
           )}
         </div>
 
+        {/* NEW: Turn Summary Overlay */}
+        {turnSummary && !winner && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 150,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <div style={{ background: 'var(--bg-panel)', padding: '30px', borderRadius: '16px', textAlign: 'center', border: '2px solid #03dac6', boxShadow: '0 10px 40px rgba(0,0,0,0.6)', width: '90%', maxWidth: '400px' }}>
+              <h2 style={{ color: '#FFD54F', margin: '0 0 10px 0', fontSize: '24px' }}>{turnSummary.reason}</h2>
+              <div style={{ color: 'var(--text-muted)', marginBottom: '5px' }}>The word was</div>
+              <h1 style={{ color: '#03dac6', margin: '0 0 25px 0', fontSize: '32px', letterSpacing: '2px', textTransform: 'uppercase' }}>{turnSummary.word}</h1>
+              
+              <div style={{ background: 'var(--bg-player)', borderRadius: '10px', padding: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {turnSummary.scores.map((p, idx) => (
+                    <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: idx < turnSummary.scores.length - 1 ? '1px solid var(--border-main)' : 'none', fontWeight: 'bold' }}>
+                      <span style={{ color: p.earned > 0 ? '#bb86fc' : 'var(--text-main)' }}>{p.name}</span>
+                      <span style={{ color: p.earned > 0 ? '#03dac6' : 'var(--text-muted)' }}>+{p.earned} pts</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* NEW: Word Choosing Phase Overlay */}
-        {isChoosing && (
+        {isChoosing && !turnSummary && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 100,
