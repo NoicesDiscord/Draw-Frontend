@@ -623,7 +623,7 @@ const presetColors = [
           max-width: 100%; max-height: 100%; width: auto; height: auto; aspect-ratio: 4 / 3;
           border-radius: 4px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); border: 2px solid #333;
         }
-        
+         
         .waiting-text {
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
           color: #999; font-size: 24px; font-weight: bold; text-align: center; pointer-events: none; width: 90%;
