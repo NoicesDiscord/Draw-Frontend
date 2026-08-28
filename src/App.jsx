@@ -51,22 +51,21 @@ export default function App() {
     let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
 
     if (inviteRoom) {
-      setPlayerInfo({ playerName: finalName, roomId: inviteRoom })
+      // NEW: Pass the joinPassword to the server when joining via invite link
+      setPlayerInfo({ playerName: finalName, roomId: inviteRoom, password: joinPassword.trim() })
     } else if (mode === 'private') {
       setPlayerInfo({ 
         playerName: finalName, 
         privateSettings: { 
           maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, 
-          password: password.trim() // NEW: Send password to backend on creation
+          password: password.trim() 
         } 
       })
     } else if (mode === 'browse' && targetLobby) {
-      // NEW: Send the room ID, the password attempt, and the browser flag
       setPlayerInfo({ 
         playerName: finalName, 
         roomId: targetLobby.id, 
-        password: joinPassword.trim(),
-        isBrowserJoin: true 
+        password: joinPassword.trim()
       })
     } else if (mode === 'public') {
       setPlayerInfo({ playerName: finalName })
@@ -200,8 +199,18 @@ export default function App() {
             />
 
             {mode === 'invite' ? (
-              <div style={{ color: '#03dac6', marginBottom: '25px', fontWeight: 'bold', fontSize: '15px' }}>
-                🎟️ You have been invited to a Private Room!
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ color: '#03dac6', marginBottom: '15px', fontWeight: 'bold', fontSize: '15px' }}>
+                  🎟️ You have been invited to a Private Room!
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Room Password (if any)" 
+                  value={joinPassword}
+                  onChange={e => setJoinPassword(e.target.value)}
+                  maxLength="20"
+                  style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)' }}
+                />
               </div>
             ) : (
               <>
