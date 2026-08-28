@@ -630,10 +630,10 @@ const presetColors = [
         }
         
         .floating-status {
-          position: absolute; top: 15px; left: 110px; 
+          position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
           background-color: rgba(55, 0, 179, 0.85); color: white; padding: 8px 20px; border-radius: 20px;
           font-weight: bold; pointer-events: none; font-size: 16px; 
-          white-space: pre-wrap; text-align: left; width: max-content; max-width: calc(100% - 130px); line-height: 1.4; 
+          white-space: pre-wrap; text-align: center; width: max-content; max-width: 80%; line-height: 1.4; 
           z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
