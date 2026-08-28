@@ -124,15 +124,17 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
       </div>
 
       {/* FIX: Moved background colors to the form wrapper so the character counter sits beautifully inside the text box! */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
+      <form autoComplete="off" onSubmit={handleSubmit} style={{ display: 'flex', alignItems: 'center', borderTop: '1px solid #333', marginTop: 'auto', backgroundColor: isMyTurn ? '#1a1a1a' : '#2d2d2d' }}>
         <input
           type="text"
-          name="guess-input"
-          autoComplete="off"
+          id="chat-guess-input"
+          name="chat-guess-input"
+          autoComplete="nope"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
           data-lpignore="true"
+          data-form-type="other"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={isMyTurn ? "You are drawing! 🎨" : "Guess the word..."}
