@@ -5,13 +5,18 @@ export default function App() {
   const [name, setName] = useState('')
   const [playerInfo, setPlayerInfo] = useState(null)
   const [error, setError] = useState('') 
-   
-  const [mode, setMode] = useState('public') 
+  
+  const [mode, setMode] = useState('public') // 'public', 'private', or 'browse'
   const [maxPlayers, setMaxPlayers] = useState(8)
   const [rounds, setRounds] = useState(3)
   const [drawTime, setDrawTime] = useState(120)
   const [customWords, setCustomWords] = useState('') 
   const [hintLevel, setHintLevel] = useState(2) 
+  const [password, setPassword] = useState('') // NEW: Password for creating
+  
+  const [customLobbies, setCustomLobbies] = useState([]) // NEW: Server list
+  const [selectedLobbyId, setSelectedLobbyId] = useState(null) // NEW: Tracks clicked lobby
+  const [joinPassword, setJoinPassword] = useState('') // NEW: Password for joining
 
   const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
 
@@ -21,29 +26,50 @@ export default function App() {
     }
   }, [])
 
-  const handleJoin = () => {
+  // NEW: Fetch live lobbies when opening the Browse tab
+  const fetchLobbies = () => {
+    fetch('https://skribbl-backend-dgot.onrender.com/api/rooms')
+      .then(res => res.json())
+      .then(data => setCustomLobbies(data))
+      .catch(err => console.log("Failed to fetch lobbies", err))
+  }
+
+  useEffect(() => {
+    if (mode === 'browse') fetchLobbies()
+  }, [mode])
+
+  const handleJoin = (targetLobby = null) => {
     if (!name.trim()) {
       setError('⚠️ You must enter a nickname to play!')
       return
     }
     
-    if (name.trim()) {
-      const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)]
-      const finalName = `${randomAvatar} ${name.trim()}`
-      
-      const inviteRoom = new URLSearchParams(window.location.search).get('room')
-      let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
+    const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)]
+    const finalName = `${randomAvatar} ${name.trim()}`
+    
+    const inviteRoom = new URLSearchParams(window.location.search).get('room')
+    let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
 
-      if (inviteRoom) {
-        setPlayerInfo({ playerName: finalName, roomId: inviteRoom })
-      } else if (mode === 'private') {
-        setPlayerInfo({ 
-          playerName: finalName, 
-          privateSettings: { maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords } 
-        })
-      } else {
-        setPlayerInfo({ playerName: finalName })
-      }
+    if (inviteRoom) {
+      setPlayerInfo({ playerName: finalName, roomId: inviteRoom })
+    } else if (mode === 'private') {
+      setPlayerInfo({ 
+        playerName: finalName, 
+        privateSettings: { 
+          maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, 
+          password: password.trim() // NEW: Send password to backend on creation
+        } 
+      })
+    } else if (mode === 'browse' && targetLobby) {
+      // NEW: Send the room ID, the password attempt, and the browser flag
+      setPlayerInfo({ 
+        playerName: finalName, 
+        roomId: targetLobby.id, 
+        password: joinPassword.trim(),
+        isBrowserJoin: true 
+      })
+    } else if (mode === 'public') {
+      setPlayerInfo({ playerName: finalName })
     }
   }
 
@@ -51,7 +77,6 @@ export default function App() {
     return (
       <>
         <style>{`
-          /* Deep artistic dark background with a subtle drawing-canvas dot pattern */
           body, html { 
             margin: 0; padding: 0; overflow: hidden; 
             background-color: #0b0c10; 
@@ -65,12 +90,8 @@ export default function App() {
             position: relative; padding: 20px; box-sizing: border-box; 
           }
 
-          /* --- NEW: Floating Organic Paint Blobs --- */
           .art-blob {
-            position: absolute;
-            filter: blur(60px);
-            z-index: 0;
-            opacity: 0.5;
+            position: absolute; filter: blur(60px); z-index: 0; opacity: 0.5;
             animation: floatBlob 12s infinite alternate ease-in-out;
           }
           .blob-1 { 
@@ -100,8 +121,11 @@ export default function App() {
             50% { transform: translateY(-8px); } 
             100% { transform: translateY(0px); } 
           }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
 
-          /* --- Ultra Premium Glassmorphism --- */
           .glass-card { 
             position: relative; z-index: 10;
             background: rgba(20, 20, 25, 0.45); 
@@ -110,11 +134,10 @@ export default function App() {
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             border-left: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
-            border-radius: 30px; padding: 45px 40px; width: 100%; max-width: 440px; 
+            border-radius: 30px; padding: 45px 40px; width: 100%; max-width: 460px; 
             text-align: center; animation: floatCard 6s ease-in-out infinite; 
           }
           
-          /* --- Artist Neon Title --- */
           .game-title { 
             font-size: 48px; font-weight: 900; margin: 0 0 5px 0; letter-spacing: 1px; 
             background: linear-gradient(to right, #ff1493, #bb86fc, #03dac6);
@@ -124,7 +147,6 @@ export default function App() {
           }
           .game-subtitle { color: #aaa; font-size: 15px; margin: 0 0 35px 0; font-weight: 500; letter-spacing: 0.5px; }
           
-          /* Inputs and Buttons */
           .name-input { 
             width: 100%; padding: 18px 20px; font-size: 18px; 
             background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.08); 
@@ -144,23 +166,20 @@ export default function App() {
           .join-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(121, 40, 202, 0.7); }
           .join-btn:active { transform: translateY(1px); }
           
-          /* Settings UI */
           .settings-box {
             background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05);
             padding: 20px; border-radius: 20px; margin-bottom: 25px; text-align: left;
             box-shadow: inset 0 4px 15px rgba(0,0,0,0.2);
           }
           .tab-btn {
-            flex: 1; padding: 12px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s;
+            flex: 1; padding: 12px 5px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 14px;
           }
           
-          /* Custom Slider CSS */
           input[type=range] { -webkit-appearance: none; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; outline: none; margin-top: 5px; }
           input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #03dac6; cursor: pointer; box-shadow: 0 0 10px rgba(3, 218, 198, 0.5); }
         `}</style>
 
         <div className="login-container">
-          {/* Animated Artistic Background Blobs */}
           <div className="art-blob blob-1"></div>
           <div className="art-blob blob-2"></div>
           <div className="art-blob blob-3"></div>
@@ -187,20 +206,28 @@ export default function App() {
             ) : (
               <>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
-                  <button 
-                    className="tab-btn"
-                    onClick={() => setMode('public')}
-                    style={{ background: mode === 'public' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'public' ? '#000' : '#888' }}
-                  >🌍 Public</button>
-                  <button 
-                    className="tab-btn"
-                    onClick={() => setMode('private')}
-                    style={{ background: mode === 'private' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'private' ? '#000' : '#888' }}
-                  >🔒 Private</button>
+                  <button className="tab-btn" onClick={() => setMode('public')} style={{ background: mode === 'public' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'public' ? '#000' : '#888' }}>🌍 Public</button>
+                  <button className="tab-btn" onClick={() => setMode('private')} style={{ background: mode === 'private' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'private' ? '#000' : '#888' }}>🔒 Create</button>
+                  <button className="tab-btn" onClick={() => setMode('browse')} style={{ background: mode === 'browse' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'browse' ? '#000' : '#888' }}>🔍 Browse</button>
                 </div>
 
+                {/* --- CREATE PRIVATE LOBBY --- */}
                 {mode === 'private' && (
                   <div className="settings-box">
+                    <div style={{ marginBottom: '18px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
+                        <span>Room Password (Optional)</span>
+                      </div>
+                      <input 
+                        type="text" 
+                        value={password} 
+                        onChange={e => setPassword(e.target.value)} 
+                        placeholder="Leave blank for an open room"
+                        maxLength="20"
+                        style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
                     <div style={{ marginBottom: '18px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '14px', marginBottom: '8px' }}>
                         <span>Max Players</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{maxPlayers}</span>
@@ -247,6 +274,61 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* --- BROWSE CUSTOM LOBBIES --- */}
+                {mode === 'browse' && (
+                  <div className="settings-box" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <span style={{ color: '#03dac6', fontWeight: 'bold' }}>Active Custom Games</span>
+                      <button onClick={fetchLobbies} style={{ background: 'transparent', border: 'none', color: '#bb86fc', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>🔄 Refresh</button>
+                    </div>
+                    
+                    {customLobbies.length === 0 ? (
+                      <div style={{ color: '#888', textAlign: 'center', padding: '20px' }}>No custom games currently active.</div>
+                    ) : (
+                      customLobbies.map(lobby => (
+                        <div key={lobby.id} style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '12px', marginBottom: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ textAlign: 'left', overflow: 'hidden', paddingRight: '10px' }}>
+                              <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '15px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{lobby.hostName}'s Room</div>
+                              <div style={{ color: '#aaa', fontSize: '12px', marginTop: '4px' }}>
+                                👥 {lobby.players}/{lobby.maxPlayers} Players &nbsp;
+                                {lobby.hasPassword ? '🔒 Password' : '🔓 Open'}
+                              </div>
+                            </div>
+                            
+                            <button 
+                              onClick={() => {
+                                if (selectedLobbyId === lobby.id) {
+                                   handleJoin(lobby) // Confirm join
+                                } else {
+                                   setSelectedLobbyId(lobby.id)
+                                   setJoinPassword('')
+                                }
+                              }}
+                              style={{ padding: '8px 16px', background: selectedLobbyId === lobby.id ? '#03dac6' : '#bb86fc', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', flexShrink: 0, transition: '0.2s' }}
+                            >
+                              {selectedLobbyId === lobby.id ? 'Confirm' : 'Join'}
+                            </button>
+                          </div>
+                          
+                          {/* Reveal password input if required and selected */}
+                          {selectedLobbyId === lobby.id && lobby.hasPassword && (
+                            <div style={{ marginTop: '12px', animation: 'fadeIn 0.3s ease' }}>
+                               <input 
+                                 type="text" 
+                                 placeholder="Enter Room Password" 
+                                 value={joinPassword}
+                                 onChange={e => setJoinPassword(e.target.value)}
+                                 style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid #bb86fc', color: '#fff', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' }}
+                               />
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </>
             )}
             
@@ -256,9 +338,12 @@ export default function App() {
               </div>
             )}
             
-            <button className="join-btn" onClick={handleJoin}>
-              {mode === 'private' ? "Create Custom Game" : "Enter Game"}
-            </button>
+            {/* Hide the main enter button when browsing, since joining happens on the lobby card itself */}
+            {mode !== 'browse' && (
+              <button className="join-btn" onClick={() => handleJoin()}>
+                {mode === 'private' ? "Create Custom Game" : "Enter Game"}
+              </button>
+            )}
           </div>
         </div>
       </>
