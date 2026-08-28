@@ -711,7 +711,7 @@ const presetColors = [
           .layout-guesser .center-canvas { 
             grid-column: 1 / span 2 !important; grid-row: 1 !important; 
             width: 100% !important; height: 100% !important;
-            background-color: #1e1e1e; border-bottom: 2px solid #222; 
+            background-color: var(--bg-panel); border-bottom: 2px solid var(--border-main); 
             display: flex !important; align-items: center !important; justify-content: center !important;
             overflow: hidden !important; z-index: 200 !important; 
           }
@@ -737,34 +737,32 @@ const presetColors = [
             position: absolute !important;
             bottom: 0 !important; left: 0 !important;
             width: 100vw !important; height: 55px !important;
-            background-color: #1e1e1e !important; border-top: 2px solid #333 !important;
+            background-color: var(--bg-chat-form) !important; border-top: 2px solid var(--border-main) !important;
             z-index: 300 !important;
+            transition: background-color 0.3s ease, border-color 0.3s ease !important;
           }
           
           /* --- DRAWER MOBILE LAYOUT --- */
           .layout-drawer.game-layout { 
             grid-template-columns: 45fr 55fr !important; 
-            /* FIX: Top row (Chat/Scores) gets a massive '1fr'. Bottom row 'auto' cleanly wraps the Canvas + Tools! */
             grid-template-rows: 1fr auto !important; 
           }
           .layout-drawer .sidebar-left { grid-column: 1; grid-row: 1; min-height: 0; padding: 10px; overflow: hidden; }
           .layout-drawer .sidebar-right { grid-column: 2; grid-row: 1; min-height: 0; padding: 10px; pointer-events: auto; overflow: hidden; }
           .layout-drawer .sidebar-right form { display: none !important; } 
-          .layout-drawer .sidebar-right > div { background: rgba(30, 30, 30, 0.7) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
+          .layout-drawer .sidebar-right > div { background: var(--bg-panel) !important; height: 100% !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; } 
           
           .layout-drawer .center-canvas { grid-column: 1 / span 2 !important; grid-row: 2 !important; }
           
-          /* FIX: Turns the wrapper into a column so the Canvas and Toolbar stack perfectly on top of each other! */
           .layout-drawer .canvas-wrapper {
             flex-direction: column !important;
             justify-content: center !important;
           }
           
-          /* FIX: Pulls the toolbar out of absolute position and drops it cleanly into the document flow below the canvas */
           .layout-drawer .toolbar { 
             position: relative !important; 
             bottom: auto !important; left: auto !important; transform: none !important;
-            border-radius: 16px !important; border: 1px solid #444 !important; z-index: 300 !important;
+            border-radius: 16px !important; border: 1px solid var(--border-main) !important; z-index: 300 !important;
             margin-top: 15px !important; margin-bottom: 15px !important;
           }
 
@@ -774,7 +772,7 @@ const presetColors = [
           .canvas-wrapper { padding: 0 !important; background-color: transparent !important; border: none !important; border-radius: 0 !important; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
           .game-canvas { width: auto !important; max-width: 100vw !important; height: auto !important; max-height: 100% !important; border-radius: 0 !important; border: none !important; aspect-ratio: 4 / 3; margin: 0 auto; }
           .sidebar-left > div, .sidebar-right > div { border: none !important; border-radius: 0 !important; }
-          .sidebar-left > div { border-right: 2px solid #222 !important; }
+          .sidebar-left > div { border-right: 2px solid var(--border-main) !important; }
           .waiting-text { font-size: 20px; }
           .game-clock { font-size: 15px !important; padding: 2px 6px !important; top: 10px !important; left: 10px !important; border-width: 1px !important; }
           .floating-status { top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 13px !important; padding: 4px 12px !important; width: max-content !important; max-width: 80% !important; text-align: center !important; }
