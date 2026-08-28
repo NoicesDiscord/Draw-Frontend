@@ -142,6 +142,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
 
         <button 
           type="submit" 
+          onPointerDown={(e) => e.preventDefault()}
           disabled={isMyTurn}
           style={{ 
             padding: '12px 20px', border: 'none', fontWeight: 'bold', flexShrink: 0, height: '100%',
