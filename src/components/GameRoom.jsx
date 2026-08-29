@@ -100,25 +100,34 @@ const presetColors = [
   // NEW: Add a sound for the Start Game button!
   const startSound = useRef(new Audio('/sounds/start.mp3'))
 
-  // NEW: Add a ticking sound for the last 15 seconds!
+  // NEW: Add a ticking sound for the last 10 seconds!
   const tickSound = useRef(new Audio('/sounds/tick.mp3'))
-  const lastTickRef = useRef(null) // NEW: Remembers the exact second to prevent overlap spam!
+  const lastTickRef = useRef(null) 
 
-  // --- NEW: Timer Tick Effect (Last 15 Seconds) ---
+  // --- NEW: Timer Tick Effect (Last 10 Seconds) ---
   useEffect(() => {
-    // FIX: Only play if NOT choosing a word, and check the lock so it strictly plays once per second!
-    if (timeLeft <= 15 && timeLeft > 0 && currentDrawer && !winner && !turnSummary && !isChoosing) {
+    const totalGuessers = playerList.length - 1;
+    const everyoneGuessed = totalGuessers > 0 && correctGuessers.length >= totalGuessers;
+
+    // FIX: Play only between 10s and 2s (Stops the moment it touches 1). 
+    // Also strictly stops if everyone guessed the word!
+    if (timeLeft <= 10 && timeLeft > 1 && currentDrawer && !winner && !turnSummary && !isChoosing && !everyoneGuessed) {
       if (lastTickRef.current !== timeLeft) {
-        lastTickRef.current = timeLeft; // Lock this specific second
-        const clone = tickSound.current.cloneNode()
-        clone.volume = 0.5
-        clone.play().catch(err => console.log("Audio blocked:", err))
+        lastTickRef.current = timeLeft;
+        
+        // Stop the previous tick instantly to prevent any audio overlap
+        tickSound.current.pause();
+        tickSound.current.currentTime = 0;
+        
+        tickSound.current.volume = 0.5;
+        tickSound.current.play().catch(err => console.log("Audio blocked:", err));
       }
-    } else if (timeLeft > 15 || isChoosing) {
-      // Release the lock when a new phase begins
+    } else if (timeLeft > 10 || isChoosing || turnSummary || everyoneGuessed || timeLeft <= 1) {
+      // Release lock and force silence if the phase resets, everyone guesses, or timer reaches 1
       lastTickRef.current = null;
+      tickSound.current.pause();
     }
-  }, [timeLeft, currentDrawer, winner, turnSummary, isChoosing])
+  }, [timeLeft, currentDrawer, winner, turnSummary, isChoosing, correctGuessers.length, playerList.length])
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
