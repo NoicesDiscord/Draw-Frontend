@@ -102,16 +102,23 @@ const presetColors = [
 
   // NEW: Add a ticking sound for the last 15 seconds!
   const tickSound = useRef(new Audio('/sounds/tick.mp3'))
+  const lastTickRef = useRef(null) // NEW: Remembers the exact second to prevent overlap spam!
 
   // --- NEW: Timer Tick Effect (Last 15 Seconds) ---
   useEffect(() => {
-    // Trigger a tick every second when time is running out during an active turn!
-    if (timeLeft <= 15 && timeLeft > 0 && currentDrawer && !winner && !turnSummary) {
-      const clone = tickSound.current.cloneNode()
-      clone.volume = 0.5
-      clone.play().catch(err => console.log("Audio blocked:", err))
+    // FIX: Only play if NOT choosing a word, and check the lock so it strictly plays once per second!
+    if (timeLeft <= 15 && timeLeft > 0 && currentDrawer && !winner && !turnSummary && !isChoosing) {
+      if (lastTickRef.current !== timeLeft) {
+        lastTickRef.current = timeLeft; // Lock this specific second
+        const clone = tickSound.current.cloneNode()
+        clone.volume = 0.5
+        clone.play().catch(err => console.log("Audio blocked:", err))
+      }
+    } else if (timeLeft > 15 || isChoosing) {
+      // Release the lock when a new phase begins
+      lastTickRef.current = null;
     }
-  }, [timeLeft, currentDrawer, winner, turnSummary])
+  }, [timeLeft, currentDrawer, winner, turnSummary, isChoosing])
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
