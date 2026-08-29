@@ -30,6 +30,7 @@ export default function GameRoom({ playerInfo }) {
   const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
+  const [underdogs, setUnderdogs] = useState([]) // NEW: Tracks who has the Underdog ability
   
   const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
   
@@ -37,6 +38,8 @@ export default function GameRoom({ playerInfo }) {
   const summarySound = useRef(new Audio('/sounds/summary.mp3')) // NEW: Sound effect for round end screen
   
   const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
+
+
 
   // --- NEW: Theme Toggle State & Effect ---
   const [isLightMode, setIsLightMode] = useState(false)
@@ -389,11 +392,15 @@ const presetColors = [
       if (data.maxRounds) setMaxRounds(data.maxRounds)
       if (data.hintLevel) setHintLevel(data.hintLevel) 
       
+      // NEW: Catch Underdogs
+      if (data.underdogs) setUnderdogs(data.underdogs)
+      else setUnderdogs([])
+      
       setIsChoosing(false) 
       setWaitingForHost(false)
       setSecretWord(data.word || "")
       setTimeLeft(120) 
-      setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); 
+      setCurrentRound(data.currentRound || 1); 
       
       setHasVotedThisTurn(false) // NEW: Restore their ability to vote for the new drawer!
 
@@ -810,6 +817,15 @@ const presetColors = [
           --text-main: #e0e0e0;
           --text-muted: #aaaaaa;
         }
+          @keyframes fireGlow {
+          0% { box-shadow: 0 0 5px #ff9800, inset 0 0 5px #ff9800; border-color: #ff9800; }
+          50% { box-shadow: 0 0 15px #f44336, inset 0 0 10px #f44336; border-color: #f44336; }
+          100% { box-shadow: 0 0 5px #ff9800, inset 0 0 5px #ff9800; border-color: #ff9800; }
+        }
+        .underdog-glow {
+          animation: fireGlow 1.5s infinite alternate;
+          position: relative;
+        }
         .light-mode {
           --bg-body: #e4e6eb;
           --bg-panel: #ffffff;
@@ -1038,34 +1054,36 @@ const presetColors = [
                 const isMe = p.name === playerInfo.playerName;
                 const isDrawer = p.name === currentDrawer;
                 const hasGuessed = correctGuessers.includes(p.name);
+                const isUnderdog = underdogs.includes(p.id) && !isDrawer; // NEW: Detect Underdog
                 
                 return (
                   <li 
-                    key={index} 
+                    key={index}
+                    className={isUnderdog ? "underdog-glow" : ""} 
                     style={{ 
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                       padding: '10px 14px', borderRadius: '12px',
                       backgroundColor: hasGuessed ? 'rgba(3, 218, 198, 0.15)' : (isMe ? 'rgba(187, 134, 252, 0.15)' : 'var(--bg-player)'),
-                      border: hasGuessed ? '1px solid #03dac6' : (isMe ? '1px solid #bb86fc' : '1px solid transparent'),
-                      transition: 'all 0.3s ease', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                      border: isUnderdog ? '2px solid transparent' : (hasGuessed ? '1px solid #03dac6' : (isMe ? '1px solid #bb86fc' : '1px solid transparent')),
+                      transition: 'all 0.3s ease', boxShadow: isUnderdog ? 'none' : '0 4px 6px rgba(0,0,0,0.1)'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: hasGuessed ? '#03dac6' : 'var(--border-main)', color: hasGuessed ? '#000' : 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', flexShrink: 0, transition: 'all 0.3s ease' }}>
-                        {index + 1}
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: hasGuessed ? '#03dac6' : (isUnderdog ? '#ff9800' : 'var(--border-main)'), color: hasGuessed || isUnderdog ? '#000' : 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', flexShrink: 0, transition: 'all 0.3s ease' }}>
+                        {isUnderdog ? '🔥' : (index + 1)}
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isMe ? '#bb86fc' : 'var(--text-main)'), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', transition: 'color 0.3s ease' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isUnderdog ? '#ff9800' : (isMe ? '#bb86fc' : 'var(--text-main)')), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', transition: 'color 0.3s ease' }}>
                           {p.name} {isMe && '(You)'}
                         </span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', transition: 'color 0.3s ease' }}>
-                          {hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : 'Guesser')}
+                        <span style={{ fontSize: '11px', color: isUnderdog ? '#ff9800' : 'var(--text-muted)', marginTop: '2px', transition: 'color 0.3s ease' }}>
+                          {hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : (isUnderdog ? '🔥 Underdog Buff!' : 'Guesser'))}
                         </span>
                       </div>
                     </div>
                     
-                    <span style={{ fontSize: '16px', fontWeight: '900', color: hasGuessed ? '#03dac6' : 'var(--text-main)', flexShrink: 0, transition: 'color 0.3s ease' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '900', color: hasGuessed ? '#03dac6' : (isUnderdog ? '#ff9800' : 'var(--text-main)'), flexShrink: 0, transition: 'color 0.3s ease' }}>
                       {p.score}
                     </span>
                   </li>
@@ -1414,27 +1432,40 @@ const presetColors = [
               </div>
 
               <ul style={{ listStyle: 'none', padding: 0, maxHeight: '300px', overflowY: 'auto' }}>
-                {playerList.map(p => (
-                  <li key={p.id || p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border-main)', color: 'var(--text-main)', transition: 'all 0.3s ease' }}>
-                    <span style={{ fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', color: p.name === playerInfo.playerName ? '#03dac6' : 'var(--text-main)', transition: 'color 0.3s ease' }}>
-                      {p.name} {p.name === playerInfo.playerName ? '(You)' : ''} - {p.score} pts
-                    </span>
-                    {p.name !== playerInfo.playerName && (
-                      <button 
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to start a vote to kick ${p.name}?`)) {
-                            socketRef.current.emit('initiate_votekick', p.id);
-                            setShowPlayerModal(false);
-                          }
-                        }}
-                        style={{ background: '#ff3b30', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                      >
-                        Kick
-                      </button>
+                {playerList.map(p => {
+                  const isUnderdog = underdogs.includes(p.id) && p.name !== currentDrawer;
+                  return (
+                  <li key={p.id || p.name} style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', borderBottom: '1px solid var(--border-main)', color: 'var(--text-main)', transition: 'all 0.3s ease' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: p.name === playerInfo.playerName ? 'bold' : 'normal', color: p.name === playerInfo.playerName ? '#03dac6' : (isUnderdog ? '#ff9800' : 'var(--text-main)'), transition: 'color 0.3s ease' }}>
+                        {isUnderdog ? '🔥 ' : ''}{p.name} {p.name === playerInfo.playerName ? '(You)' : ''} - {p.score} pts
+                      </span>
+                      {p.name !== playerInfo.playerName && (
+                        <button 
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to start a vote to kick ${p.name}?`)) {
+                              socketRef.current.emit('initiate_votekick', p.id);
+                              setShowPlayerModal(false);
+                            }
+                          }}
+                          style={{ background: '#ff3b30', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                        >
+                          Kick
+                        </button>
+                      )}
+                    </div>
+                    {/* NEW: Explicitly explain the buff in the pop-up menu! */}
+                    {isUnderdog && (
+                      <div style={{ marginTop: '10px', fontSize: '12px', color: '#ff9800', background: 'rgba(255, 152, 0, 0.15)', padding: '10px', borderRadius: '8px', border: '1px dashed #ff9800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         <span style={{ fontSize: '20px' }}>🔥</span> 
+                         <span><strong>Underdog Ability Active:</strong> If this player guesses the word 1st, they get double points (300 pts)!</span>
+                      </div>
                     )}
                   </li>
-                ))}
+                )})}
               </ul>
+              
+              {/* FIX 1: Restored the missing Close Button and closing tags for the modal! */}
               <button 
                 onClick={() => setShowPlayerModal(false)} 
                 style={{ width: '100%', padding: '12px', background: 'var(--border-main)', color: 'var(--text-main)', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold', transition: 'all 0.3s ease' }}
@@ -1446,7 +1477,8 @@ const presetColors = [
         )}
 
         {/* --- NEW: Advanced Statistical Game Over Screen --- */}
-        {winner && (
+        {/* FIX 2: Added Array.isArray(winner) to stop the app from crashing if Render hasn't updated your backend yet! */}
+        {winner && Array.isArray(winner) && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(15, 15, 20, 0.95)', zIndex: 9999,
@@ -1505,7 +1537,7 @@ const presetColors = [
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '220px', overflowY: 'auto', paddingRight: '10px' }}>
                   {winner.map((p, idx) => {
                     const topScore = Math.max(winner[0]?.score || 1, 1);
-                    const barWidth = Math.max((p.score / topScore) * 100, 2); // Minimum 2% width so 0 scores still show a tiny sliver
+                    const barWidth = Math.max((p.score / topScore) * 100, 2); 
                     
                     return (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
