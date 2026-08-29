@@ -307,6 +307,14 @@ const presetColors = [
       setIsChoosing(false)
       clearCanvas()
     })
+    
+    // NEW: Everyone plays the sound when the network confirms the game has started!
+    socketRef.current.on('game_started', () => {
+      const clone = startSound.current.cloneNode()
+      clone.volume = 0.6
+      clone.play().catch(e => console.log("Audio blocked:", e))
+    })
+
     socketRef.current.on('update_players', (playersArray) => {
       const sortedPlayers = playersArray.sort((a, b) => b.score - a.score)
       setPlayerList(sortedPlayers)
@@ -922,11 +930,6 @@ const presetColors = [
                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                       {isHost && playerList.length >= 2 && (
                         <button onClick={() => {
-                          // NEW: Play the start sound!
-                          const clone = startSound.current.cloneNode()
-                          clone.volume = 0.6
-                          clone.play().catch(e => console.log("Audio blocked:", e))
-                          
                           socketRef.current.emit('start_private_game')
                         }} 
                         style={{ padding: '12px 20px', background: '#03dac6', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', transition: 'transform 0.1s ease' }}
@@ -1247,7 +1250,8 @@ const presetColors = [
           <div style={{
             position: 'fixed', /* Note: I changed this to 'fixed' to guarantee it covers the whole screen! */
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 100,
+            /* FIX: Boosted zIndex to 999 to guarantee it covers the mobile canvas! */
+            backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 999,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
           }}>
             <h1 style={{ color: '#FFD54F', fontSize: 'clamp(40px, 8vw, 70px)', margin: '0 0 20px 0', textAlign: 'center', textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
