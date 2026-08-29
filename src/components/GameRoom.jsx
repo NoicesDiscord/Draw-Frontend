@@ -100,6 +100,19 @@ const presetColors = [
   // NEW: Add a sound for the Start Game button!
   const startSound = useRef(new Audio('/sounds/start.mp3'))
 
+  // NEW: Add a ticking sound for the last 15 seconds!
+  const tickSound = useRef(new Audio('/sounds/tick.mp3'))
+
+  // --- NEW: Timer Tick Effect (Last 15 Seconds) ---
+  useEffect(() => {
+    // Trigger a tick every second when time is running out during an active turn!
+    if (timeLeft <= 15 && timeLeft > 0 && currentDrawer && !winner && !turnSummary) {
+      const clone = tickSound.current.cloneNode()
+      clone.volume = 0.5
+      clone.play().catch(err => console.log("Audio blocked:", err))
+    }
+  }, [timeLeft, currentDrawer, winner, turnSummary])
+
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
     if (!secretWord) return ""
