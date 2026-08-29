@@ -284,10 +284,11 @@ export default function App() {
                         <div className="compact-label">
                           <span>Hint Amount</span>
                           <span style={{ color: '#03dac6', fontWeight: 'bold' }}>
-                            {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Norm' : 'High'}
+                            {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Norm' : hintLevel == 3 ? 'High' : 'Max'}
                           </span>
                         </div>
-                        <input type="range" min="1" max="3" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
+                        {/* INCREASED MAX TO 4 */}
+                        <input type="range" min="1" max="4" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
                       </div>
                     </div>
 

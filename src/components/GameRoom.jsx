@@ -183,9 +183,10 @@ const presetColors = [
       if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.25); // Low (25%)
       if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.45); // Normal (45%)
       if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.70); // High (70%)
+      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.95); // Max (95%)
       
-      // Safety lock: Never reveal the entire phrase (always keep at least 2 letters hidden)
-      if (dynamicMaxHints >= totalLetters - 1) dynamicMaxHints = totalLetters - 2;
+      // Safety lock: Never reveal the ENTIRE phrase (For Max, we keep exactly 1 letter hidden!)
+      if (dynamicMaxHints >= totalLetters) dynamicMaxHints = totalLetters - 1;
       if (dynamicMaxHints < 0) dynamicMaxHints = 0;
     }
 
