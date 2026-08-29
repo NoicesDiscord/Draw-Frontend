@@ -51,9 +51,10 @@ export default function GameRoom({ playerInfo }) {
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
-  const [activeTool, setActiveTool] = useState('brush') // NEW: Handles brush, bucket, ruler, circle, rect, triangle, spray
+  const [activeTool, setActiveTool] = useState('brush') 
   const [showColorPicker, setShowColorPicker] = useState(false) 
   const [showSizePicker, setShowSizePicker] = useState(false) 
+  const [showShapePicker, setShowShapePicker] = useState(false) // NEW: Controls the Desktop shape menu 
   
   const shapeStartRef = useRef(null) // NEW: Tracks coordinates for shapes
   const savedImageRef = useRef(null) // NEW: Tracks the preview frame for shapes
@@ -885,7 +886,7 @@ const presetColors = [
           gap: 6px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 200; width: max-content;
         }
         
-        .size-popup {
+        .size-popup, .shape-popup {
           position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
           background-color: rgba(20, 20, 20, 0.95); padding: 8px 12px; border-radius: 12px;
           border: 1px solid #555; display: flex; gap: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 200;
@@ -894,9 +895,18 @@ const presetColors = [
         .toolbar {
           position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
           background-color: rgba(20, 20, 20, 0.95); padding: 8px 16px; border-radius: 16px 16px 0 0; 
-          display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; 
           border: 1px solid #444; border-bottom: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); 
           transition: opacity 0.3s ease; z-index: 50; width: max-content; max-width: 98vw;
+        }
+
+        .desktop-only { display: flex; gap: 8px; align-items: center; }
+        .mobile-only { display: none; }
+        .toolbar-divider { width: 2px; height: 24px; background-color: #555; margin: 0 4px; flex-shrink: 0; }
+
+        @media (max-width: 900px) {
+          .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; flex-direction: column !important; width: 100%; gap: 12px !important; }
+          .toolbar { padding: 12px 10px !important; border-radius: 16px !important; width: 95vw !important; bottom: 10px !important; }
         }
 
 
@@ -1176,140 +1186,129 @@ const presetColors = [
             />
 
            {/* FIX: Completely hides the toolbar from Guessers for a clean view! */}
+            {/* FIX: Completely hides the toolbar from Guessers for a clean view! */}
             {isMyTurn && (
-              <div 
-                className="toolbar" 
-                style={{ 
-                  width: 'max-content', // Hugs the tools tightly!
-                  maxWidth: '96vw', 
-                  boxSizing: 'border-box'
-                }}
-              >
-                {/* 1. The Single Active Color Block & Popup Grid */}
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <button
-                    onClick={() => setShowColorPicker(!showColorPicker)}
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
-                      backgroundColor: brushColor, // Shows whatever is currently selected!
-                      border: '2px solid #fff',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
-                      flexShrink: 0
-                    }}
-                    title="Click to choose a color"
-                  />
-
-                  {/* The Color Menu Popup! */}
-                  {showColorPicker && (
-                    <div className="color-popup">
-                      {presetColors.map(color => (
-                        <button
-                          key={color}
-                          onClick={() => { 
-                            setBrushColor(color); 
-                            if (activeTool === 'bucket') setActiveTool('brush'); 
-                            setShowColorPicker(false); // Instantly closes the menu!
-                          }}
-                          style={{
-                            aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0,
-                            backgroundColor: color,
-                            border: brushColor === color ? '2px solid #fff' : '1px solid #333',
-                            transform: brushColor === color ? 'scale(1.15)' : 'scale(1)',
-                            transition: 'transform 0.1s'
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
-
-                {/* NEW: Advanced Tools Array */}
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {[
-                    { id: 'brush', icon: '🖌️', title: 'Brush' },
-                    { id: 'bucket', icon: '🪣', title: 'Fill' },
-                    { id: 'spray', icon: '💨', title: 'Spray' },
-                    { id: 'ruler', icon: '📏', title: 'Straight Line' },
-                    { id: 'circle', icon: '⭕', title: 'Circle' },
-                    { id: 'rect', icon: '⬜', title: 'Rectangle' },
-                    { id: 'triangle', icon: '🔺', title: 'Triangle' }
-                  ].map(tool => (
+              <div className="toolbar" style={{ boxSizing: 'border-box' }}>
+                
+                {/* --- DESKTOP TOOLBAR (1 Clean Row) --- */}
+                <div className="desktop-only">
+                  {/* Color Box */}
+                  <div style={{ position: 'relative' }}>
                     <button
-                      key={tool.id}
-                      onClick={() => { setActiveTool(tool.id); setShowColorPicker(false); setShowSizePicker(false); }}
-                      style={{ 
-                        background: activeTool === tool.id ? '#03dac6' : 'transparent', 
-                        border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', 
-                        fontSize: '16px', padding: '4px 6px', transition: 'background 0.2s' 
-                      }}
-                      title={tool.title}
-                    >
-                      {tool.icon}
-                    </button>
-                  ))}
-                  
-                  {/* The Active Blue Dot Button */}
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '2px' }}>
-                    <button 
-                      onClick={() => setShowSizePicker(!showSizePicker)}
-                      style={{ 
-                        width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0,
-                        background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' 
-                      }}
-                      title="Brush Size"
-                    >
+                      onClick={() => {setShowColorPicker(!showColorPicker); setShowSizePicker(false); setShowShapePicker(false);}}
+                      style={{ width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0, backgroundColor: brushColor, border: '2px solid #fff', boxShadow: '0 2px 5px rgba(0,0,0,0.4)' }}
+                    />
+                    {showColorPicker && (
+                      <div className="color-popup">
+                        {presetColors.map(color => (
+                          <button key={color} onClick={() => { setBrushColor(color); if (activeTool === 'bucket') setActiveTool('brush'); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="toolbar-divider" />
+
+                  {/* Brush & Bucket */}
+                  <button onClick={() => {setActiveTool('brush'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'brush' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>🖌️</button>
+                  <button onClick={() => {setActiveTool('bucket'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>🪣</button>
+
+                  {/* Blue Dot Size */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '4px' }}>
+                    <button onClick={() => {setShowSizePicker(!showSizePicker); setShowColorPicker(false); setShowShapePicker(false);}} style={{ width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0, background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       <div style={{ width: `${Math.min(brushSize, 26)}px`, height: `${Math.min(brushSize, 26)}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
                     </button>
-
-                    {/* The Drop-up Menu with 5 Predefined Levels */}
                     {showSizePicker && (
                       <div className="size-popup">
-                        {[4, 8, 14, 20, 26].map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => { 
-                              setBrushSize(size); 
-                              if (activeTool === 'bucket') setActiveTool('brush');
-                              setShowSizePicker(false); // Closes instantly on click!
-                            }}
-                            style={{
-                              width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer', padding: 0,
-                              backgroundColor: 'transparent',
-                              border: brushSize === size ? '2px solid #fff' : '1px solid transparent',
-                              display: 'flex', justifyContent: 'center', alignItems: 'center'
-                            }}
-                          >
+                        {[4, 8, 14, 20, 26].map(size => (
+                          <button key={size} onClick={() => { setBrushSize(size); if (activeTool === 'bucket') setActiveTool('brush'); setShowSizePicker(false); }} style={{ width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer', padding: 0, backgroundColor: 'transparent', border: brushSize === size ? '2px solid #fff' : '1px solid transparent', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <div style={{ width: `${size}px`, height: `${size}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                </div>
-                
-                <div style={{ width: '2px', height: '20px', backgroundColor: '#555', margin: '0 4px', flexShrink: 0 }} />
-                
-                {/* NEW: Undo, Redo, & Trash Can */}
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
-                  <button 
-                    onClick={() => { handleUndo(); socketRef.current.emit('undo'); }}
-                    style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                    title="Undo"
-                  >↩️</button>
 
-                  <button 
-                    onClick={() => { handleRedo(); socketRef.current.emit('redo'); }}
-                    style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                    title="Redo"
-                  >↪️</button>
+                  <div className="toolbar-divider" />
+
+                  {/* Spray Can */}
+                  <button onClick={() => {setActiveTool('spray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'spray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>💨</button>
+
+                  {/* Desktop Shape Menu */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <button onClick={() => {setShowShapePicker(!showShapePicker); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: ['ruler', 'circle', 'rect', 'triangle'].includes(activeTool) ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>
+                      {activeTool === 'ruler' ? '📏' : activeTool === 'circle' ? '⭕' : activeTool === 'rect' ? '⬜' : activeTool === 'triangle' ? '🔺' : '📐'}
+                    </button>
+                    {showShapePicker && (
+                      <div className="shape-popup">
+                        {[ { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
+                          <button key={tool.id} onClick={() => {setActiveTool(tool.id); setShowShapePicker(false);}} style={{ background: activeTool === tool.id ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>{tool.icon}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="toolbar-divider" />
+
+                  {/* Undo, Redo, Trash */}
+                  <button onClick={() => { handleUndo(); socketRef.current.emit('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>↩️</button>
+                  <button onClick={() => { handleRedo(); socketRef.current.emit('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px' }}>↪️</button>
+                  <button onClick={handleClearBoard} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '6px' }}>🗑️</button>
+                </div>
+
+                {/* --- MOBILE TOOLBAR (2 Distant Rows) --- */}
+                <div className="mobile-only">
                   
-                  <button 
-                    onClick={handleClearBoard}
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}
-                    title="Clear Board"
-                  >🗑️</button>
+                  {/* Row 1: Essentials */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '4px' }}>
+                    
+                    <div style={{ position: 'relative' }}>
+                      <button onClick={() => {setShowColorPicker(!showColorPicker); setShowSizePicker(false);}} style={{ width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0, backgroundColor: brushColor, border: '2px solid #fff', boxShadow: '0 2px 5px rgba(0,0,0,0.4)' }} />
+                      {showColorPicker && (
+                        <div className="color-popup">
+                          {presetColors.map(color => (
+                            <button key={color} onClick={() => { setBrushColor(color); if (activeTool === 'bucket') setActiveTool('brush'); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button onClick={() => {setActiveTool('brush'); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: activeTool === 'brush' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>🖌️</button>
+                    <button onClick={() => {setActiveTool('bucket'); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>🪣</button>
+
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <button onClick={() => {setShowSizePicker(!showSizePicker); setShowColorPicker(false);}} style={{ width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0, background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <div style={{ width: `${Math.min(brushSize, 26)}px`, height: `${Math.min(brushSize, 26)}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
+                      </button>
+                      {showSizePicker && (
+                        <div className="size-popup">
+                          {[4, 8, 14, 20, 26].map(size => (
+                            <button key={size} onClick={() => { setBrushSize(size); if (activeTool === 'bucket') setActiveTool('brush'); setShowSizePicker(false); }} style={{ width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer', padding: 0, backgroundColor: 'transparent', border: brushSize === size ? '2px solid #fff' : '1px solid transparent', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              <div style={{ width: `${size}px`, height: `${size}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button onClick={() => { handleUndo(); socketRef.current.emit('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↩️</button>
+                    <button onClick={() => { handleRedo(); socketRef.current.emit('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↪️</button>
+                    <button onClick={handleClearBoard} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '6px' }}>🗑️</button>
+                  </div>
+
+                  {/* Row 2: Assistant Tools */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '6px' }}>
+                    {[ { id: 'spray', icon: '💨' }, { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
+                      <button 
+                        key={tool.id} 
+                        onClick={() => {setActiveTool(tool.id); setShowColorPicker(false); setShowSizePicker(false);}} 
+                        style={{ background: activeTool === tool.id ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '8px 6px', flexGrow: 1 }}
+                      >
+                        {tool.icon}
+                      </button>
+                    ))}
+                  </div>
+
                 </div>
               </div>
             )}
