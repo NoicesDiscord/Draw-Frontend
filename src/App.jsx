@@ -133,59 +133,69 @@ export default function App() {
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             border-left: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
-            border-radius: 30px; padding: 35px 30px; width: 100%; max-width: 550px; 
+            border-radius: 24px; padding: 25px 30px; width: 95%; max-width: 480px; 
             text-align: center; animation: floatCard 6s ease-in-out infinite; 
+            display: flex; flex-direction: column; max-height: 95vh;
           }
 
           .settings-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 8px 12px;
+            margin-bottom: 8px;
           }
 
           @media (max-width: 500px) {
-            .settings-grid { grid-template-columns: 1fr; gap: 12px; }
-            .glass-card { padding: 25px 20px; max-height: 95vh; overflow-y: auto; }
-            .settings-box { padding: 15px; margin-bottom: 15px; }
-            .game-subtitle { margin: 0 0 20px 0; }
+            .glass-card { padding: 15px 15px; border-radius: 16px; }
+            .game-title { font-size: 32px !important; margin-bottom: 0px !important; }
+            .game-subtitle { font-size: 12px !important; margin-bottom: 12px !important; }
+            .name-input { padding: 12px !important; font-size: 16px !important; margin-bottom: 10px !important; }
+            .join-btn { padding: 12px !important; font-size: 16px !important; }
+            .settings-box { padding: 12px !important; margin-bottom: 10px !important; border-radius: 12px !important; }
+            .tab-btn { padding: 8px 4px !important; font-size: 13px !important; }
+            .compact-label { font-size: 11px !important; }
+          }
+          
+          .compact-label {
+            display: flex; justify-content: space-between; color: #ccc; font-size: 13px; margin-bottom: 4px;
           }
           
           .game-title { 
-            font-size: 48px; font-weight: 900; margin: 0 0 5px 0; letter-spacing: 1px; 
+            font-size: 42px; font-weight: 900; margin: 0 0 5px 0; letter-spacing: 1px; 
             background: linear-gradient(to right, #ff1493, #bb86fc, #03dac6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0px 2px 15px rgba(187, 134, 252, 0.4));
+            flex-shrink: 0;
           }
-          .game-subtitle { color: #aaa; font-size: 15px; margin: 0 0 35px 0; font-weight: 500; letter-spacing: 0.5px; }
+          .game-subtitle { color: #aaa; font-size: 14px; margin: 0 0 20px 0; font-weight: 500; letter-spacing: 0.5px; flex-shrink: 0; }
           
           .name-input { 
-            width: 100%; padding: 18px 20px; font-size: 18px; 
+            width: 100%; padding: 14px 20px; font-size: 18px; 
             background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.08); 
-            color: white; border-radius: 16px; outline: none; transition: all 0.3s ease; 
-            box-sizing: border-box; text-align: center; font-weight: bold; margin-bottom: 20px; 
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+            color: white; border-radius: 14px; outline: none; transition: all 0.3s ease; 
+            box-sizing: border-box; text-align: center; font-weight: bold; margin-bottom: 15px; 
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2); flex-shrink: 0;
           }
           .name-input::placeholder { color: rgba(255, 255, 255, 0.3); font-weight: normal; }
           .name-input:focus { border-color: #bb86fc; background: rgba(0, 0, 0, 0.5); box-shadow: 0 0 20px rgba(187, 134, 252, 0.2), inset 0 2px 10px rgba(0,0,0,0.3); }
           
           .join-btn { 
-            width: 100%; padding: 18px; font-size: 18px; font-weight: 800; color: #fff; 
+            width: 100%; padding: 14px; font-size: 18px; font-weight: 800; color: #fff; 
             background: linear-gradient(135deg, #bb86fc, #7928ca); 
-            border: none; border-radius: 16px; cursor: pointer; transition: all 0.3s ease; 
-            box-shadow: 0 8px 25px rgba(121, 40, 202, 0.5); text-transform: uppercase; letter-spacing: 1px;
+            border: none; border-radius: 14px; cursor: pointer; transition: all 0.3s ease; 
+            box-shadow: 0 8px 25px rgba(121, 40, 202, 0.5); text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0;
           }
           .join-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(121, 40, 202, 0.7); }
           .join-btn:active { transform: translateY(1px); }
           
           .settings-box {
             background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05);
-            padding: 20px; border-radius: 20px; margin-bottom: 25px; text-align: left;
-            box-shadow: inset 0 4px 15px rgba(0,0,0,0.2);
+            padding: 16px; border-radius: 16px; margin-bottom: 15px; text-align: left;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.2); overflow-y: auto; flex-grow: 1; min-height: 0;
           }
           .tab-btn {
-            flex: 1; padding: 12px 5px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 14px;
+            flex: 1; padding: 10px 5px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 14px;
           }
           
           input[type=range] { -webkit-appearance: none; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; outline: none; margin-top: 5px; }
@@ -228,7 +238,7 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexShrink: 0 }}>
                   <button className="tab-btn" onClick={() => setMode('public')} style={{ background: mode === 'public' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'public' ? '#000' : '#888' }}>🌍 Public</button>
                   <button className="tab-btn" onClick={() => setMode('private')} style={{ background: mode === 'private' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'private' ? '#000' : '#888' }}>🔒 Create</button>
                   <button className="tab-btn" onClick={() => setMode('browse')} style={{ background: mode === 'browse' ? '#bb86fc' : 'rgba(255,255,255,0.05)', color: mode === 'browse' ? '#000' : '#888' }}>🔍 Browse</button>
@@ -236,73 +246,66 @@ export default function App() {
 
                 {/* --- CREATE PRIVATE LOBBY --- */}
                 {mode === 'private' && (
-                  <div className="settings-box">
-                    <div style={{ marginBottom: '15px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
-                        <span>Room Password (Optional)</span>
-                      </div>
+                  <div className="settings-box" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ marginBottom: '8px', flexShrink: 0 }}>
                       <input 
                         type="text" 
                         value={password} 
                         onChange={e => setPassword(e.target.value)} 
-                        placeholder="Leave blank for an open room"
+                        placeholder="Room Password (Optional)"
                         maxLength="20"
-                        style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', outline: 'none', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', outline: 'none', boxSizing: 'border-box', fontSize: '14px' }}
                       />
                     </div>
 
                     <div className="settings-grid">
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                        <div className="compact-label">
                           <span>Max Players</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{maxPlayers}</span>
                         </div>
                         <input type="range" min="2" max="8" value={maxPlayers} onChange={e => setMaxPlayers(e.target.value)} style={{ width: '100%' }} />
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                        <div className="compact-label">
                           <span>Total Rounds</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{rounds}</span>
                         </div>
                         <input type="range" min="1" max="10" value={rounds} onChange={e => setRounds(e.target.value)} style={{ width: '100%' }} />
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                        <div className="compact-label">
                           <span>Draw Time</span><span style={{ color: '#03dac6', fontWeight: 'bold' }}>{drawTime}s</span>
                         </div>
                         <input type="range" min="30" max="300" step="10" value={drawTime} onChange={e => setDrawTime(e.target.value)} style={{ width: '100%' }} />
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
+                        <div className="compact-label">
                           <span>Hint Amount</span>
                           <span style={{ color: '#03dac6', fontWeight: 'bold' }}>
-                            {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal' : 'High'}
+                            {hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Norm' : 'High'}
                           </span>
                         </div>
                         <input type="range" min="1" max="3" step="1" value={hintLevel} onChange={e => setHintLevel(e.target.value)} style={{ width: '100%' }} />
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: '0px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '13px', marginBottom: '6px' }}>
-                        <span>Custom Words (Optional)</span>
-                      </div>
+                    <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '50px' }}>
                       <textarea 
                         value={customWords} 
                         onChange={e => setCustomWords(e.target.value)} 
-                        placeholder="e.g. Anime, Naruto, Luffy, Goku"
+                        placeholder="Custom Words (e.g. Anime, Naruto)..."
                         maxLength="30000"
-                        style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', outline: 'none', resize: 'vertical', minHeight: '50px', boxSizing: 'border-box', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)' }}
+                        style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', outline: 'none', resize: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)', fontSize: '13px', flexGrow: 1 }}
                       />
-                      <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>Separate words with commas.</div>
                     </div>
                   </div>
                 )}
 
                 {/* --- BROWSE CUSTOM LOBBIES --- */}
                 {mode === 'browse' && (
-                  <div className="settings-box" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                  <div className="settings-box" style={{ maxHeight: '35vh' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <span style={{ color: '#03dac6', fontWeight: 'bold' }}>Active Custom Games</span>
                       <button onClick={fetchLobbies} style={{ background: 'transparent', border: 'none', color: '#bb86fc', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>🔄 Refresh</button>
