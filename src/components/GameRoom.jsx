@@ -51,19 +51,24 @@ export default function GameRoom({ playerInfo }) {
   // --- NEW: Brush Tools State ---
   const [brushColor, setBrushColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
-  const [isBucketMode, setIsBucketMode] = useState(false) 
-  const [showColorPicker, setShowColorPicker] = useState(false) // NEW: Controls the pop-up color menu!
-  const [showSizePicker, setShowSizePicker] = useState(false) // NEW: Controls the Blue Dot menu!
+  const [activeTool, setActiveTool] = useState('brush') // NEW: Handles brush, bucket, ruler, circle, rect, triangle, spray
+  const [showColorPicker, setShowColorPicker] = useState(false) 
+  const [showSizePicker, setShowSizePicker] = useState(false) 
   
-  // NEW: 25 Essential Colors (Now with Theme Colors and extra vibrance!)
-  // FIX: Upgraded to exactly 30 colors to create a perfect 3-row mobile grid!
+  const shapeStartRef = useRef(null) // NEW: Tracks coordinates for shapes
+  const savedImageRef = useRef(null) // NEW: Tracks the preview frame for shapes
+  const sprayIntervalRef = useRef(null) // NEW: Runs continuous spray dots
+  
+  // NEW: 40 Perfectly Organized Colors (Creates a uniform 4x10 Grid on Desktop & Mobile!)
 const presetColors = [
-  '#000000', '#444444', '#888888', '#CCCCCC', '#FFFFFF', // Grays & White
-  '#800000', '#FF0000', '#FF7F7F', '#FF1493', '#FFB6C1', // Reds & Pinks
-  '#5C4033', '#8B4513', '#FFA500', '#FFD700', '#FFDAB9', // Browns & Oranges
-  '#006400', '#008000', '#00FF00', '#ADFF2F', '#FFFF00', // Greens & Yellows
-  '#000080', '#0000FF', '#1E90FF', '#00FFFF', '#E0FFFF', // Blues & Cyans
-  '#4B0082', '#800080', '#FF00FF', '#DA70D6', '#E6E6FA'  // Purples & Lavenders
+  // Row 1: Grays & Monochromes
+  '#000000', '#222222', '#444444', '#666666', '#888888', '#AAAAAA', '#CCCCCC', '#E0E0E0', '#F5F5F5', '#FFFFFF',
+  // Row 2: Browns, Reds & Oranges
+  '#3E2723', '#5D4037', '#8B4513', '#5C0000', '#8B0000', '#FF0000', '#FF4500', '#FF8C00', '#FFA500', '#FFD700',
+  // Row 3: Yellows, Greens & Cyans
+  '#FFFF00', '#FFFFE0', '#004d00', '#008000', '#00FF00', '#32CD32', '#98FB98', '#008B8B', '#00CED1', '#00FFFF',
+  // Row 4: Blues, Purples & Pinks
+  '#000080', '#0000FF', '#1E90FF', '#87CEFA', '#4B0082', '#800080', '#BA55D3', '#FF00FF', '#FF1493', '#FFB6C1'
 ];
 
   // --- NEW: Undo / Redo Memory Stacks ---
@@ -617,57 +622,172 @@ const presetColors = [
   }
 
   // --- UPDATED: Apply local colors and send them to the server ---
+  // --- UPDATED: Advanced Tool Handlers (Brush, Bucket, Ruler, Shapes, Spray) ---
   const startDrawing = (e) => {
-    if (!isMyTurn) return 
-    if (e.touches && e.cancelable) e.preventDefault() 
+    if (!isMyTurn) return;
+    if (e.touches && e.cancelable) e.preventDefault();
     
-    const { x, y } = getCoordinates(e)
+    const { x, y } = getCoordinates(e);
 
-    // NEW: If bucket mode is ON, fill the canvas instead of drawing a line!
-    if (isBucketMode) {
-      applyFill(contextRef.current, canvasRef.current, x, y, brushColor)
-      socketRef.current.emit('fill', { x, y, color: brushColor })
-      return
+    if (activeTool === 'bucket') {
+      applyFill(contextRef.current, canvasRef.current, x, y, brushColor);
+      socketRef.current.emit('fill', { x, y, color: brushColor });
+      return;
+    }
+
+    // Prepare rubber-band preview for shapes
+    if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
+      shapeStartRef.current = { sx: x, sy: y, ex: x, ey: y };
+      savedImageRef.current = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+      setIsDrawing(true);
+      return;
+    }
+
+    // Continuous Spray Logic
+    if (activeTool === 'spray') {
+      setIsDrawing(true);
+      if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current);
+      
+      const sprayDrop = (cx, cy) => {
+        for (let i = 0; i < 7; i++) {
+           const angle = Math.random() * Math.PI * 2;
+           const radius = Math.random() * (brushSize * 1.5);
+           const dotX = cx + Math.cos(angle) * radius;
+           const dotY = cy + Math.sin(angle) * radius;
+           
+           contextRef.current.fillStyle = brushColor;
+           contextRef.current.fillRect(dotX, dotY, 2, 2);
+           
+           // Trick the server into rendering dots by sending micro-strokes
+           socketRef.current.emit('start', { x: dotX, y: dotY, color: brushColor, size: 2 });
+           socketRef.current.emit('stop');
+        }
+      };
+      sprayDrop(x, y);
+      shapeStartRef.current = { sx: x, sy: y };
+      sprayIntervalRef.current = setInterval(() => {
+         if (shapeStartRef.current) sprayDrop(shapeStartRef.current.sx, shapeStartRef.current.sy);
+      }, 40);
+      return;
     }
     
-    contextRef.current.strokeStyle = brushColor
-    contextRef.current.lineWidth = brushSize
-    contextRef.current.beginPath()
-    contextRef.current.moveTo(x, y)
+    // Default Brush
+    contextRef.current.strokeStyle = brushColor;
+    contextRef.current.lineWidth = brushSize;
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(x, y);
+    contextRef.current.lineTo(x, y);
+    contextRef.current.stroke();
     
-    // FIX: Instantly draw a dot locally in case they lift their finger without dragging!
-    contextRef.current.lineTo(x, y)
-    contextRef.current.stroke()
-    
-    setIsDrawing(true)
-    socketRef.current.emit('start', { x, y, color: brushColor, size: brushSize })
+    setIsDrawing(true);
+    socketRef.current.emit('start', { x, y, color: brushColor, size: brushSize });
   }
 
   const draw = (e) => {
-    if (!isDrawing || !isMyTurn) return 
-    if (e.touches && e.cancelable) e.preventDefault()
+    if (!isDrawing || !isMyTurn) return;
+    if (e.touches && e.cancelable) e.preventDefault();
 
-    const { x, y } = getCoordinates(e)
+    const { x, y } = getCoordinates(e);
+
+    // Live preview dragging for shapes!
+    if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
+       shapeStartRef.current.ex = x;
+       shapeStartRef.current.ey = y;
+       
+       contextRef.current.putImageData(savedImageRef.current, 0, 0);
+       contextRef.current.strokeStyle = brushColor;
+       contextRef.current.lineWidth = brushSize;
+       contextRef.current.beginPath();
+       
+       const { sx, sy } = shapeStartRef.current;
+
+       if (activeTool === 'ruler') {
+          contextRef.current.moveTo(sx, sy);
+          contextRef.current.lineTo(x, y);
+       } else if (activeTool === 'rect') {
+          contextRef.current.rect(sx, sy, x - sx, y - sy);
+       } else if (activeTool === 'circle') {
+          const radius = Math.sqrt(Math.pow(x - sx, 2) + Math.pow(y - sy, 2));
+          contextRef.current.arc(sx, sy, radius, 0, 2 * Math.PI);
+       } else if (activeTool === 'triangle') {
+          contextRef.current.moveTo(sx + (x - sx) / 2, sy);
+          contextRef.current.lineTo(x, y);
+          contextRef.current.lineTo(sx, y);
+          contextRef.current.closePath();
+       }
+       contextRef.current.stroke();
+       return;
+    }
+
+    if (activeTool === 'spray') {
+       shapeStartRef.current.sx = x;
+       shapeStartRef.current.sy = y;
+       return;
+    }
     
-    contextRef.current.strokeStyle = brushColor
-    contextRef.current.lineWidth = brushSize
-    contextRef.current.lineTo(x, y)
-    contextRef.current.stroke()
+    contextRef.current.strokeStyle = brushColor;
+    contextRef.current.lineWidth = brushSize;
+    contextRef.current.lineTo(x, y);
+    contextRef.current.stroke();
     
-    socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize })
+    socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize });
   }
 
   const stopDrawing = () => {
-    if (!isMyTurn) return 
-    if (!isDrawing) return // FIX: Ignore ghost events! Only save state if we were actually drawing a line!
+    if (!isMyTurn || !isDrawing) return;
     
-    contextRef.current.closePath()
-    setIsDrawing(false)
-    socketRef.current.emit('stop')
+    if (activeTool === 'spray') {
+       clearInterval(sprayIntervalRef.current);
+       setIsDrawing(false);
+       saveState();
+       redoStack.current = [];
+       return;
+    }
+
+    // Instantly draws the final shape over the network using native socket lines
+    if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
+       const { sx, sy, ex, ey } = shapeStartRef.current;
+       
+       if (activeTool === 'ruler') {
+          socketRef.current.emit('start', { x: sx, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          socketRef.current.emit('stop');
+       } else if (activeTool === 'rect') {
+          socketRef.current.emit('start', { x: sx, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: ex, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: sx, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('stop');
+       } else if (activeTool === 'triangle') {
+          const midX = sx + (ex - sx) / 2;
+          socketRef.current.emit('start', { x: midX, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
+          socketRef.current.emit('draw', { x: midX, y: sy, color: brushColor, size: brushSize });
+          socketRef.current.emit('stop');
+       } else if (activeTool === 'circle') {
+          const radius = Math.sqrt(Math.pow(ex - sx, 2) + Math.pow(ey - sy, 2));
+          const segments = 40; 
+          socketRef.current.emit('start', { x: sx + radius, y: sy, color: brushColor, size: brushSize });
+          for (let i = 1; i <= segments; i++) {
+             const angle = (i * 2 * Math.PI) / segments;
+             socketRef.current.emit('draw', { x: sx + Math.cos(angle) * radius, y: sy + Math.sin(angle) * radius, color: brushColor, size: brushSize });
+          }
+          socketRef.current.emit('stop');
+       }
+       setIsDrawing(false);
+       saveState();
+       redoStack.current = [];
+       return;
+    }
+
+    contextRef.current.closePath();
+    setIsDrawing(false);
+    socketRef.current.emit('stop');
     
-    // Drawer saves state immediately after lifting their mouse/finger
-    saveState()
-    redoStack.current = []
+    saveState();
+    redoStack.current = [];
   }
 
   // NEW: Tells the server to wipe the board
@@ -761,7 +881,7 @@ const presetColors = [
         .color-popup {
           position: absolute; bottom: 45px; left: -5px;
           background-color: rgba(20, 20, 20, 0.95); padding: 10px; border-radius: 12px;
-          border: 1px solid #555; display: grid; grid-template-columns: repeat(15, minmax(20px, 24px)); 
+          border: 1px solid #555; display: grid; grid-template-columns: repeat(10, minmax(20px, 24px)); 
           gap: 6px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 200; width: max-content;
         }
         
@@ -774,8 +894,9 @@ const presetColors = [
         .toolbar {
           position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
           background-color: rgba(20, 20, 20, 0.95); padding: 8px 16px; border-radius: 16px 16px 0 0; 
-          display: flex; gap: 12px; align-items: center; border: 1px solid #444; border-bottom: none; 
-          box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: opacity 0.3s ease; z-index: 50;
+          display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; 
+          border: 1px solid #444; border-bottom: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); 
+          transition: opacity 0.3s ease; z-index: 50; width: max-content; max-width: 98vw;
         }
 
 
@@ -1044,9 +1165,13 @@ const presetColors = [
               style={{ 
                 cursor: !isMyTurn 
                   ? 'not-allowed' 
-                  : isBucketMode 
+                  : activeTool === 'bucket' 
                     ? 'crosshair' 
-                    : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize + 6}" height="${brushSize + 6}"><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="${brushColor.replace('#', '%23')}" stroke="%23000000" stroke-width="2"/><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="none" stroke="%23ffffff" stroke-width="0.5"/></svg>') ${Math.round((brushSize + 6) / 2)} ${Math.round((brushSize + 6) / 2)}, crosshair` 
+                    : ['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)
+                      ? 'cell'
+                      : activeTool === 'spray'
+                        ? 'alias'
+                        : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize + 6}" height="${brushSize + 6}"><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="${brushColor.replace('#', '%23')}" stroke="%23000000" stroke-width="2"/><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="none" stroke="%23ffffff" stroke-width="0.5"/></svg>') ${Math.round((brushSize + 6) / 2)} ${Math.round((brushSize + 6) / 2)}, crosshair` 
               }}
             />
 
@@ -1082,7 +1207,7 @@ const presetColors = [
                           key={color}
                           onClick={() => { 
                             setBrushColor(color); 
-                            setIsBucketMode(false); 
+                            if (activeTool === 'bucket') setActiveTool('brush'); 
                             setShowColorPicker(false); // Instantly closes the menu!
                           }}
                           style={{
@@ -1100,16 +1225,33 @@ const presetColors = [
 
                 <div style={{ width: '2px', height: '24px', backgroundColor: '#555', margin: '0 8px', flexShrink: 0 }} />
 
-                {/* NEW: Paint Bucket & Blue Dot Brush Size Picker */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-                  <button 
-                    onClick={() => setIsBucketMode(!isBucketMode)}
-                    style={{ background: isBucketMode ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
-                    title="Paint Bucket (Fill)"
-                  >🪣</button>
+                {/* NEW: Advanced Tools Array */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {[
+                    { id: 'brush', icon: '🖌️', title: 'Brush' },
+                    { id: 'bucket', icon: '🪣', title: 'Fill' },
+                    { id: 'spray', icon: '💨', title: 'Spray' },
+                    { id: 'ruler', icon: '📏', title: 'Straight Line' },
+                    { id: 'circle', icon: '⭕', title: 'Circle' },
+                    { id: 'rect', icon: '⬜', title: 'Rectangle' },
+                    { id: 'triangle', icon: '🔺', title: 'Triangle' }
+                  ].map(tool => (
+                    <button
+                      key={tool.id}
+                      onClick={() => { setActiveTool(tool.id); setShowColorPicker(false); setShowSizePicker(false); }}
+                      style={{ 
+                        background: activeTool === tool.id ? '#03dac6' : 'transparent', 
+                        border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', 
+                        fontSize: '16px', padding: '4px 6px', transition: 'background 0.2s' 
+                      }}
+                      title={tool.title}
+                    >
+                      {tool.icon}
+                    </button>
+                  ))}
                   
                   {/* The Active Blue Dot Button */}
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '2px' }}>
                     <button 
                       onClick={() => setShowSizePicker(!showSizePicker)}
                       style={{ 
@@ -1129,7 +1271,7 @@ const presetColors = [
                             key={size}
                             onClick={() => { 
                               setBrushSize(size); 
-                              setIsBucketMode(false);
+                              if (activeTool === 'bucket') setActiveTool('brush');
                               setShowSizePicker(false); // Closes instantly on click!
                             }}
                             style={{
