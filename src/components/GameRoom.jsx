@@ -6,6 +6,8 @@ export default function GameRoom({ playerInfo }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
   const socketRef = useRef(null)
+  const hintOrderRef = useRef([]) // NEW: Locks in the random hint order
+  const lastWordRef = useRef("")  // NEW: Detects when a new word is chosen
   
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
@@ -132,50 +134,49 @@ const presetColors = [
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   // --- NEW: Smart Progressive Hint Generator (Round-Robin & Dynamic Slider) ---
+ // --- NEW: Smart Progressive Hint Generator (Randomized Round-Robin) ---
   const getDynamicHint = () => {
     if (!secretWord) return ""
 
-    const words = secretWord.split(' ')
-    const wordStartIndices = []
-    let currentIdx = 0
-    
-    // 1. Map out where each word starts
-    for (let w of words) {
-      wordStartIndices.push(currentIdx)
-      currentIdx += w.length + 1 // +1 to skip the space
-    }
+    // 1. If a new word starts, shuffle a random hint order and lock it in memory!
+    if (secretWord !== lastWordRef.current) {
+      lastWordRef.current = secretWord;
+      const words = secretWord.split(' ');
+      const wordStartIndices = [];
+      let currentIdx = 0;
+      
+      for (let w of words) {
+        wordStartIndices.push(currentIdx);
+        currentIdx += w.length + 1;
+      }
 
-    // 2. Prioritize which letters to reveal for ANY given word
-    const getRevealPriority = (wordLength) => {
-        const prio = [];
-        if (wordLength > 0) prio.push(0); // 1st letter
-        if (wordLength > 1) prio.push(wordLength - 1); // Last letter
-        if (wordLength > 2) prio.push(Math.floor(wordLength / 2)); // Middle letter
-        if (wordLength > 3) prio.push(1); // 2nd letter
-        if (wordLength > 4) prio.push(wordLength - 2); // 2nd to last
-        // Add remaining letters just in case for high hint levels
-        for (let i = 2; i < wordLength - 2; i++) {
-            if (i !== Math.floor(wordLength / 2)) prio.push(i);
+      // Generate completely random letter indices for each word using Fisher-Yates shuffle
+      const wordPriorities = words.map(w => {
+        let indices = Array.from({ length: w.length }, (_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
         }
-        return prio;
+        return indices;
+      });
+
+      const maxLength = Math.max(...words.map(w => w.length));
+      let allowedIndices = [];
+
+      // Round-Robin Distribution across the randomized words!
+      for (let p = 0; p < maxLength; p++) {
+         for (let wIdx = 0; wIdx < words.length; wIdx++) {
+            if (p < wordPriorities[wIdx].length) {
+               allowedIndices.push(wordStartIndices[wIdx] + wordPriorities[wIdx][p]);
+            }
+         }
+      }
+      hintOrderRef.current = allowedIndices;
     }
 
-    // 3. Collect priorities for all words
-    const wordPriorities = words.map(w => getRevealPriority(w.length));
-    const maxLength = Math.max(...words.map(w => w.length));
-    let allowedIndices = [];
-
-    // 4. Round-Robin Distribution! 
-    // Takes 1st hint of word 1, 1st hint of word 2... then 2nd hint of word 1, etc.
-    for (let p = 0; p < maxLength; p++) {
-       for (let wIdx = 0; wIdx < words.length; wIdx++) {
-          if (p < wordPriorities[wIdx].length) {
-             allowedIndices.push(wordStartIndices[wIdx] + wordPriorities[wIdx][p]);
-          }
-       }
-    }
-
-    // 5. Dynamic Max Hints based on the Host's Hint Slider
+    const words = secretWord.split(' ');
+    
+    // 2. Dynamic Max Hints based on the Host's Hint Slider
     let dynamicMaxHints = 0;
     const totalLetters = secretWord.replace(/ /g, '').length;
     
@@ -185,28 +186,25 @@ const presetColors = [
       if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.70); // High (70%)
       if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.95); // Max (95%)
       
-      // Safety lock: Never reveal the ENTIRE phrase (For Max, we keep exactly 1 letter hidden!)
       if (dynamicMaxHints >= totalLetters) dynamicMaxHints = totalLetters - 1;
       if (dynamicMaxHints < 0) dynamicMaxHints = 0;
     }
 
-    // Apply the max limit to our round-robin list
-    allowedIndices = allowedIndices.slice(0, dynamicMaxHints);
+    const cappedIndices = hintOrderRef.current.slice(0, dynamicMaxHints);
 
-    // 6. Progressive Reveal over time
+    // 3. Progressive Reveal over time
     let revealCount = 0;
     const maxDrawTime = typeof totalDrawTime !== 'undefined' ? totalDrawTime : 120; 
     
     if (dynamicMaxHints > 0 && timeLeft > 0 && timeLeft <= maxDrawTime) {
-      // Hints reveal steadily as the timer ticks down
       const timeElapsed = maxDrawTime - Math.min(timeLeft, maxDrawTime);
       revealCount = Math.floor((timeElapsed / maxDrawTime) * (dynamicMaxHints + 1));
       revealCount = Math.min(dynamicMaxHints, revealCount); 
     }
 
-    const revealed = new Set(allowedIndices.slice(0, revealCount));
+    const revealed = new Set(cappedIndices.slice(0, revealCount));
 
-    // 7. Render the final output with tiny word length numbers
+    // 4. Render the final output with tiny word length numbers
     const displayElements = [];
     let absoluteIndex = 0;
     
@@ -220,7 +218,7 @@ const presetColors = [
         }
         absoluteIndex++;
       }
-      absoluteIndex++; // Skip the space so absoluteIndex matches our pre-calculated indices!
+      absoluteIndex++; 
       
       displayElements.push(
         <span key={wordIdx} style={{ whiteSpace: 'nowrap' }}>
