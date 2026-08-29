@@ -32,6 +32,8 @@ export default function GameRoom({ playerInfo }) {
   
   const [turnSummary, setTurnSummary] = useState(null) // NEW: Holds the round end scores
   const summarySound = useRef(new Audio('/sounds/summary.mp3')) // NEW: Sound effect for round end screen
+  
+  const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
 
   // --- NEW: Theme Toggle State & Effect ---
   const [isLightMode, setIsLightMode] = useState(false)
@@ -319,6 +321,8 @@ const presetColors = [
       setSecretWord(data.word || "")
       setTimeLeft(120) 
       setCurrentRound(data.currentRound || 1); if (data.maxRounds) setMaxRounds(data.maxRounds); 
+      
+      setHasVotedThisTurn(false) // NEW: Restore their ability to vote for the new drawer!
 
       // NEW: Play the selection sound for the guessers so they know the drawing phase started!
       if (data.drawerName !== playerInfo.playerName) {
@@ -366,6 +370,7 @@ const presetColors = [
       setIsMyTurn(data.drawerName === playerInfo.playerName)
       setSecretWord("") // Hide the old word
       setWinner(null)
+      setHasVotedThisTurn(false) // NEW: Reset the button visibility
     })
 
     socketRef.current.on('your_word_choices', (words) => {
@@ -881,17 +886,23 @@ const presetColors = [
             </div>
 
             {/* NEW: Space-optimized Like and Dislike buttons for Guessers */}
-            {!isMyTurn && currentDrawer && !isChoosing && !winner && (
+            {!isMyTurn && currentDrawer && !isChoosing && !winner && !hasVotedThisTurn && (
               <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 60 }}>
                 <button 
-                  onClick={() => socketRef.current.emit('like_drawing')}
+                  onClick={() => {
+                    socketRef.current.emit('like_drawing');
+                    setHasVotedThisTurn(true); // NEW: Hide both buttons immediately!
+                  }}
                   style={{ background: 'rgba(76, 175, 80, 0.2)', border: '2px solid #4caf50', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
                   onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
                   onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                   title="Like"
                 >👍</button>
                 <button 
-                  onClick={() => socketRef.current.emit('dislike_drawing')}
+                  onClick={() => {
+                    socketRef.current.emit('dislike_drawing');
+                    setHasVotedThisTurn(true); // NEW: Hide both buttons immediately!
+                  }}
                   style={{ background: 'rgba(244, 67, 54, 0.2)', border: '2px solid #f44336', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
                   onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
                   onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
