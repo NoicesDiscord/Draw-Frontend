@@ -5,12 +5,16 @@ const leaveSound = new Audio('/sounds/leave.mp3')
 const closeSound = new Audio('/sounds/close.mp3') 
 const alertSound = new Audio('/sounds/alert.mp3') 
 const successSound = new Audio('/sounds/success.mp3') 
+const likeSound = new Audio('/sounds/like.mp3') // NEW
+const dislikeSound = new Audio('/sounds/dislike.mp3') // NEW
 
 joinSound.volume = 0.4
 leaveSound.volume = 0.4
 closeSound.volume = 0.5
 alertSound.volume = 0.6
 successSound.volume = 0.5
+likeSound.volume = 0.5 // NEW
+dislikeSound.volume = 0.5 // NEW
 
 const playSoundSafely = (audioObj) => {
   const clone = audioObj.cloneNode()
@@ -37,6 +41,8 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
       }
       if (msg.type === 'votekick') playSoundSafely(alertSound);
       if (msg.isCloseGuess) playSoundSafely(closeSound);
+      if (msg.isLike) playSoundSafely(likeSound); // NEW
+      if (msg.isDislike) playSoundSafely(dislikeSound); // NEW
     }
     
     socket.on('chat_message', handleNewMessage)
@@ -84,6 +90,10 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
                   <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12px', textAlign: 'center' }}>Vote casted</div>
                 )}
               </div>
+            ) : msg.isLike ? (
+              <span style={{ color: '#4caf50', fontWeight: 'bold' }}>👍 {msg.text}</span>
+            ) : msg.isDislike ? (
+              <span style={{ color: '#f44336', fontWeight: 'bold' }}>👎 {msg.text}</span>
             ) : msg.isCloseGuess ? (
               <span style={{ color: '#FFD54F', fontWeight: 'bold' }}>
                 <strong style={{ color: '#FFC107' }}>{msg.sender}: </strong>

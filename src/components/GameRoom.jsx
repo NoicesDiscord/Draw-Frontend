@@ -880,6 +880,26 @@ const presetColors = [
               {timeLeft > 0 ? timeLeft : "0"}
             </div>
 
+            {/* NEW: Space-optimized Like and Dislike buttons for Guessers */}
+            {!isMyTurn && currentDrawer && !isChoosing && !winner && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 60 }}>
+                <button 
+                  onClick={() => socketRef.current.emit('like_drawing')}
+                  style={{ background: 'rgba(76, 175, 80, 0.2)', border: '2px solid #4caf50', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
+                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
+                  onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  title="Like"
+                >👍</button>
+                <button 
+                  onClick={() => socketRef.current.emit('dislike_drawing')}
+                  style={{ background: 'rgba(244, 67, 54, 0.2)', border: '2px solid #f44336', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
+                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
+                  onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  title="Dislike"
+                >👎</button>
+              </div>
+            )}
+
             {!currentDrawer ? (
               <div className="waiting-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', pointerEvents: 'auto' }}>
                 {waitingForHost ? (
