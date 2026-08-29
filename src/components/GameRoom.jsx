@@ -96,6 +96,9 @@ const presetColors = [
   
   // NEW: Add a sound for clicking the word buttons
   const selectSound = useRef(new Audio('/sounds/select.mp3'))
+  
+  // NEW: Add a sound for the Start Game button!
+  const startSound = useRef(new Audio('/sounds/start.mp3'))
 
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   const getDynamicHint = () => {
@@ -918,7 +921,19 @@ const presetColors = [
                     <div style={{ color: '#bb86fc' }}>Waiting for host to start the game...</div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                       {isHost && playerList.length >= 2 && (
-                        <button onClick={() => socketRef.current.emit('start_private_game')} style={{ padding: '12px 20px', background: '#03dac6', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
+                        <button onClick={() => {
+                          // NEW: Play the start sound!
+                          const clone = startSound.current.cloneNode()
+                          clone.volume = 0.6
+                          clone.play().catch(e => console.log("Audio blocked:", e))
+                          
+                          socketRef.current.emit('start_private_game')
+                        }} 
+                        style={{ padding: '12px 20px', background: '#03dac6', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', transition: 'transform 0.1s ease' }}
+                        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.92)'}
+                        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
                           🚀 Start Game
                         </button>
                       )}
