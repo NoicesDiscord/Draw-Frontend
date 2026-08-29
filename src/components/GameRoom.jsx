@@ -1144,7 +1144,7 @@ const presetColors = [
               </div>
             ) : winner ? (
               <div className="floating-status" style={{ background: '#FFD54F', color: '#000' }}>
-                🏆 {winner} won the game!
+                🏆 {winner[0]?.name} won the game!
               </div>
             ) : (
               <div 
@@ -1445,24 +1445,101 @@ const presetColors = [
           </div>
         )}
 
-        {/* NEW: Cinematic Game Over Overlay goes HERE, outside the sidebar div! */}
+        {/* --- NEW: Advanced Statistical Game Over Screen --- */}
         {winner && (
           <div style={{
-            position: 'fixed', /* Note: I changed this to 'fixed' to guarantee it covers the whole screen! */
-            top: 0, left: 0, right: 0, bottom: 0,
-            /* FIX: Boosted zIndex to 999 to guarantee it covers the mobile canvas! */
-            backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 999,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15, 15, 20, 0.95)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(10px)', padding: '20px', overflowY: 'auto'
           }}>
-            <h1 style={{ color: '#FFD54F', fontSize: 'clamp(40px, 8vw, 70px)', margin: '0 0 20px 0', textAlign: 'center', textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
-              🎉 GAME OVER 🎉
+            {/* Embedded animation keyframes so the UI builds up cinematically */}
+            <style>{`
+              @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+              @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+            `}</style>
+            
+            <h1 style={{ color: '#03dac6', fontSize: 'clamp(32px, 6vw, 55px)', margin: '0 0 5px 0', textShadow: '0 0 20px rgba(3, 218, 198, 0.5)', animation: 'scaleIn 0.5s ease-out' }}>
+              MATCH RESULTS
             </h1>
-            <h2 style={{ color: '#fff', fontSize: 'clamp(24px, 5vw, 40px)', margin: '0 0 40px 0', textAlign: 'center' }}>
-              <span style={{ color: '#03dac6' }}>{winner}</span> takes the crown!
-            </h2>
-            <p style={{ color: '#bb86fc', fontSize: '18px', animation: 'pulse 2s infinite' }}>
-              Starting a new match in a few seconds...
+            <p style={{ color: '#bb86fc', fontSize: '16px', margin: '0 0 30px 0', letterSpacing: '3px', fontWeight: 'bold' }}>
+              FINAL LEADERBOARD & STATS
             </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%', maxWidth: '800px' }}>
+              
+              {/* TOP 3 PODIUM */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '10px', height: '180px', marginTop: '10px' }}>
+                
+                {/* Silver - 2nd Place */}
+                {winner[1] && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%', animation: 'slideUp 0.6s ease forwards', opacity: 0, animationDelay: '0.2s' }}>
+                    <div style={{ fontSize: '20px', marginBottom: '5px', color: '#C0C0C0', fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{winner[1].name}</div>
+                    <div style={{ fontSize: '16px', color: '#fff', marginBottom: '10px' }}>{winner[1].score} pts</div>
+                    <div style={{ width: '100%', height: '100px', background: 'linear-gradient(to top, #424242, #9E9E9E)', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '10px', fontSize: '40px' }}>🥈</div>
+                  </div>
+                )}
+                
+                {/* Gold - 1st Place */}
+                {winner[0] && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '35%', animation: 'slideUp 0.6s ease forwards', zIndex: 10 }}>
+                    <div style={{ fontSize: '24px', marginBottom: '5px', color: '#FFD54F', fontWeight: '900', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textShadow: '0 0 10px rgba(255,215,0,0.4)' }}>{winner[0].name}</div>
+                    <div style={{ fontSize: '18px', color: '#fff', marginBottom: '10px', fontWeight: 'bold' }}>{winner[0].score} pts</div>
+                    <div style={{ width: '100%', height: '140px', background: 'linear-gradient(to top, #F57F17, #FFD54F)', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '10px', fontSize: '50px', boxShadow: '0 -10px 30px rgba(255,215,0,0.2)' }}>👑</div>
+                  </div>
+                )}
+                
+                {/* Bronze - 3rd Place */}
+                {winner[2] && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%', animation: 'slideUp 0.6s ease forwards', opacity: 0, animationDelay: '0.4s' }}>
+                    <div style={{ fontSize: '20px', marginBottom: '5px', color: '#CD7F32', fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{winner[2].name}</div>
+                    <div style={{ fontSize: '16px', color: '#fff', marginBottom: '10px' }}>{winner[2].score} pts</div>
+                    <div style={{ width: '100%', height: '70px', background: 'linear-gradient(to top, #4E342E, #8D6E63)', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '10px', fontSize: '35px' }}>🥉</div>
+                  </div>
+                )}
+              </div>
+
+              {/* STATISTICAL BAR CHARTS */}
+              <div style={{ background: 'var(--bg-panel)', padding: '20px 25px', borderRadius: '16px', border: '1px solid #333', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', animation: 'scaleIn 0.5s ease-out forwards', opacity: 0, animationDelay: '0.6s' }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#fff', fontSize: '16px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Performance Data</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '220px', overflowY: 'auto', paddingRight: '10px' }}>
+                  {winner.map((p, idx) => {
+                    const topScore = Math.max(winner[0]?.score || 1, 1);
+                    const barWidth = Math.max((p.score / topScore) * 100, 2); // Minimum 2% width so 0 scores still show a tiny sliver
+                    
+                    return (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ width: '25px', color: '#888', fontWeight: 'bold', textAlign: 'right', fontSize: '14px' }}>#{idx + 1}</div>
+                        <div style={{ width: '110px', color: '#e0e0e0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '15px' }}>{p.name}</div>
+                        <div style={{ flexGrow: 1, height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+                          <div style={{ width: `${barWidth}%`, height: '100%', background: idx === 0 ? '#FFD54F' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : '#bb86fc', borderRadius: '6px', transition: 'width 1.5s cubic-bezier(0.2, 0.8, 0.2, 1)' }} />
+                        </div>
+                        <div style={{ width: '40px', textAlign: 'right', color: '#fff', fontWeight: 'bold', fontSize: '15px' }}>{p.score}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', animation: 'scaleIn 0.5s ease-out forwards', opacity: 0, animationDelay: '1s' }}>
+                {(!isPrivate || isHost) ? (
+                  <button 
+                    onClick={() => socketRef.current.emit('return_to_lobby')}
+                    style={{ padding: '16px 36px', fontSize: '18px', fontWeight: '900', color: '#000', background: 'linear-gradient(135deg, #03dac6, #018786)', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 8px 20px rgba(3, 218, 198, 0.4)', transition: 'transform 0.1s ease', textTransform: 'uppercase', letterSpacing: '1px' }}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    Proceed to Next Game ➡️
+                  </button>
+                ) : (
+                  <div style={{ padding: '16px 32px', fontSize: '16px', color: '#bb86fc', background: 'rgba(187, 134, 252, 0.1)', border: '1px solid #bb86fc', borderRadius: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                    ⏳ Waiting for Host to Proceed...
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         )}
 
