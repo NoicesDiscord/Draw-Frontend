@@ -601,8 +601,7 @@ const presetColors = [
     const sR = data[startPos], sG = data[startPos+1], sB = data[startPos+2], sA = data[startPos+3]
     if (sR === fR && sG === fG && sB === fB) return // Color is already the same
     
-    // NEW: Added color tolerance to absorb the white/gray anti-aliased edges of shapes!
-    const tolerance = 100;
+    const tolerance = 110;
     const match = (p) => {
       return Math.abs(data[p] - sR) <= tolerance && 
              Math.abs(data[p+1] - sG) <= tolerance && 
@@ -619,20 +618,24 @@ const presetColors = [
       let [cx, cy] = stack.pop()
       let p = (cy * w + cx) * 4
       while(cy >= 0 && match(p)) { cy--; p -= w*4 }
+      
+      if (cy >= 0) color(p); // Bleed Top Edge
+      
       p += w*4; cy++
       let rL = false, rR = false
       while(cy < h && match(p)) {
         color(p)
         if (cx > 0) {
           if (match(p - 4)) { if (!rL) { stack.push([cx - 1, cy]); rL = true } }
-          else if (rL) rL = false
+          else { rL = false; color(p - 4); } // Bleed Left Edge
         }
         if (cx < w - 1) {
           if (match(p + 4)) { if (!rR) { stack.push([cx + 1, cy]); rR = true } }
-          else if (rR) rR = false
+          else { rR = false; color(p + 4); } // Bleed Right Edge
         }
         cy++; p += w*4
       }
+      if (cy < h) color(p); // Bleed Bottom Edge
     }
     ctx.putImageData(imgData, 0, 0)
     
@@ -665,13 +668,13 @@ const presetColors = [
     }
 
     // Continuous Spray Logic
-    if (activeTool === 'spray') {
+    if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
       setIsDrawing(true);
       if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current);
       
       const sprayDrop = (cx, cy) => {
-        const sprayRadius = 35; // NEW: Fixed large radius independent of brushSize
-        const sprayDensity = 25; // NEW: Fires 25 dots per tick instead of 7
+        const sprayRadius = 35; 
+        const sprayDensity = 25; 
         
         for (let i = 0; i < sprayDensity; i++) {
            const angle = Math.random() * Math.PI * 2;
@@ -679,11 +682,18 @@ const presetColors = [
            const dotX = cx + Math.cos(angle) * radius;
            const dotY = cy + Math.sin(angle) * radius;
            
-           contextRef.current.fillStyle = brushColor;
+           // NEW: Calculate random rainbow color if active
+           let dotColor = brushColor;
+           if (activeTool === 'rainbowSpray') {
+             const hue = Math.floor(Math.random() * 360);
+             dotColor = `hsl(${hue}, 100%, 50%)`;
+           }
+           
+           contextRef.current.fillStyle = dotColor;
            contextRef.current.fillRect(dotX, dotY, 2, 2);
            
-           // Trick the server into rendering dots by sending micro-strokes
-           socketRef.current.emit('start', { x: dotX, y: dotY, color: brushColor, size: 2 });
+           // Socket handles the HSL string natively without any extra work!
+           socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 2 });
            socketRef.current.emit('stop');
         }
       };
@@ -691,7 +701,7 @@ const presetColors = [
       shapeStartRef.current = { sx: x, sy: y };
       sprayIntervalRef.current = setInterval(() => {
          if (shapeStartRef.current) sprayDrop(shapeStartRef.current.sx, shapeStartRef.current.sy);
-      }, 30); // NEW: Faster tick rate (30ms instead of 40ms) for denser coverage
+      }, 30); 
       return;
     }
     
@@ -743,7 +753,7 @@ const presetColors = [
        return;
     }
 
-    if (activeTool === 'spray') {
+    if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
        shapeStartRef.current.sx = x;
        shapeStartRef.current.sy = y;
        return;
@@ -760,7 +770,7 @@ const presetColors = [
   const stopDrawing = () => {
     if (!isMyTurn || !isDrawing) return;
     
-    if (activeTool === 'spray') {
+    if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
        clearInterval(sprayIntervalRef.current);
        setIsDrawing(false);
        saveState();
@@ -1236,7 +1246,7 @@ const presetColors = [
                     ? 'crosshair' 
                     : ['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)
                       ? 'cell'
-                      : activeTool === 'spray'
+                      : (activeTool === 'spray' || activeTool === 'rainbowSpray')
                         ? 'alias'
                         : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize + 6}" height="${brushSize + 6}"><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="${brushColor.replace('#', '%23')}" stroke="%23000000" stroke-width="2"/><circle cx="${(brushSize + 6) / 2}" cy="${(brushSize + 6) / 2}" r="${brushSize / 2}" fill="none" stroke="%23ffffff" stroke-width="0.5"/></svg>') ${Math.round((brushSize + 6) / 2)} ${Math.round((brushSize + 6) / 2)}, crosshair` 
               }}
@@ -1292,6 +1302,7 @@ const presetColors = [
 
                   {/* Spray Can */}
                   <button onClick={() => {setActiveTool(activeTool === 'spray' ? 'brush' : 'spray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'spray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>💨</button>
+                  <button onClick={() => {setActiveTool(activeTool === 'rainbowSpray' ? 'brush' : 'rainbowSpray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'rainbowSpray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🌈</button>
 
                   {/* Desktop Shape Menu */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -1357,7 +1368,7 @@ const presetColors = [
 
                   {/* Row 2: Assistant Tools */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '6px' }}>
-                    {[ { id: 'spray', icon: '💨' }, { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
+                    {[ { id: 'spray', icon: '💨' }, { id: 'rainbowSpray', icon: '🌈' }, { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
                       <button 
                         key={tool.id} 
                         onClick={() => {setActiveTool(activeTool === tool.id ? 'brush' : tool.id); setShowColorPicker(false); setShowSizePicker(false);}} 
