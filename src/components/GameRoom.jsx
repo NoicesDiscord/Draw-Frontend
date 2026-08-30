@@ -6,8 +6,6 @@ export default function GameRoom({ playerInfo }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
   const socketRef = useRef(null)
-  const hintOrderRef = useRef([]) // NEW: Locks in the random hint order
-  const lastWordRef = useRef("")  // NEW: Detects when a new word is chosen
   
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSocketReady, setIsSocketReady] = useState(false)
@@ -31,7 +29,7 @@ export default function GameRoom({ playerInfo }) {
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
   const [underdogs, setUnderdogs] = useState([]) // NEW: Tracks who has the Underdog ability
-  
+  const [hintOrder, setHintOrder] = useState([]) // NEW: Stores the server-synced hint order
   const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
   
   const [turnSummary, setTurnSummary] = useState(null) // NEW: Holds the round end scores
@@ -144,48 +142,13 @@ const presetColors = [
   // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
   // --- NEW: Smart Progressive Hint Generator (Round-Robin & Dynamic Slider) ---
  // --- NEW: Smart Progressive Hint Generator (Randomized Round-Robin) ---
-  const getDynamicHint = () => {
+  // --- NEW: Synced Progressive Hint Generator ---
+  const getDynamicHint = (showFullWord) => {
     if (!secretWord) return ""
-
-    // 1. If a new word starts, shuffle a random hint order and lock it in memory!
-    if (secretWord !== lastWordRef.current) {
-      lastWordRef.current = secretWord;
-      const words = secretWord.split(' ');
-      const wordStartIndices = [];
-      let currentIdx = 0;
-      
-      for (let w of words) {
-        wordStartIndices.push(currentIdx);
-        currentIdx += w.length + 1;
-      }
-
-      // Generate completely random letter indices for each word using Fisher-Yates shuffle
-      const wordPriorities = words.map(w => {
-        let indices = Array.from({ length: w.length }, (_, i) => i);
-        for (let i = indices.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [indices[i], indices[j]] = [indices[j], indices[i]];
-        }
-        return indices;
-      });
-
-      const maxLength = Math.max(...words.map(w => w.length));
-      let allowedIndices = [];
-
-      // Round-Robin Distribution across the randomized words!
-      for (let p = 0; p < maxLength; p++) {
-         for (let wIdx = 0; wIdx < words.length; wIdx++) {
-            if (p < wordPriorities[wIdx].length) {
-               allowedIndices.push(wordStartIndices[wIdx] + wordPriorities[wIdx][p]);
-            }
-         }
-      }
-      hintOrderRef.current = allowedIndices;
-    }
 
     const words = secretWord.split(' ');
     
-    // 2. Dynamic Max Hints based on the Host's Hint Slider
+    // 1. Dynamic Max Hints based on the Host's Hint Slider
     let dynamicMaxHints = 0;
     const totalLetters = secretWord.replace(/ /g, '').length;
     
@@ -199,9 +162,10 @@ const presetColors = [
       if (dynamicMaxHints < 0) dynamicMaxHints = 0;
     }
 
-    const cappedIndices = hintOrderRef.current.slice(0, dynamicMaxHints);
+    // Apply the limit to the server's synced order
+    const cappedIndices = hintOrder.slice(0, dynamicMaxHints);
 
-    // 3. Progressive Reveal over time
+    // 2. Progressive Reveal over time
     let revealCount = 0;
     const maxDrawTime = typeof totalDrawTime !== 'undefined' ? totalDrawTime : 120; 
     
@@ -213,26 +177,42 @@ const presetColors = [
 
     const revealed = new Set(cappedIndices.slice(0, revealCount));
 
-    // 4. Render the final output with tiny word length numbers
+    // 3. Render the final output (handles both Drawer and Guesser views!)
     const displayElements = [];
     let absoluteIndex = 0;
+    
+    // Check if the current player is a winner (to adjust the highlight color so it doesn't blend into the teal background)
+    const isWinner = correctGuessers.includes(playerInfo.playerName);
     
     words.forEach((w, wordIdx) => {
       let wordChars = [];
       for (let i = 0; i < w.length; i++) {
-        if (revealed.has(absoluteIndex)) {
-          wordChars.push(w[i].toUpperCase());
+        const isRevealed = revealed.has(absoluteIndex);
+        
+        if (showFullWord) {
+          // For the drawer/winners: Show full word, but highlight the letters currently revealed to guessers
+          const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
+          const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
+          
+          wordChars.push(
+            <span key={absoluteIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
+              {w[i].toUpperCase()}
+            </span>
+          );
         } else {
-          wordChars.push('_');
+          // For active guessers: Hide letters that aren't revealed
+          wordChars.push(
+            <span key={absoluteIndex}>{isRevealed ? w[i].toUpperCase() : '_'}</span>
+          );
         }
         absoluteIndex++;
       }
       absoluteIndex++; 
       
       displayElements.push(
-        <span key={wordIdx} style={{ whiteSpace: 'nowrap' }}>
-          {wordChars.join(' ')}
-          <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8 }}>
+        <span key={wordIdx} style={{ whiteSpace: 'nowrap', display: 'inline-flex', gap: '4px' }}>
+          {wordChars}
+          <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8, color: 'white', textShadow: 'none' }}>
             {w.length}
           </span>
         </span>
@@ -245,6 +225,8 @@ const presetColors = [
       </span>
     );
   }
+
+// ... existing useEffect blocks for viewport and keyboard stay here ...
 
   
 // --- FIX: RESTORED THE FROZEN CANVAS LOGIC ---
@@ -395,6 +377,10 @@ const presetColors = [
       // NEW: Catch Underdogs
       if (data.underdogs) setUnderdogs(data.underdogs)
       else setUnderdogs([])
+      
+      // NEW: Catch shared hint order
+      if (data.hintOrder) setHintOrder(data.hintOrder) 
+      else setHintOrder([])
       
       setIsChoosing(false) 
       setWaitingForHost(false)
@@ -1169,15 +1155,12 @@ const presetColors = [
                 className="floating-status" 
                 style={{ 
                   fontSize: 'clamp(13px, 4vw, 20px)', letterSpacing: '1px', padding: '6px 14px',
-                  /* FIX: The bar turns bright Teal if you guessed the word correctly! */
                   backgroundColor: correctGuessers.includes(playerInfo.playerName) ? 'rgba(3, 218, 198, 0.9)' : 'rgba(55, 0, 179, 0.85)',
                   color: correctGuessers.includes(playerInfo.playerName) ? '#000' : 'white'
                 }}
               >
-                {/* FIX: Fully reveals the word for the Drawer AND for any Guesser who solved it! */}
-                {(isMyTurn || correctGuessers.includes(playerInfo.playerName)) 
-                  ? secretWord.toUpperCase().split(' ').join('\u00A0\u00A0') 
-                  : getDynamicHint()}
+                {/* FIX: We pass the boolean down so the function knows whether to render blanks or highlight the hints! */}
+                {getDynamicHint(isMyTurn || correctGuessers.includes(playerInfo.playerName))}
               </div>
             )}
             
