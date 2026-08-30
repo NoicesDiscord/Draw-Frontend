@@ -601,7 +601,15 @@ const presetColors = [
     const sR = data[startPos], sG = data[startPos+1], sB = data[startPos+2], sA = data[startPos+3]
     if (sR === fR && sG === fG && sB === fB) return // Color is already the same
     
-    const match = (p) => data[p]===sR && data[p+1]===sG && data[p+2]===sB && data[p+3]===sA
+    // NEW: Added color tolerance to absorb the white/gray anti-aliased edges of shapes!
+    const tolerance = 100;
+    const match = (p) => {
+      return Math.abs(data[p] - sR) <= tolerance && 
+             Math.abs(data[p+1] - sG) <= tolerance && 
+             Math.abs(data[p+2] - sB) <= tolerance && 
+             Math.abs(data[p+3] - sA) <= tolerance;
+    }
+    
     const color = (p) => { data[p]=fR; data[p+1]=fG; data[p+2]=fB; data[p+3]=fA }
     
     const stack = [[Math.floor(x), Math.floor(y)]]
@@ -662,9 +670,12 @@ const presetColors = [
       if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current);
       
       const sprayDrop = (cx, cy) => {
-        for (let i = 0; i < 7; i++) {
+        const sprayRadius = 35; // NEW: Fixed large radius independent of brushSize
+        const sprayDensity = 25; // NEW: Fires 25 dots per tick instead of 7
+        
+        for (let i = 0; i < sprayDensity; i++) {
            const angle = Math.random() * Math.PI * 2;
-           const radius = Math.random() * (brushSize * 1.5);
+           const radius = Math.random() * sprayRadius;
            const dotX = cx + Math.cos(angle) * radius;
            const dotY = cy + Math.sin(angle) * radius;
            
@@ -680,7 +691,7 @@ const presetColors = [
       shapeStartRef.current = { sx: x, sy: y };
       sprayIntervalRef.current = setInterval(() => {
          if (shapeStartRef.current) sprayDrop(shapeStartRef.current.sx, shapeStartRef.current.sy);
-      }, 40);
+      }, 30); // NEW: Faster tick rate (30ms instead of 40ms) for denser coverage
       return;
     }
     
