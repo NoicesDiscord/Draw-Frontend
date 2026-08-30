@@ -66,16 +66,16 @@ export default function GameRoom({ playerInfo }) {
   const savedImageRef = useRef(null) // NEW: Tracks the preview frame for shapes
   const sprayIntervalRef = useRef(null) // NEW: Runs continuous spray dots
   
-  // NEW: 40 Perfectly Organized Colors (Creates a uniform 4x10 Grid on Desktop & Mobile!)
+  // --- UPDATED: 40 Perfectly Organized Colors (Columns by Hue, Rows by Lightness) ---
 const presetColors = [
-  // Row 1: Grays & Monochromes
-  '#000000', '#222222', '#444444', '#666666', '#888888', '#AAAAAA', '#CCCCCC', '#E0E0E0', '#F5F5F5', '#FFFFFF',
-  // Row 2: Browns, Reds & Oranges
-  '#3E2723', '#5D4037', '#8B4513', '#5C0000', '#8B0000', '#FF0000', '#FF4500', '#FF8C00', '#FFA500', '#FFD700',
-  // Row 3: Yellows, Greens & Cyans
-  '#FFFF00', '#FFFFE0', '#004d00', '#008000', '#00FF00', '#32CD32', '#98FB98', '#008B8B', '#00CED1', '#00FFFF',
-  // Row 4: Blues, Purples & Pinks
-  '#000080', '#0000FF', '#1E90FF', '#87CEFA', '#4B0082', '#800080', '#BA55D3', '#FF00FF', '#FF1493', '#FFB6C1'
+  // Row 1: Darkest Shades
+  '#000000', '#4E342E', '#8B0000', '#BF360C', '#827717', '#004d00', '#006064', '#000080', '#4A148C', '#880E4F',
+  // Row 2: Primary / Vibrant Shades
+  '#555555', '#795548', '#FF0000', '#FF8C00', '#FFD700', '#008000', '#00BCD4', '#0000FF', '#800080', '#E91E63',
+  // Row 3: Bright / Light Shades
+  '#AAAAAA', '#A1887F', '#FF5252', '#FFB74D', '#FFFF00', '#00FF00', '#4DD0E1', '#1E90FF', '#BA55D3', '#FF69B4',
+  // Row 4: Pastel / Very Light Shades
+  '#FFFFFF', '#D7CCC8', '#FFCDD2', '#FFE0B2', '#FFF9C4', '#B9F6CA', '#B2EBF2', '#BBDEFB', '#E1BEE7', '#F8BBD0'
 ];
 
   // --- NEW: Undo / Redo Memory Stacks ---
