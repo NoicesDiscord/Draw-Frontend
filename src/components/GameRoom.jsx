@@ -1232,7 +1232,7 @@ const presetColors = [
 
                   {/* Brush & Bucket */}
                   <button onClick={() => {setActiveTool('brush'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'brush' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🖌️</button>
-                  <button onClick={() => {setActiveTool('bucket'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🪣</button>
+                  <button onClick={() => {setActiveTool(activeTool === 'bucket' ? 'brush' : 'bucket'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🪣</button>
 
                   {/* Blue Dot Size */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '4px' }}>
@@ -1253,7 +1253,7 @@ const presetColors = [
                   <div className="toolbar-divider" />
 
                   {/* Spray Can */}
-                  <button onClick={() => {setActiveTool('spray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'spray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>💨</button>
+                  <button onClick={() => {setActiveTool(activeTool === 'spray' ? 'brush' : 'spray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'spray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>💨</button>
 
                   {/* Desktop Shape Menu */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -1263,7 +1263,7 @@ const presetColors = [
                     {showShapePicker && (
                       <div className="shape-popup">
                         {[ { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
-                          <button key={tool.id} onClick={() => {setActiveTool(tool.id); setShowShapePicker(false);}} style={{ background: activeTool === tool.id ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>{tool.icon}</button>
+                          <button key={tool.id} onClick={() => {setActiveTool(activeTool === tool.id ? 'brush' : tool.id); setShowShapePicker(false);}} style={{ background: activeTool === tool.id ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>{tool.icon}</button>
                         ))}
                       </div>
                     )}
@@ -1295,7 +1295,7 @@ const presetColors = [
                     </div>
 
                     <button onClick={() => {setActiveTool('brush'); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: activeTool === 'brush' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>🖌️</button>
-                    <button onClick={() => {setActiveTool('bucket'); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>🪣</button>
+                    <button onClick={() => {setActiveTool(activeTool === 'bucket' ? 'brush' : 'bucket'); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>🪣</button>
 
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       <button onClick={() => {setShowSizePicker(!showSizePicker); setShowColorPicker(false);}} style={{ width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', padding: 0, background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -1322,7 +1322,7 @@ const presetColors = [
                     {[ { id: 'spray', icon: '💨' }, { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
                       <button 
                         key={tool.id} 
-                        onClick={() => {setActiveTool(tool.id); setShowColorPicker(false); setShowSizePicker(false);}} 
+                        onClick={() => {setActiveTool(activeTool === tool.id ? 'brush' : tool.id); setShowColorPicker(false); setShowSizePicker(false);}} 
                         style={{ background: activeTool === tool.id ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '18px', padding: '8px 6px', flexGrow: 1 }}
                       >
                         {tool.icon}
