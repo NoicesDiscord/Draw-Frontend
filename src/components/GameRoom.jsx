@@ -151,23 +151,21 @@ const presetColors = [
   const getDynamicHint = (showFullWord) => {
     if (!secretWord) return ""
 
-    const words = secretWord.split(' ');
-    
     // 1. Dynamic Max Hints based on the Host's Hint Slider
     let dynamicMaxHints = 0;
-    const totalLetters = secretWord.replace(/ /g, '').length;
+    // Fix: Only count letters and numbers toward the total length
+    const totalLetters = (secretWord.match(/[a-zA-Z0-9]/g) || []).length;
     
     if (totalLetters > 2) {
-      if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.25); // Low (25%)
-      if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.45); // Normal (45%)
-      if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.70); // High (70%)
-      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.95); // Max (95%)
+      if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.25); 
+      if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.45); 
+      if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.70); 
+      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.95); 
       
       if (dynamicMaxHints >= totalLetters) dynamicMaxHints = totalLetters - 1;
       if (dynamicMaxHints < 0) dynamicMaxHints = 0;
     }
 
-    // Apply the limit to the server's synced order
     const cappedIndices = hintOrder.slice(0, dynamicMaxHints);
 
     // 2. Progressive Reveal over time
@@ -182,50 +180,80 @@ const presetColors = [
 
     const revealed = new Set(cappedIndices.slice(0, revealCount));
 
-    // 3. Render the final output (handles both Drawer and Guesser views!)
+    // 3. Render the final output
     const displayElements = [];
-    let absoluteIndex = 0;
+    const blocks = [];
     
-    // Check if the current player is a winner (to adjust the highlight color so it doesn't blend into the teal background)
+    // Smart chunking: Group adjacent letters and adjacent special chars
+    if (secretWord) {
+      let currentBlock = { isWord: /[a-zA-Z0-9]/.test(secretWord[0]), text: secretWord[0], startIndex: 0 };
+      for (let i = 1; i < secretWord.length; i++) {
+        const isAlpha = /[a-zA-Z0-9]/.test(secretWord[i]);
+        if (isAlpha === currentBlock.isWord) {
+          currentBlock.text += secretWord[i];
+        } else {
+          blocks.push(currentBlock);
+          currentBlock = { isWord: isAlpha, text: secretWord[i], startIndex: i };
+        }
+      }
+      if (currentBlock.text) blocks.push(currentBlock);
+    }
+    
     const isWinner = correctGuessers.includes(playerInfo.playerName);
     
-    words.forEach((w, wordIdx) => {
-      let wordChars = [];
-      for (let i = 0; i < w.length; i++) {
-        const isRevealed = revealed.has(absoluteIndex);
-        
-        if (showFullWord) {
-          // For the drawer/winners: Show full word, but highlight the letters currently revealed to guessers
-          const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
-          const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
+    blocks.forEach((b, blockIdx) => {
+      if (b.isWord) {
+        // Render hidden/revealed text blocks with length numbers above them
+        let wordChars = [];
+        for (let i = 0; i < b.text.length; i++) {
+          const absoluteIndex = b.startIndex + i;
+          const isRevealed = revealed.has(absoluteIndex);
           
-          wordChars.push(
-            <span key={absoluteIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
-              {w[i].toUpperCase()}
-            </span>
-          );
-        } else {
-          // For active guessers: Hide letters that aren't revealed
-          wordChars.push(
-            <span key={absoluteIndex}>{isRevealed ? w[i].toUpperCase() : '_'}</span>
-          );
+          if (showFullWord) {
+            const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
+            const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
+            
+            wordChars.push(
+              <span key={absoluteIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
+                {b.text[i].toUpperCase()}
+              </span>
+            );
+          } else {
+            wordChars.push(
+              <span key={absoluteIndex}>{isRevealed ? b.text[i].toUpperCase() : '_'}</span>
+            );
+          }
         }
-        absoluteIndex++;
-      }
-      absoluteIndex++; 
-      
-      displayElements.push(
-        <span key={wordIdx} style={{ whiteSpace: 'nowrap', display: 'inline-flex', gap: '4px' }}>
-          {wordChars}
-          <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8, color: 'white', textShadow: 'none' }}>
-            {w.length}
+        
+        displayElements.push(
+          <span key={`block_${blockIdx}`} style={{ whiteSpace: 'nowrap', display: 'inline-flex', gap: '4px' }}>
+            {wordChars}
+            <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8, color: 'white', textShadow: 'none' }}>
+              {b.text.length}
+            </span>
           </span>
-        </span>
-      );
+        );
+      } else {
+        // Render special characters instantly, turning spaces into gaps
+        const specialChars = [];
+        for(let i = 0; i < b.text.length; i++) {
+            if (b.text[i] === ' ') {
+                specialChars.push(<span key={i} style={{ width: '20px', display: 'inline-block' }}></span>);
+            } else {
+                specialChars.push(<span key={i} style={{ margin: '0 4px', fontWeight: 'bold' }}>{b.text[i]}</span>);
+            }
+        }
+        displayElements.push(
+          <span key={`block_${blockIdx}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {specialChars}
+          </span>
+        );
+      }
     });
 
+    // Notice we removed the wide gap here since the spaces handle it naturally now
     return (
-      <span style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px 20px' }}>
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 0px' }}>
         {displayElements}
       </span>
     );
