@@ -1097,7 +1097,7 @@ const presetColors = [
                     navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
                     setInviteCopied(true);
                     setTimeout(() => setInviteCopied(false), 5000);
-                  }} style={{ background: inviteCopied ? '#4caf50' : 'var(--border-main)', color: inviteCopied ? '#fff' : '#03dac6', border: inviteCopied ? '1px solid #4caf50' : '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
+                  }} style={{ background: inviteCopied ? '#4caf50' : 'var(--border-main)', color: inviteCopied ? '#fff' : '#4caf50', border: '1px solid #4caf50', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
                     {inviteCopied ? '✔️ COPIED' : '+ INVITE'}
                   </button>
                 )}
