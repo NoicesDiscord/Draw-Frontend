@@ -293,19 +293,25 @@ export default function App() {
               <p className="dn-subtitle">grab a crayon, it's your turn to doodle!</p>
             </div>
 
-            <input 
+            <textarea 
               className="dn-name-input"
-              type="text" 
-              value={name} 
-              onChange={(e) => { setName(e.target.value); setError(''); }} 
-              onKeyDown={(e) => e.key === 'Enter' && handleJoin()} 
-              placeholder="Enter your nickname..." 
-              maxLength="12"
-              autoFocus
+              rows="1"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
+              value={name} 
+              onChange={(e) => { setName(e.target.value.replace(/\n/g, '')); setError(''); }} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault(); 
+                  handleJoin();
+                }
+              }}
+              placeholder="Enter your nickname..." 
+              maxLength="12"
+              autoFocus
+              style={{ resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}
             />
 
             {mode === 'invite' ? (
