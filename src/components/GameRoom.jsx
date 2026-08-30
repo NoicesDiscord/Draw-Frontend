@@ -240,7 +240,8 @@ const presetColors = [
             if (b.text[i] === ' ') {
                 specialChars.push(<span key={i} style={{ width: '20px', display: 'inline-block' }}></span>);
             } else {
-                specialChars.push(<span key={i} style={{ margin: '0 4px', fontWeight: 'bold' }}>{b.text[i]}</span>);
+                // NEW: Added vibrant red color and a soft glow to special characters!
+                specialChars.push(<span key={i} style={{ margin: '0 4px', fontWeight: '900', color: '#FF5252', textShadow: '0 0 6px rgba(255, 82, 82, 0.6)' }}>{b.text[i]}</span>);
             }
         }
         displayElements.push(
