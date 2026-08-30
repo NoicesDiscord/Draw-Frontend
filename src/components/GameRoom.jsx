@@ -367,6 +367,11 @@ const presetColors = [
       setPlayerList(sortedPlayers)
     })
 
+    // NEW: Real-time Underdog updates when someone joins mid-round!
+    socketRef.current.on('update_underdogs', (newUnderdogs) => {
+      setUnderdogs(newUnderdogs || [])
+    })
+
     socketRef.current.on('round_update', (data) => {
       setIsMyTurn(data.drawerName === playerInfo.playerName)
       setCurrentDrawer(data.drawerName) 
