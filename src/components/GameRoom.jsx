@@ -1441,7 +1441,7 @@ const presetColors = [
                     {isUnderdog && (
                       <div style={{ marginTop: '10px', fontSize: '12px', color: '#ff9800', background: 'rgba(255, 152, 0, 0.15)', padding: '10px', borderRadius: '8px', border: '1px dashed #ff9800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                          <span style={{ fontSize: '20px' }}>🔥</span> 
-                         <span><strong>Underdog Ability Active:</strong> If this player guesses the word 1st, they get double points (300 pts)!</span>
+                         <span><strong>Late Joiner Buff Active:</strong> This player earns DOUBLE points on every correct guess until they catch up to the top players!</span>
                       </div>
                     )}
                   </li>
