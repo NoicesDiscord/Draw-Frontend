@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
 import ChatBox from './ChatBox'
 
-export default function GameRoom({ playerInfo }) {
+export default function GameRoom({ playerInfo, onJoinError }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
   const socketRef = useRef(null)
@@ -439,8 +439,12 @@ const presetColors = [
 
     // NEW: Catch room errors (like trying to join a full or expired room)
     socketRef.current.on('room_error', (errorMessage) => {
-      alert(errorMessage); // Pops up "This room is currently full."
-      window.location.href = '/'; // Bounces them back to the clean login screen!
+      if (onJoinError) {
+        onJoinError(errorMessage); // Seamlessly pushes the error back to your main menu
+      } else {
+        alert(errorMessage);
+        window.location.href = '/'; 
+      }
     })
 
     socketRef.current.on('kicked_from_server', () => {

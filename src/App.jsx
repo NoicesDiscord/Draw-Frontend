@@ -493,5 +493,13 @@ export default function App() {
     )
   }
 
-  return <GameRoom playerInfo={playerInfo} />
+  return (
+    <GameRoom 
+      playerInfo={playerInfo} 
+      onJoinError={(errorMessage) => {
+        setPlayerInfo(null); // Unmounts the game and safely brings them back to their current menu
+        setError(`⚠️ ${errorMessage}`); // Triggers your built-in jiggly error animation!
+      }} 
+    />
+  )
 }
