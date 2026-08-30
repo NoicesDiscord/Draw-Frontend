@@ -302,6 +302,10 @@ export default function App() {
               placeholder="Enter your nickname..." 
               maxLength="12"
               autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
 
             {mode === 'invite' ? (
