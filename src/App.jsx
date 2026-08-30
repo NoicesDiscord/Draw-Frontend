@@ -17,6 +17,7 @@ export default function App() {
   const [customLobbies, setCustomLobbies] = useState([]) // NEW: Server list
   const [selectedLobbyId, setSelectedLobbyId] = useState(null) // NEW: Tracks clicked lobby
   const [joinPassword, setJoinPassword] = useState('') // NEW: Password for joining
+  const [passwordStatus, setPasswordStatus] = useState('normal') // NEW: Tracks input color ('normal', 'error', 'success')
 
   const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
 
@@ -38,7 +39,7 @@ export default function App() {
     if (mode === 'browse') fetchLobbies()
   }, [mode])
 
-  const handleJoin = (targetLobby = null) => {
+  const handleJoin = async (targetLobby = null) => {
     if (!name.trim()) {
       setError('⚠️ You must enter a nickname to play!')
       return
@@ -50,23 +51,43 @@ export default function App() {
     const inviteRoom = new URLSearchParams(window.location.search).get('room')
     let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
 
+    // --- NEW: Pre-validate password without leaving the screen! ---
+    const roomToValidate = inviteRoom || (targetLobby ? targetLobby.id : null);
+    const requiresCheck = (inviteRoom && joinPassword) || (targetLobby && targetLobby.hasPassword);
+
+    if (requiresCheck) {
+      try {
+        const res = await fetch(`https://skribbl-backend-dgot.onrender.com/api/validate-password?roomId=${roomToValidate}&password=${encodeURIComponent(joinPassword.trim())}`);
+        const data = await res.json();
+        
+        if (!data.success) {
+          setPasswordStatus('error');
+          setError(`⚠️ ${data.message}`);
+          return; // Fails right here! Doesn't load the game screen.
+        } else {
+          setPasswordStatus('success');
+          setError('');
+          // Wait 1 second to show the green confirmation box, then load the game room!
+          setTimeout(() => {
+            setPlayerInfo({ playerName: finalName, roomId: roomToValidate, password: joinPassword.trim() });
+          }, 1000);
+          return;
+        }
+      } catch (err) {
+        setError('⚠️ Could not connect to server.');
+        return;
+      }
+    }
+
     if (inviteRoom) {
-      // NEW: Pass the joinPassword to the server when joining via invite link
       setPlayerInfo({ playerName: finalName, roomId: inviteRoom, password: joinPassword.trim() })
     } else if (mode === 'private') {
       setPlayerInfo({ 
         playerName: finalName, 
-        privateSettings: { 
-          maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, 
-          password: password.trim() 
-        } 
+        privateSettings: { maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, password: password.trim() } 
       })
     } else if (mode === 'browse' && targetLobby) {
-      setPlayerInfo({ 
-        playerName: finalName, 
-        roomId: targetLobby.id, 
-        password: joinPassword.trim()
-      })
+      setPlayerInfo({ playerName: finalName, roomId: targetLobby.id, password: joinPassword.trim() })
     } else if (mode === 'public') {
       setPlayerInfo({ playerName: finalName })
     }
@@ -440,6 +461,8 @@ export default function App() {
                                 } else {
                                    setSelectedLobbyId(lobby.id)
                                    setJoinPassword('')
+                                   setPasswordStatus('normal')
+                                   setError('')
                                 }
                               }}
                               style={{ background: selectedLobbyId === lobby.id ? 'var(--green)' : 'var(--yellow)', color: 'var(--ink)' }}
@@ -460,10 +483,21 @@ export default function App() {
                                  spellCheck="false"
                                  placeholder="Enter Room Password" 
                                  value={joinPassword}
-                                 onChange={e => setJoinPassword(e.target.value.replace(/\n/g, ''))}
-                                 onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                                 onChange={e => {
+                                   setJoinPassword(e.target.value.replace(/\n/g, ''));
+                                   setPasswordStatus('normal');
+                                   setError('');
+                                 }}
+                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleJoin(lobby); } }}
                                  maxLength="20"
-                                 style={{ resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                                 style={{ 
+                                   resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap',
+                                   borderColor: passwordStatus === 'error' ? '#B3261E' : passwordStatus === 'success' ? '#3FBE87' : 'var(--ink)',
+                                   backgroundColor: passwordStatus === 'error' ? '#FFE7E4' : passwordStatus === 'success' ? '#E8F5E9' : '#fff',
+                                   boxShadow: passwordStatus === 'error' ? '2px 2px 0 #B3261E' : passwordStatus === 'success' ? '2px 2px 0 #3FBE87' : 'none',
+                                   color: passwordStatus === 'error' ? '#B3261E' : passwordStatus === 'success' ? '#1b5e20' : 'var(--ink)',
+                                   transition: 'all 0.3s ease'
+                                 }}
                                />
                             </div>
                           )}
