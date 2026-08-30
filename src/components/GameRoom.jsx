@@ -37,6 +37,10 @@ export default function GameRoom({ playerInfo }) {
   
   const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
 
+  // --- NEW: Party Popper Effect State & Ref ---
+  const [showPopper, setShowPopper] = useState(false)
+  const isPopperActive = useRef(false)
+
   // --- NEW: Theme Toggle State & Effect ---
   const [isLightMode, setIsLightMode] = useState(true) // CHANGED: Now defaults to Light Mode
   useEffect(() => {
@@ -547,6 +551,18 @@ const presetColors = [
       if (data.isGuess) {
         setCorrectGuessers(prev => prev.includes(data.sender) ? prev : [...prev, data.sender]);
       }
+      // NEW: Trigger Party Popper for Likes globally!
+      if (data.isLike) {
+        // Prevents stacking: Only runs if an effect isn't already active
+        if (!isPopperActive.current) {
+          isPopperActive.current = true;
+          setShowPopper(true);
+          setTimeout(() => {
+            setShowPopper(false);
+            isPopperActive.current = false;
+          }, 3500); // Effect runs for 3.5 seconds before it can be triggered again
+        }
+      }
     })
 
     // FIX: Automatically wipe the winners list clean whenever the game state resets!
@@ -810,6 +826,18 @@ const presetColors = [
           0% { box-shadow: 0 0 5px #ff9800, inset 0 0 5px #ff9800; border-color: #ff9800; }
           50% { box-shadow: 0 0 15px #f44336, inset 0 0 10px #f44336; border-color: #f44336; }
           100% { box-shadow: 0 0 5px #ff9800, inset 0 0 5px #ff9800; border-color: #ff9800; }
+        }
+
+        /* --- NEW: Party Popper Animations --- */
+        @keyframes popperFall {
+          0% { transform: translateY(-10vh) rotate(0deg) scale(0.5); opacity: 0; }
+          10% { opacity: 0.85; transform: translateY(5vh) scale(1.2); }
+          100% { transform: translateY(110vh) rotate(720deg) scale(1); opacity: 0; }
+        }
+        .popper-emoji {
+          position: absolute; top: -10%; user-select: none; pointer-events: none;
+          animation: popperFall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          opacity: 0.85; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
         .underdog-glow {
           animation: fireGlow 1.5s infinite alternate;
@@ -1565,6 +1593,26 @@ const presetColors = [
               </div>
 
             </div>
+          </div>
+        )}
+
+        {/* --- NEW: Party Popper Fullscreen Overlay --- */}
+        {showPopper && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            pointerEvents: 'none', zIndex: 9999, overflow: 'hidden'
+          }}>
+            {[...Array(35)].map((_, i) => (
+              <span key={i} className="popper-emoji" style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 0.4}s`,
+                animationDuration: `${2.5 + Math.random()}s`,
+                fontSize: `${1.5 + Math.random() * 1.5}rem`,
+                marginLeft: `${(Math.random() - 0.5) * 50}px` /* Gives a random sway effect */
+              }}>
+                {['🎉', '✨', '👍', '🎊', '🎈', '💖'][Math.floor(Math.random() * 6)]}
+              </span>
+            ))}
           </div>
         )}
 
