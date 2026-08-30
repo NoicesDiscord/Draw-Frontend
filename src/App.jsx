@@ -317,13 +317,19 @@ export default function App() {
             {mode === 'invite' ? (
               <div className="dn-invite-box">
                 <div className="dn-invite-badge">🎟️ You've been invited to a private room!</div>
-                <input 
+                <textarea 
                   className="dn-plain-input"
-                  type="text" 
+                  rows="1"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                   placeholder="Room Password (if any)" 
                   value={joinPassword}
-                  onChange={e => setJoinPassword(e.target.value)}
+                  onChange={e => setJoinPassword(e.target.value.replace(/\n/g, ''))}
+                  onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
                   maxLength="20"
+                  style={{ resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}
                 />
               </div>
             ) : (
@@ -338,13 +344,19 @@ export default function App() {
                 {mode === 'private' && (
                   <div className="dn-settings-box" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ marginBottom: '10px', flexShrink: 0 }}>
-                      <input 
+                      <textarea 
                         className="dn-plain-input"
-                        type="text" 
+                        rows="1"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
                         value={password} 
-                        onChange={e => setPassword(e.target.value)} 
+                        onChange={e => setPassword(e.target.value.replace(/\n/g, ''))} 
+                        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
                         placeholder="Room Password (Optional)"
                         maxLength="20"
+                        style={{ resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}
                       />
                     </div>
 
@@ -439,12 +451,19 @@ export default function App() {
                           {/* Reveal password input if required and selected */}
                           {selectedLobbyId === lobby.id && lobby.hasPassword && (
                             <div style={{ marginTop: '12px', animation: 'dnFadeIn 0.3s ease' }}>
-                               <input 
+                               <textarea 
                                  className="dn-plain-input"
-                                 type="text" 
+                                 rows="1"
+                                 autoComplete="off"
+                                 autoCorrect="off"
+                                 autoCapitalize="off"
+                                 spellCheck="false"
                                  placeholder="Enter Room Password" 
                                  value={joinPassword}
-                                 onChange={e => setJoinPassword(e.target.value)}
+                                 onChange={e => setJoinPassword(e.target.value.replace(/\n/g, ''))}
+                                 onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                                 maxLength="20"
+                                 style={{ resize: 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}
                                />
                             </div>
                           )}
