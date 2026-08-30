@@ -37,10 +37,8 @@ export default function GameRoom({ playerInfo }) {
   
   const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
 
-
-
   // --- NEW: Theme Toggle State & Effect ---
-  const [isLightMode, setIsLightMode] = useState(false)
+  const [isLightMode, setIsLightMode] = useState(true) // CHANGED: Now defaults to Light Mode
   useEffect(() => {
     if (isLightMode) {
       document.body.classList.add('light-mode')
@@ -1020,10 +1018,23 @@ const presetColors = [
           <div 
             onClick={() => setShowPlayerModal(true)}
             title="Click to manage lobby players"
-            style={{ backgroundColor: 'var(--bg-panel)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-main)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease' }}
+            style={{ backgroundColor: 'var(--bg-panel)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-main)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', WebkitTapHighlightColor: 'transparent' }}
           >
             <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-main)', paddingBottom: '12px', position: 'relative', transition: 'border-color 0.3s ease' }}>
-              <h3 style={{ margin: '0 0 6px 0', color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
+              
+              {/* CHANGED: Flex container for SCORES title and Theme Toggle */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: '6px' }}>
+                <h3 style={{ margin: 0, color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
+                
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsLightMode(!isLightMode); }}
+                  title={isLightMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
+                  style={{ position: 'absolute', right: '0', background: 'var(--bg-player)', border: '1px solid var(--border-main)', color: 'var(--text-main)', padding: '4px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}
+                >
+                  {isLightMode ? '🌙' : '☀️'}
+                </button>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease' }}>
                   ROUND {currentRound} OF {maxRounds}
@@ -1408,15 +1419,9 @@ const presetColors = [
           }}>
             <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}>
               
-              {/* NEW: Title & Theme Toggle Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '15px', marginBottom: '15px', transition: 'border-color 0.3s ease' }}>
+              {/* UPDATED: Title Header (Theme Toggle moved to scoreboard) */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '15px', marginBottom: '15px', transition: 'border-color 0.3s ease' }}>
                 <h2 style={{ color: '#bb86fc', margin: 0 }}>Lobby Players</h2>
-                <button 
-                  onClick={() => setIsLightMode(!isLightMode)}
-                  style={{ background: 'var(--bg-player)', border: '1px solid var(--border-main)', color: 'var(--text-main)', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s ease' }}
-                >
-                  {isLightMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
-                </button>
               </div>
 
               <ul style={{ listStyle: 'none', padding: 0, maxHeight: '300px', overflowY: 'auto' }}>
