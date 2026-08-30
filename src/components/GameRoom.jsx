@@ -40,6 +40,9 @@ export default function GameRoom({ playerInfo }) {
   // --- NEW: Party Popper Effect State & Ref ---
   const [showPopper, setShowPopper] = useState(false)
   const isPopperActive = useRef(false)
+  
+  // --- NEW: Invite Link Copied State ---
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   // --- NEW: Theme Toggle State & Effect ---
   const [isLightMode, setIsLightMode] = useState(true) // CHANGED: Now defaults to Light Mode
@@ -1085,16 +1088,17 @@ const presetColors = [
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease' }}>
-                  ROUND {currentRound} OF {maxRounds}
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
+                  ROUND {currentRound}/{maxRounds}
                 </span>
                 {isPrivate && (
                   <button onClick={(e) => {
                     e.stopPropagation(); // Prevents opening the modal when clicking invite
                     navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
-                    alert("Invite link copied!");
-                  }} style={{ background: 'var(--border-main)', color: '#03dac6', border: '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.3s ease' }}>
-                    + INVITE
+                    setInviteCopied(true);
+                    setTimeout(() => setInviteCopied(false), 5000);
+                  }} style={{ background: inviteCopied ? '#4caf50' : 'var(--border-main)', color: inviteCopied ? '#fff' : '#03dac6', border: inviteCopied ? '1px solid #4caf50' : '1px solid #03dac6', borderRadius: '12px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
+                    {inviteCopied ? '✔️ COPIED' : '+ INVITE'}
                   </button>
                 )}
               </div>
@@ -1200,9 +1204,10 @@ const presetColors = [
                       {isPrivate && (
                         <button onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
-                          alert("Invite link copied to clipboard!");
-                        }} style={{ padding: '12px 20px', background: '#bb86fc', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
-                          📋 Copy Invite Link
+                          setInviteCopied(true);
+                          setTimeout(() => setInviteCopied(false), 5000);
+                        }} style={{ padding: '12px 20px', background: inviteCopied ? '#4caf50' : '#bb86fc', color: inviteCopied ? '#fff' : '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', transition: 'all 0.3s ease' }}>
+                          {inviteCopied ? '✔️ Copied to Clipboard!' : '📋 Copy Invite Link'}
                         </button>
                       )}
                     </div>
