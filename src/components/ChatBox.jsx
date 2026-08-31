@@ -68,9 +68,10 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--border-main)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-panel)', transition: 'all 0.3s ease' }}>
       
-      <div style={{ flexGrow: 1, height: '0px', overflowY: 'scroll', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* FIX: Added overflowX hidden and wordBreak to force long words to wrap downward! */}
+      <div style={{ flexGrow: 1, height: '0px', overflowY: 'scroll', overflowX: 'hidden', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((msg, index) => (
-          <div key={index} style={{ fontSize: '14px', lineHeight: '1.4' }}>
+          <div key={index} style={{ fontSize: '14px', lineHeight: '1.4', wordBreak: 'break-word' }}>
             
             {msg.type === 'votekick' ? (
               <div style={{ backgroundColor: 'var(--bg-chat-form)', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #ff9800', marginTop: '5px', transition: 'background-color 0.3s ease' }}>
@@ -125,6 +126,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
+          maxLength={120} // FIX: Caps the text to ~3 lines maximum!
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value.replace(/\n/g, ''))} 
           onKeyDown={(e) => {
