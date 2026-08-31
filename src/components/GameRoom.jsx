@@ -624,9 +624,13 @@ const presetColors = [
     const [fR, fG, fB, fA] = hexToRgb(colorHex)
     const startPos = (Math.floor(y) * canvas.width + Math.floor(x)) * 4
     const sR = data[startPos], sG = data[startPos+1], sB = data[startPos+2], sA = data[startPos+3]
-    if (sR === fR && sG === fG && sB === fB) return // Color is already the same
     
-    const tolerance = 16; // FIX: Lowered from 110 to 16 to completely prevent infinite loop crashes on grays!
+    const tolerance = 16; 
+    
+    // FIX: The Ultimate Bucket Freeze! 
+    // If the new color is ALREADY within the tolerance of the target color, abort immediately.
+    // Otherwise, the newly filled pixels will still pass the match() test and loop infinitely!
+    if (Math.abs(sR - fR) <= tolerance && Math.abs(sG - fG) <= tolerance && Math.abs(sB - fB) <= tolerance) return;
     const match = (p) => {
       return Math.abs(data[p] - sR) <= tolerance && 
              Math.abs(data[p+1] - sG) <= tolerance && 
