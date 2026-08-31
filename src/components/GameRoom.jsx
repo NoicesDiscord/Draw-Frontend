@@ -23,9 +23,13 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [isHost, setIsHost] = useState(false)
   const [waitingForHost, setWaitingForHost] = useState(false)
   const [maxRounds, setMaxRounds] = useState(3)
-  const [hintLevel, setHintLevel] = useState(2) // NEW: Catches the host's setting
-  const [totalDrawTime, setTotalDrawTime] = useState(120) // NEW: Tracks max timer for hints
+  const [hintLevel, setHintLevel] = useState(2) 
+  const [totalDrawTime, setTotalDrawTime] = useState(120) 
+  const [maxPlayers, setMaxPlayers] = useState(8) // NEW: Live max players state
+  const [roomPassword, setRoomPassword] = useState('') // NEW: Live password state
   const [isPrivate, setIsPrivate] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false) // NEW: Settings popup
+  const [transferTarget, setTransferTarget] = useState("") // NEW: Host transfer dropdown
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
   const [underdogs, setUnderdogs] = useState([]) 
@@ -38,10 +42,6 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   
   const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
 
-  // --- NEW: Party Popper Effect State & Ref ---
-  const [showPopper, setShowPopper] = useState(false)
-  const isPopperActive = useRef(false)
-  
   // --- NEW: Invite Link Copied State ---
   const [inviteCopied, setInviteCopied] = useState(false)
 
@@ -341,8 +341,23 @@ const presetColors = [
       setIsHost(data.isHost)
       setIsPrivate(data.isPrivate)
       setMaxRounds(data.maxRounds)
-      if (data.hintLevel) setHintLevel(data.hintLevel) // NEW
-      if (data.drawTime) setTotalDrawTime(data.drawTime) // NEW: Syncs the clock total for hints
+      if (data.hintLevel) setHintLevel(data.hintLevel)
+      if (data.drawTime) setTotalDrawTime(data.drawTime)
+      if (data.maxPlayers) setMaxPlayers(data.maxPlayers)
+      if (data.password) setRoomPassword(data.password)
+    })
+
+    // NEW: Sync live settings changes made by the host!
+    socketRef.current.on('room_settings_updated', (data) => {
+      setMaxRounds(data.maxRounds)
+      setTotalDrawTime(data.drawTime)
+      setHintLevel(data.hintLevel)
+      setMaxPlayers(data.maxPlayers)
+    })
+
+    // NEW: Update host status if it was transferred!
+    socketRef.current.on('host_updated', (newHostId) => {
+      setIsHost(socketRef.current.id === newHostId);
     })
 
     // NEW: Put everyone in the lobby in a waiting state until the host clicks start
@@ -378,6 +393,11 @@ const presetColors = [
       setIsMyTurn(data.drawerName === playerInfo.playerName)
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
+      
+      // FIX: Forcefully stop drawing and clear intervals in case the round 
+      // ends while the previous drawer was still holding the mouse down!
+      setIsDrawing(false)
+      if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current) 
       if (data.maxRounds) setMaxRounds(data.maxRounds)
       if (data.hintLevel) setHintLevel(data.hintLevel) 
       
@@ -781,7 +801,10 @@ const presetColors = [
   }
 
   const stopDrawing = () => {
-    if (!isMyTurn || !isDrawing) return;
+    // FIX: Removed `!isMyTurn` from this guard. If your turn ends while you are 
+    // holding down the mouse, lifting your finger MUST be allowed to run this function 
+    // so it can clear the spray intervals and clean up properly!
+    if (!isDrawing) return;
     
     if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
        clearInterval(sprayIntervalRef.current);
@@ -1090,13 +1113,13 @@ const presetColors = [
                 <h3 style={{ margin: 0, color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
                 
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setIsLightMode(!isLightMode); }}
-                  title={isLightMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                  style={{ position: 'absolute', right: '0', background: 'var(--bg-player)', border: '1px solid var(--border-main)', color: 'var(--text-main)', padding: '4px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}
+                  onClick={(e) => { e.stopPropagation(); setShowSettingsModal(true); }}
+                  title="Game Settings"
+                  style={{ position: 'absolute', right: '0', background: 'var(--bg-player)', border: '1px solid var(--border-main)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '12px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}
                 >
-                  {isLightMode ? '🌙' : '☀️'}
+                  ⚙️
                 </button>
-              </div>
+              </div> {/* FIX: This closing tag was accidentally deleted! */}
 
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
@@ -1195,10 +1218,37 @@ const presetColors = [
             )}
 
             {!currentDrawer ? (
-              <div className="waiting-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', pointerEvents: 'auto' }}>
+              <div className="waiting-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', pointerEvents: 'auto', width: '90%', maxWidth: '400px' }}>
                 {waitingForHost ? (
                   <>
-                    <div style={{ color: '#bb86fc' }}>Waiting for host to start the game...</div>
+                    <div style={{ color: '#bb86fc', fontSize: '22px' }}>{isHost ? "Lobby Settings" : "Waiting for host..."}</div>
+                    
+                    {/* NEW: Live Canvas Settings UI */}
+                    {isPrivate && (
+                      <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '15px', borderRadius: '12px', width: '100%', fontSize: '15px', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', pointerEvents: 'auto', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontWeight: 'bold' }}>Max Players: <span style={{ color: '#03dac6' }}>{maxPlayers}</span></span>
+                           {isHost && <input type="range" min="2" max="8" value={maxPlayers} onChange={e => { setMaxPlayers(e.target.value); socketRef.current.emit('update_room_settings', { maxPlayers: e.target.value }); }} style={{ width: '120px', cursor: 'pointer' }} />}
+                        </div>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontWeight: 'bold' }}>Total Rounds: <span style={{ color: '#bb86fc' }}>{maxRounds}</span></span>
+                           {isHost && <input type="range" min="1" max="10" value={maxRounds} onChange={e => { setMaxRounds(e.target.value); socketRef.current.emit('update_room_settings', { maxRounds: e.target.value }); }} style={{ width: '120px', cursor: 'pointer' }} />}
+                        </div>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontWeight: 'bold' }}>Draw Time: <span style={{ color: '#FFD54F' }}>{totalDrawTime}s</span></span>
+                           {isHost && <input type="range" min="30" max="300" step="10" value={totalDrawTime} onChange={e => { setTotalDrawTime(e.target.value); socketRef.current.emit('update_room_settings', { drawTime: e.target.value }); }} style={{ width: '120px', cursor: 'pointer' }} />}
+                        </div>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontWeight: 'bold' }}>Hint Amount: <span style={{ color: '#FF5252' }}>{hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Norm' : hintLevel == 3 ? 'High' : 'Max'}</span></span>
+                           {isHost && <input type="range" min="1" max="4" value={hintLevel} onChange={e => { setHintLevel(e.target.value); socketRef.current.emit('update_room_settings', { hintLevel: e.target.value }); }} style={{ width: '120px', cursor: 'pointer' }} />}
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                       {isHost && playerList.length >= 2 && (
                         <button onClick={() => {
@@ -1528,6 +1578,91 @@ const presetColors = [
               <button 
                 onClick={() => setShowPlayerModal(false)} 
                 style={{ width: '100%', padding: '12px', background: 'var(--border-main)', color: 'var(--text-main)', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold', transition: 'all 0.3s ease' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+        {/* --- NEW: In-Game Settings Modal --- */}
+        {showSettingsModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+              
+              <h2 style={{ color: '#bb86fc', margin: '0 0 20px 0', textAlign: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '10px' }}>⚙️ Game Settings</h2>
+              
+              {/* Theme Toggle moved here! */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '10px', background: 'var(--bg-player)', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
+                <strong style={{ color: 'var(--text-main)' }}>Theme</strong>
+                <button 
+                  onClick={() => setIsLightMode(!isLightMode)}
+                  style={{ background: 'var(--bg-panel)', color: 'var(--text-main)', border: '1px solid var(--border-main)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  {isLightMode ? '🌙 Switch to Dark Mode' : '☀️ Switch to Light Mode'}
+                </button>
+              </div>
+
+              {/* Read-Only Stats */}
+              <div style={{ padding: '12px', background: 'var(--bg-player)', borderRadius: '8px', marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '10px', color: 'var(--text-main)', border: '1px solid var(--border-main)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Room Type:</strong> <span>{isPrivate ? 'Private' : 'Public'}</span></div>
+                {isPrivate && <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Password:</strong> <span>{roomPassword || 'None'}</span></div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Max Players:</strong> <span>{maxPlayers}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Total Rounds:</strong> <span>{maxRounds}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Draw Time:</strong> <span>{totalDrawTime}s</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Hint Level:</strong> <span>{hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal' : hintLevel == 3 ? 'High' : 'Max'}</span></div>
+              </div>
+
+              {/* Host Controls */}
+              {isHost && isPrivate && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+                  
+                  {/* Transfer Host */}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <select 
+                      value={transferTarget} 
+                      onChange={(e) => setTransferTarget(e.target.value)}
+                      style={{ flexGrow: 1, padding: '8px', borderRadius: '6px', background: 'var(--bg-player)', color: 'var(--text-main)', border: '1px solid var(--border-main)', outline: 'none' }}
+                    >
+                      <option value="">-- Transfer Host To --</option>
+                      {playerList.filter(p => p.name !== playerInfo.playerName).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={() => {
+                        if (transferTarget && window.confirm("Are you sure you want to transfer host?")) {
+                          socketRef.current.emit('transfer_host', transferTarget);
+                          setShowSettingsModal(false);
+                        }
+                      }}
+                      style={{ background: '#03dac6', color: '#000', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      Assign
+                    </button>
+                  </div>
+
+                  {/* Restart Lobby Button */}
+                  <button 
+                    onClick={() => {
+                      if (window.confirm("This will end the current game and return everyone to the waiting lobby canvas to change settings. Are you sure?")) {
+                        socketRef.current.emit('restart_lobby');
+                        setShowSettingsModal(false);
+                      }
+                    }}
+                    style={{ background: '#ff3b30', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}
+                  >
+                    🔄 Restart Lobby & Change Settings
+                  </button>
+                </div>
+              )}
+
+              <button 
+                onClick={() => setShowSettingsModal(false)} 
+                style={{ width: '100%', padding: '12px', background: '#bb86fc', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 Close
               </button>
