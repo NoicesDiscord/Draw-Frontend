@@ -422,7 +422,7 @@ export default function App() {
                         value={customWords} 
                         onChange={e => setCustomWords(e.target.value)} 
                         placeholder="Custom Words (e.g. Anime, Naruto)..."
-                        maxLength="30000"
+                        maxLength="300000" // FIX: Increased to 10x the limit!
                       />
                     </div>
                   </div>
