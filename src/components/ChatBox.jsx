@@ -17,9 +17,10 @@ likeSound.volume = 0.5 // NEW
 dislikeSound.volume = 0.5 // NEW
 
 const playSoundSafely = (audioObj) => {
-  const clone = audioObj.cloneNode()
-  clone.volume = audioObj.volume
-  clone.play().catch(e => console.log(e))
+  // FIX: Reuses the single audio element and rewinds it. 
+  // Prevents iOS/Safari from crashing due to overlapping un-deleted audio nodes!
+  audioObj.currentTime = 0;
+  audioObj.play().catch(e => console.log("Audio blocked:", e))
 }
 
 export default function ChatBox({ socket, playerInfo, isMyTurn }) {
@@ -32,7 +33,12 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
     if (!socket) return
     
     const handleNewMessage = (msg) => {
-      setMessages((prev) => [...prev, msg])
+      setMessages((prev) => {
+        const newMessages = [...prev, msg];
+        // FIX: Capping the chat history to the 100 most recent messages!
+        // This stops the DOM from bloating and prevents old phones from crashing out of memory.
+        return newMessages.length > 100 ? newMessages.slice(newMessages.length - 100) : newMessages;
+      })
       
       if (msg.isGuess) playSoundSafely(successSound);
       if (msg.sender === "System" && msg.text) {
