@@ -521,7 +521,11 @@ const presetColors = [
 
     // FAILSAFE: Ensure the timer is actually listening to the server ticks!
     socketRef.current.on('timer_update', (time) => {
-      setTimeLeft(time)
+      setTimeLeft(prev => {
+        // FIX: Ignore stale "choosing phase" packets that cause hints to flash on screen!
+        if (prev >= 20 && time <= 15) return prev; 
+        return time;
+      })
     })
 
     // --- UPDATED: Apply incoming network colors/sizes before drawing ---
@@ -637,7 +641,7 @@ const presetColors = [
     const sR = data[startPos], sG = data[startPos+1], sB = data[startPos+2], sA = data[startPos+3]
     if (sR === fR && sG === fG && sB === fB) return // Color is already the same
     
-    const tolerance = 110;
+    const tolerance = 16; // FIX: Lowered from 110 to 16 to completely prevent infinite loop crashes on grays!
     const match = (p) => {
       return Math.abs(data[p] - sR) <= tolerance && 
              Math.abs(data[p+1] - sG) <= tolerance && 
@@ -710,7 +714,7 @@ const presetColors = [
       
       const sprayDrop = (cx, cy) => {
         const sprayRadius = 35; 
-        const sprayDensity = 25; 
+        const sprayDensity = 12; // FIX: Lowered local density for better performance
         
         for (let i = 0; i < sprayDensity; i++) {
            const angle = Math.random() * Math.PI * 2;
@@ -718,7 +722,6 @@ const presetColors = [
            const dotX = cx + Math.cos(angle) * radius;
            const dotY = cy + Math.sin(angle) * radius;
            
-           // NEW: Calculate random rainbow color if active
            let dotColor = brushColor;
            if (activeTool === 'rainbowSpray') {
              const hue = Math.floor(Math.random() * 360);
@@ -728,16 +731,18 @@ const presetColors = [
            contextRef.current.fillStyle = dotColor;
            contextRef.current.fillRect(dotX, dotY, 2, 2);
            
-           // Socket handles the HSL string natively without any extra work!
-           socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 2 });
-           socketRef.current.emit('stop');
+           // FIX: Only emit 2 dots per interval over the network instead of 25 to stop server lag!
+           if (i < 2) {
+             socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 2 });
+             socketRef.current.emit('stop');
+           }
         }
       };
       sprayDrop(x, y);
       shapeStartRef.current = { sx: x, sy: y };
       sprayIntervalRef.current = setInterval(() => {
          if (shapeStartRef.current) sprayDrop(shapeStartRef.current.sx, shapeStartRef.current.sy);
-      }, 30); 
+      }, 75); // FIX: Increased timing to give the network room to breathe 
       return;
     }
     
@@ -894,7 +899,8 @@ const presetColors = [
         .popper-emoji {
           position: absolute; top: -10%; user-select: none; pointer-events: none;
           animation: popperFall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-          opacity: 0.85; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+          opacity: 0.85; 
+          will-change: transform, opacity; /* FIX: GPU Acceleration to stop visual lag! */
         }
         .underdog-glow {
           animation: fireGlow 1.5s infinite alternate;
@@ -1662,7 +1668,7 @@ const presetColors = [
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             pointerEvents: 'none', zIndex: 9999, overflow: 'hidden'
           }}>
-            {[...Array(35)].map((_, i) => (
+            {[...Array(12)].map((_, i) => (
               <span key={i} className="popper-emoji" style={{
                 left: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 0.4}s`,
