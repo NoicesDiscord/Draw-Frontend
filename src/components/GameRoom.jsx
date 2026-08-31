@@ -710,8 +710,11 @@ const presetColors = [
       if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current);
       
       const sprayDrop = (cx, cy) => {
-        const sprayRadius = 35; 
-        const sprayDensity = 12; // FIX: Lowered local density for better performance
+        // FIX: The overall spray area now scales dynamically with your blue dot size!
+        const sprayRadius = brushSize * 1.5; 
+        
+        // Dynamically adjust density so large sprays don't look empty, but stay performant
+        const sprayDensity = Math.min(20, Math.max(8, Math.floor(brushSize * 0.8))); 
         
         for (let i = 0; i < sprayDensity; i++) {
            const angle = Math.random() * Math.PI * 2;
@@ -726,13 +729,12 @@ const presetColors = [
            }
            
            contextRef.current.fillStyle = dotColor;
-           contextRef.current.fillRect(dotX, dotY, 2, 2);
+           // FIX: Increased dot size to 4x4 so they are consistently wide and clearly visible
+           contextRef.current.fillRect(dotX, dotY, 4, 4);
            
-           // FIX: Only emit 2 dots per interval over the network.
-           // REMOVED 'stop' emit here! Emitting stop triggered saveState() for all guessers
-           // 26 times a second, causing instant Out-Of-Memory mobile crashes.
            if (i < 2) {
-             socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 2 });
+             // FIX: Emit size 4 to ensure the network receives the chunkier dots as well
+             socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 4 });
            }
         }
       };
