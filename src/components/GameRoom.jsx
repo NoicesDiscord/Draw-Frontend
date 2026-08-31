@@ -88,7 +88,9 @@ const presetColors = [
     if (!canvasRef.current || !contextRef.current) return
     const data = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
     undoStack.current.push(data)
-    if (undoStack.current.length > 30) undoStack.current.shift() // Cap at 30 steps so browsers don't crash!
+    // FIX: Reduced from 30 to 10. 10 steps = ~19MB of RAM. 30 steps was ~57MB, 
+    // which causes garbage collection stutters and crashes on low-end mobile devices!
+    if (undoStack.current.length > 10) undoStack.current.shift() 
   }
 
   const handleUndo = () => {
@@ -316,7 +318,9 @@ const presetColors = [
     const canvas = canvasRef.current
     canvas.width = 800
     canvas.height = 600
-    const context = canvas.getContext('2d')
+    // FIX: willReadFrequently optimizes the browser for heavy getImageData usage.
+    // Since you use it constantly for Undo/Redo and Bucket Fill, this stops lag spikes!
+    const context = canvas.getContext('2d', { willReadFrequently: true })
     
     const clearCanvas = () => {
       context.fillStyle = 'white'
@@ -670,7 +674,7 @@ const presetColors = [
     
     // NEW: Save the canvas state immediately after filling a shape!
     undoStack.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
-    if (undoStack.current.length > 30) undoStack.current.shift()
+    if (undoStack.current.length > 10) undoStack.current.shift()
     redoStack.current = []
   }
 
@@ -720,10 +724,11 @@ const presetColors = [
            contextRef.current.fillStyle = dotColor;
            contextRef.current.fillRect(dotX, dotY, 2, 2);
            
-           // FIX: Only emit 2 dots per interval over the network instead of 25 to stop server lag!
+           // FIX: Only emit 2 dots per interval over the network.
+           // REMOVED 'stop' emit here! Emitting stop triggered saveState() for all guessers
+           // 26 times a second, causing instant Out-Of-Memory mobile crashes.
            if (i < 2) {
              socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 2 });
-             socketRef.current.emit('stop');
            }
         }
       };
@@ -795,10 +800,10 @@ const presetColors = [
     contextRef.current.lineTo(x, y);
     contextRef.current.stroke();
     
-    // FIX: Network Flood Prevention! Only send the draw packet if the mouse moved more than 3 pixels.
-    // This stops 120Hz phones from choking the server with 100+ packets per second!
+    // FIX: Network Flood Prevention! Increased distance threshold to 6 pixels.
+    // Visually unnoticeable on the canvas, but cuts socket traffic by roughly 50% for high refresh rate screens.
     const dist = Math.abs(x - lastEmitRef.current.x) + Math.abs(y - lastEmitRef.current.y);
-    if (dist > 3) {
+    if (dist > 6) {
       socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize });
       lastEmitRef.current = { x, y };
     }
