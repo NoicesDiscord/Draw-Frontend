@@ -157,10 +157,10 @@ const presetColors = [
     const totalLetters = (secretWord.match(/[a-zA-Z0-9]/g) || []).length;
     
     if (totalLetters > 2) {
-      if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.25); 
-      if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.45); 
-      if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.70); 
-      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.95); 
+      if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.40); // Low: 40%
+      if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.50); // Normal: 50%
+      if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.60); // High: 60%
+      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.70); // Max: 70%
       
       if (dynamicMaxHints >= totalLetters) dynamicMaxHints = totalLetters - 1;
       if (dynamicMaxHints < 0) dynamicMaxHints = 0;
@@ -168,13 +168,15 @@ const presetColors = [
 
     const cappedIndices = hintOrder.slice(0, dynamicMaxHints);
 
-    // 2. Progressive Reveal over time
+    // 2. Progressive Reveal over time (Slowed Down)
     let revealCount = 0;
     const maxDrawTime = typeof totalDrawTime !== 'undefined' ? totalDrawTime : 120; 
     
     if (dynamicMaxHints > 0 && timeLeft > 0 && timeLeft <= maxDrawTime) {
       const timeElapsed = maxDrawTime - Math.min(timeLeft, maxDrawTime);
-      revealCount = Math.floor((timeElapsed / maxDrawTime) * (dynamicMaxHints + 1));
+      // FIX: Added a 15% delay buffer so hints don't start appearing immediately, spacing them out much better!
+      const effectiveProgress = Math.max(0, (timeElapsed - (maxDrawTime * 0.15)) / (maxDrawTime * 0.85));
+      revealCount = Math.floor(effectiveProgress * (dynamicMaxHints + 1));
       revealCount = Math.min(dynamicMaxHints, revealCount); 
     }
 
