@@ -19,8 +19,6 @@ export default function App() {
   const [joinPassword, setJoinPassword] = useState('') // NEW: Password for joining
   const [passwordStatus, setPasswordStatus] = useState('normal') // NEW: Tracks input color ('normal', 'error', 'success')
 
-  const avatars = ['🦊', '🐱', '🐼', '🐨', '🐸', '🐯', '🦖', '🐙', '👻', '👽', '🤖', '👾', '🤡', '🤠', '🦄', '🐲']
-
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('room')) {
       setMode('invite')
@@ -45,8 +43,8 @@ export default function App() {
       return
     }
     
-    const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)]
-    const finalName = `${randomAvatar} ${name.trim()}`
+    // Avatar system removed! The final name is now just the exact text they typed.
+    const finalName = name.trim();
     
     const inviteRoom = new URLSearchParams(window.location.search).get('room')
     let parsedWords = customWords.split(',').map(w => w.trim()).filter(w => w.length > 1)
