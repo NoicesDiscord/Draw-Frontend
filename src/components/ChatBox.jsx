@@ -101,6 +101,11 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
               </span>
             ) : msg.isGuess ? (
               <span style={{ color: '#03dac6', fontWeight: 'bold' }}>🎉 {msg.sender} guessed the word!</span>
+            ) : msg.isGuesserChat ? (
+              <span style={{ color: '#4caf50', fontStyle: 'italic', transition: 'color 0.3s ease' }}>
+                <strong style={{ color: '#4caf50' }}>{msg.sender}: </strong>
+                {msg.text}
+              </span>
             ) : (
               <span style={{ color: 'var(--text-main)', transition: 'color 0.3s ease' }}>
                 <strong style={{ color: '#bb86fc' }}>{msg.sender}: </strong>
