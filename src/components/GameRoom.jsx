@@ -1356,7 +1356,7 @@ const presetColors = [
                     {showColorPicker && (
                       <div className="color-popup">
                         {presetColors.map(color => (
-                          <button key={color} onClick={() => { setBrushColor(color); if (activeTool === 'bucket') setActiveTool('brush'); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '5px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
+                          <button key={color} onClick={() => { setBrushColor(color); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '5px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
                         ))}
                       </div>
                     )}
@@ -1423,7 +1423,7 @@ const presetColors = [
                       {showColorPicker && (
                         <div className="color-popup">
                           {presetColors.map(color => (
-                            <button key={color} onClick={() => { setBrushColor(color); if (activeTool === 'bucket') setActiveTool('brush'); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
+                            <button key={color} onClick={() => { setBrushColor(color); setShowColorPicker(false); }} style={{ aspectRatio: '1', width: '100%', borderRadius: '4px', cursor: 'pointer', padding: 0, backgroundColor: color, border: brushColor === color ? '2px solid #fff' : '1px solid #333', transform: brushColor === color ? 'scale(1.15)' : 'scale(1)' }} />
                           ))}
                         </div>
                       )}
