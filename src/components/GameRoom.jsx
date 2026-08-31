@@ -164,18 +164,18 @@ const presetColors = [
         for (let i = 0; i < b.length; i++) {
           const charIndex = absoluteIndex + i;
           const serverChar = revealedChars[charIndex];
-          const isHinted = serverChar !== undefined; // FIX: Strictly checks if the server has revealed this letter as a hint
+          const isHinted = serverChar !== undefined; 
           
           let displayChar = '_';
           if (isWinner && secretWord) {
-             displayChar = secretWord[charIndex]?.toUpperCase() || '_'; // Winners & Drawer see the actual full word
+             displayChar = secretWord[charIndex]?.toUpperCase() || '_'; 
           } else if (isHinted) {
-             displayChar = serverChar; // Clueless guessers only see what the server allows
+             displayChar = serverChar; 
           }
           
-          // FIX: If the letter is a hint, glow cyan! If it's just revealed because they won, stay plain white.
-          const highlightColor = isHinted ? '#03dac6' : (isWinner ? '#ffffff' : 'inherit'); 
-          const shadowEffect = isHinted ? '0 0 8px rgba(3, 218, 198, 0.6)' : 'none';
+          // FIX: Changed the hint highlight from cyan to a vibrant yellow for much better visibility!
+          const highlightColor = isHinted ? '#FFD54F' : (isWinner ? '#ffffff' : 'inherit'); 
+          const shadowEffect = isHinted ? '0 0 8px rgba(255, 213, 79, 0.6)' : 'none';
           const weight = (isHinted || isWinner) ? '900' : 'normal';
           
           wordChars.push(
