@@ -546,10 +546,14 @@ const presetColors = [
     // NEW: If the server asks, the drawer takes a snapshot of their canvas!
     socketRef.current.on('request_canvas_state', (targetId) => {
       if (canvasRef.current) {
-        // FIX: Compresses the canvas to a JPEG at 50% quality. 
-        // Reduces the network payload from ~2MB down to ~50KB, eliminating lag spikes!
-        const canvasData = canvasRef.current.toDataURL('image/jpeg', 0.5)
-        socketRef.current.emit('send_canvas_state', { targetId, canvasData })
+        // FIX: Late-Joiner Snapshot Freeze! Caches the heavy JPEG encode for 2 seconds.
+        // If 5 people join at once, the drawer's phone only encodes the image ONE time, stopping the tab from freezing!
+        const now = Date.now();
+        if (!canvasRef.current.lastSnapshotTime || now - canvasRef.current.lastSnapshotTime > 2000) {
+          canvasRef.current.cachedSnapshot = canvasRef.current.toDataURL('image/jpeg', 0.5);
+          canvasRef.current.lastSnapshotTime = now;
+        }
+        socketRef.current.emit('send_canvas_state', { targetId, canvasData: canvasRef.current.cachedSnapshot });
       }
     })
 
@@ -761,6 +765,11 @@ const presetColors = [
 
     // Live preview dragging for shapes!
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
+       // FIX: The Shape Preview CPU Meltdown! 
+       // Ignores microscopic 120Hz screen movements to save massive amounts of CPU overhead.
+       const dist = Math.abs(x - shapeStartRef.current.ex) + Math.abs(y - shapeStartRef.current.ey);
+       if (dist < 4) return; 
+       
        shapeStartRef.current.ex = x;
        shapeStartRef.current.ey = y;
        
