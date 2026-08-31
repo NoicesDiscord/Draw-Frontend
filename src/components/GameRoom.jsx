@@ -28,9 +28,10 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [isPrivate, setIsPrivate] = useState(false)
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
-  const [underdogs, setUnderdogs] = useState([]) // NEW: Tracks who has the Underdog ability
-  const [hintOrder, setHintOrder] = useState([]) // NEW: Stores the server-synced hint order
-  const [correctGuessers, setCorrectGuessers] = useState([]) // NEW: Tracks who guessed correctly!
+  const [underdogs, setUnderdogs] = useState([]) 
+  const [wordSkeleton, setWordSkeleton] = useState([]) // NEW: Secure word blanks structure
+  const [revealedChars, setRevealedChars] = useState({}) // NEW: Letters strictly handed out by the server
+  const [correctGuessers, setCorrectGuessers] = useState([])
   
   const [turnSummary, setTurnSummary] = useState(null) // NEW: Holds the round end scores
   const summarySound = useRef(new Audio('/sounds/summary.mp3')) // NEW: Sound effect for round end screen
@@ -150,103 +151,59 @@ const presetColors = [
  // --- NEW: Smart Progressive Hint Generator (Randomized Round-Robin) ---
   // --- NEW: Synced Progressive Hint Generator ---
   const getDynamicHint = (showFullWord) => {
-    if (!secretWord) return ""
+    // We only need the skeleton array from the server to build the UI securely!
+    if (!wordSkeleton || wordSkeleton.length === 0) return "";
 
-    // 1. Dynamic Max Hints based on the Host's Hint Slider
-    let dynamicMaxHints = 0;
-    // Fix: Only count letters and numbers toward the total length
-    const totalLetters = (secretWord.match(/[a-zA-Z0-9]/g) || []).length;
-    
-    if (totalLetters > 2) {
-      if (hintLevel == 1) dynamicMaxHints = Math.floor(totalLetters * 0.40); // Low: 40%
-      if (hintLevel == 2) dynamicMaxHints = Math.floor(totalLetters * 0.50); // Normal: 50%
-      if (hintLevel == 3) dynamicMaxHints = Math.floor(totalLetters * 0.60); // High: 60%
-      if (hintLevel == 4) dynamicMaxHints = Math.floor(totalLetters * 0.70); // Max: 70%
-      
-      if (dynamicMaxHints >= totalLetters) dynamicMaxHints = totalLetters - 1;
-      if (dynamicMaxHints < 0) dynamicMaxHints = 0;
-    }
-
-    const cappedIndices = hintOrder.slice(0, dynamicMaxHints);
-
-    // 2. Progressive Reveal over time (Slowed Down)
-    let revealCount = 0;
-    const maxDrawTime = typeof totalDrawTime !== 'undefined' ? totalDrawTime : 120; 
-    
-    if (dynamicMaxHints > 0 && timeLeft > 0 && timeLeft <= maxDrawTime) {
-      const timeElapsed = maxDrawTime - Math.min(timeLeft, maxDrawTime);
-      // FIX: Added a 15% delay buffer so hints don't start appearing immediately, spacing them out much better!
-      const effectiveProgress = Math.max(0, (timeElapsed - (maxDrawTime * 0.15)) / (maxDrawTime * 0.85));
-      revealCount = Math.floor(effectiveProgress * (dynamicMaxHints + 1));
-      revealCount = Math.min(dynamicMaxHints, revealCount); 
-    }
-
-    const revealed = new Set(cappedIndices.slice(0, revealCount));
-
-    // 3. Render the final output
     const displayElements = [];
-    const blocks = [];
+    let absoluteIndex = 0;
+    const isWinner = correctGuessers.includes(playerInfo.playerName) || isMyTurn;
     
-    // Smart chunking: Group adjacent letters and adjacent special chars
-    if (secretWord) {
-      let currentBlock = { isWord: /[a-zA-Z0-9]/.test(secretWord[0]), text: secretWord[0], startIndex: 0 };
-      for (let i = 1; i < secretWord.length; i++) {
-        const isAlpha = /[a-zA-Z0-9]/.test(secretWord[i]);
-        if (isAlpha === currentBlock.isWord) {
-          currentBlock.text += secretWord[i];
-        } else {
-          blocks.push(currentBlock);
-          currentBlock = { isWord: isAlpha, text: secretWord[i], startIndex: i };
-        }
-      }
-      if (currentBlock.text) blocks.push(currentBlock);
-    }
-    
-    const isWinner = correctGuessers.includes(playerInfo.playerName);
-    
-    blocks.forEach((b, blockIdx) => {
+    wordSkeleton.forEach((b, blockIdx) => {
       if (b.isWord) {
-        // Render hidden/revealed text blocks with length numbers above them
         let wordChars = [];
-        for (let i = 0; i < b.text.length; i++) {
-          const absoluteIndex = b.startIndex + i;
-          const isRevealed = revealed.has(absoluteIndex);
+        for (let i = 0; i < b.length; i++) {
+          const charIndex = absoluteIndex + i;
+          const serverChar = revealedChars[charIndex];
+          const isRevealed = serverChar !== undefined || (isWinner && secretWord);
           
-          if (showFullWord) {
-            const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
-            const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
-            
-            wordChars.push(
-              <span key={absoluteIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
-                {b.text[i].toUpperCase()}
-              </span>
-            );
-          } else {
-            wordChars.push(
-              <span key={absoluteIndex}>{isRevealed ? b.text[i].toUpperCase() : '_'}</span>
-            );
+          let displayChar = '_';
+          if (isWinner && secretWord) {
+             displayChar = secretWord[charIndex]?.toUpperCase() || '_'; // Winners see the actual word
+          } else if (serverChar) {
+             displayChar = serverChar; // Clueless guessers only see what the server allows
           }
+          
+          const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
+          const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
+          
+          wordChars.push(
+            <span key={charIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
+              {displayChar}
+            </span>
+          );
         }
+        absoluteIndex += b.length;
         
         displayElements.push(
           <span key={`block_${blockIdx}`} style={{ whiteSpace: 'nowrap', display: 'inline-flex', gap: '4px' }}>
             {wordChars}
             <span style={{ fontSize: '11px', verticalAlign: 'super', marginLeft: '4px', opacity: 0.8, color: 'white', textShadow: 'none' }}>
-              {b.text.length}
+              {b.length}
             </span>
           </span>
         );
       } else {
-        // Render special characters instantly, turning spaces into gaps
+        // Special Characters (Rendered immediately based on the skeleton!)
         const specialChars = [];
         for(let i = 0; i < b.text.length; i++) {
             if (b.text[i] === ' ') {
                 specialChars.push(<span key={i} style={{ width: '20px', display: 'inline-block' }}></span>);
             } else {
-                // NEW: Added vibrant red color and a soft glow to special characters!
                 specialChars.push(<span key={i} style={{ margin: '0 4px', fontWeight: '900', color: '#FF5252', textShadow: '0 0 6px rgba(255, 82, 82, 0.6)' }}>{b.text[i]}</span>);
             }
         }
+        absoluteIndex += b.text.length;
+        
         displayElements.push(
           <span key={`block_${blockIdx}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
             {specialChars}
@@ -255,7 +212,6 @@ const presetColors = [
       }
     });
 
-    // Notice we removed the wide gap here since the spaces handle it naturally now
     return (
       <span style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 0px' }}>
         {displayElements}
@@ -427,13 +383,14 @@ const presetColors = [
       if (data.underdogs) setUnderdogs(data.underdogs)
       else setUnderdogs([])
       
-      // NEW: Catch shared hint order
-      if (data.hintOrder) setHintOrder(data.hintOrder) 
-      else setHintOrder([])
+      // NEW: Store the secure word skeleton instead of the actual word!
+      if (data.skeleton) setWordSkeleton(data.skeleton) 
+      else setWordSkeleton([])
       
       setIsChoosing(false) 
       setWaitingForHost(false)
-      setSecretWord(data.word || "")
+      setSecretWord("") // Guessers stay blank until they win!
+      setRevealedChars({}) // Reset hints for the new round
       setTimeLeft(120) 
       setCurrentRound(data.currentRound || 1); 
       
@@ -522,20 +479,26 @@ const presetColors = [
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
-    // Disabled: We handle this dynamically in the HTML now!
-    socketRef.current.on('secret_word', () => {})
+    // FIX: Catch the actual word if you are the Drawer OR if you successfully guessed it!
+    socketRef.current.on('secret_word', (word) => {
+      setSecretWord(word);
+    })
 
     socketRef.current.on('clear_board', () => {
       clearCanvas()
     })
 
-    // FAILSAFE: Ensure the timer is actually listening to the server ticks!
-    socketRef.current.on('timer_update', (time) => {
+    // FIX: Receive the timer AND the secure hints strictly from the server!
+    socketRef.current.on('timer_update', (data) => {
+      const time = typeof data === 'object' ? data.time : data;
+      const chars = typeof data === 'object' ? data.revealedChars : null;
+      
       setTimeLeft(prev => {
-        // FIX: Ignore stale "choosing phase" packets that cause hints to flash on screen!
         if (prev >= 20 && time <= 15) return prev; 
         return time;
-      })
+      });
+
+      if (chars) setRevealedChars(chars);
     })
 
     // --- UPDATED: Apply incoming network colors/sizes before drawing ---
