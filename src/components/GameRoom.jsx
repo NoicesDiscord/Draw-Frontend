@@ -65,6 +65,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const shapeStartRef = useRef(null) // NEW: Tracks coordinates for shapes
   const savedImageRef = useRef(null) // NEW: Tracks the preview frame for shapes
   const sprayIntervalRef = useRef(null) // NEW: Runs continuous spray dots
+  const lastEmitRef = useRef({ x: 0, y: 0 }) // FIX: Tracks the last sent coordinate to stop network flooding!
   
   // --- UPDATED: 40 Perfectly Organized Colors (Columns by Hue, Rows by Lightness) ---
 const presetColors = [
@@ -285,8 +286,15 @@ const presetColors = [
       }
       const restingHeight = restingViewportHeightRef.current
 
-      // Canvas height is forever frozen based on the closed keyboard height
-      const canvasHeight = Math.floor(restingHeight * 0.42)
+      // Canvas height is normally frozen based on the closed keyboard height
+      let canvasHeight = Math.floor(restingHeight * 0.42)
+      
+      // FIX: The Mobile Keyboard Crash! If the keyboard is huge and crushes the screen, 
+      // we MUST let the canvas shrink, otherwise the browser gets trapped in a layout loop and crashes!
+      if (liveHeight < canvasHeight + 120) {
+        canvasHeight = Math.max(100, liveHeight - 120) 
+      }
+      
       // Chat height dynamically shrinks to whatever space is left
       const chatHeight = Math.max(60, liveHeight - canvasHeight)
 
@@ -746,6 +754,7 @@ const presetColors = [
     contextRef.current.stroke();
     
     setIsDrawing(true);
+    lastEmitRef.current = { x, y }; // FIX: Reset the network tracker on new strokes
     socketRef.current.emit('start', { x, y, color: brushColor, size: brushSize });
   }
 
@@ -796,7 +805,13 @@ const presetColors = [
     contextRef.current.lineTo(x, y);
     contextRef.current.stroke();
     
-    socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize });
+    // FIX: Network Flood Prevention! Only send the draw packet if the mouse moved more than 3 pixels.
+    // This stops 120Hz phones from choking the server with 100+ packets per second!
+    const dist = Math.abs(x - lastEmitRef.current.x) + Math.abs(y - lastEmitRef.current.y);
+    if (dist > 3) {
+      socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize });
+      lastEmitRef.current = { x, y };
+    }
   }
 
   const stopDrawing = () => {
