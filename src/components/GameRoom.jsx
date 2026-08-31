@@ -763,6 +763,14 @@ const presetColors = [
     if (!isDrawing || !isMyTurn) return;
     if (e.touches && e.cancelable) e.preventDefault();
 
+    // FIX: If a desktop user released the mouse OUTSIDE the canvas and hovered back in, 
+    // we auto-stop the drawing so it doesn't draw a phantom line connecting to their new position!
+    // (e.buttons !== 1 ensures the left-click is still actively held down).
+    if (!e.touches && e.buttons !== 1) {
+      stopDrawing();
+      return;
+    }
+
     const { x, y } = getCoordinates(e);
 
     // Live preview dragging for shapes!
@@ -1320,7 +1328,7 @@ const presetColors = [
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
+              // FIX: Removed onMouseLeave={stopDrawing} so the brush glides smoothly outside and back inside!
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
