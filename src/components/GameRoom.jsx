@@ -164,20 +164,22 @@ const presetColors = [
         for (let i = 0; i < b.length; i++) {
           const charIndex = absoluteIndex + i;
           const serverChar = revealedChars[charIndex];
-          const isRevealed = serverChar !== undefined || (isWinner && secretWord);
+          const isHinted = serverChar !== undefined; // FIX: Strictly checks if the server has revealed this letter as a hint
           
           let displayChar = '_';
           if (isWinner && secretWord) {
-             displayChar = secretWord[charIndex]?.toUpperCase() || '_'; // Winners see the actual word
-          } else if (serverChar) {
+             displayChar = secretWord[charIndex]?.toUpperCase() || '_'; // Winners & Drawer see the actual full word
+          } else if (isHinted) {
              displayChar = serverChar; // Clueless guessers only see what the server allows
           }
           
-          const highlightColor = isWinner ? '#ffffff' : '#03dac6'; 
-          const shadowEffect = isWinner ? 'none' : '0 0 8px rgba(3, 218, 198, 0.6)';
+          // FIX: If the letter is a hint, glow cyan! If it's just revealed because they won, stay plain white.
+          const highlightColor = isHinted ? '#03dac6' : (isWinner ? '#ffffff' : 'inherit'); 
+          const shadowEffect = isHinted ? '0 0 8px rgba(3, 218, 198, 0.6)' : 'none';
+          const weight = (isHinted || isWinner) ? '900' : 'normal';
           
           wordChars.push(
-            <span key={charIndex} style={{ color: isRevealed ? highlightColor : 'inherit', textShadow: isRevealed ? shadowEffect : 'none', fontWeight: isRevealed ? '900' : 'normal', transition: 'color 0.3s ease' }}>
+            <span key={charIndex} style={{ color: highlightColor, textShadow: shadowEffect, fontWeight: weight, transition: 'all 0.3s ease' }}>
               {displayChar}
             </span>
           );
