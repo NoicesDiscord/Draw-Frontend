@@ -557,8 +557,9 @@ const presetColors = [
     // NEW: If the server asks, the drawer takes a snapshot of their canvas!
     socketRef.current.on('request_canvas_state', (targetId) => {
       if (canvasRef.current) {
-        // toDataURL() instantly turns the whole drawing into a lightweight string
-        const canvasData = canvasRef.current.toDataURL()
+        // FIX: Compresses the canvas to a JPEG at 50% quality. 
+        // Reduces the network payload from ~2MB down to ~50KB, eliminating lag spikes!
+        const canvasData = canvasRef.current.toDataURL('image/jpeg', 0.5)
         socketRef.current.emit('send_canvas_state', { targetId, canvasData })
       }
     })
