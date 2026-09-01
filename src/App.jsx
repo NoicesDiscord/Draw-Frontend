@@ -3,7 +3,10 @@ import GameRoom from './components/GameRoom'
 
 export default function App() {
   const [name, setName] = useState('')
-  const [playerInfo, setPlayerInfo] = useState(null)
+  const [playerInfo, setPlayerInfo] = useState(() => {
+    const saved = sessionStorage.getItem('dn_playerInfo');
+    return saved ? JSON.parse(saved) : null;
+  })
   const [error, setError] = useState('') 
   
   const [mode, setMode] = useState('public') // 'public', 'private', or 'browse'
@@ -17,8 +20,26 @@ export default function App() {
   const [customLobbies, setCustomLobbies] = useState([]) // NEW: Server list
   const [selectedLobbyId, setSelectedLobbyId] = useState(null) // NEW: Tracks clicked lobby
   const [joinPassword, setJoinPassword] = useState('') // NEW: Password for joining
-  const [passwordStatus, setPasswordStatus] = useState('normal') // NEW: Tracks input color ('normal', 'error', 'success')
-  const [sessionId] = useState(() => Math.random().toString(36).substring(2, 15)) // NEW: Stable Session ID for reconnecting!
+  const [passwordStatus, setPasswordStatus] = useState('normal') // NEW: Tracks input color
+  
+  // REPLACEMENT: Make Session ID survive Chrome tab discards!
+  const [sessionId] = useState(() => {
+    let stored = sessionStorage.getItem('dn_sessionId');
+    if (!stored) {
+      stored = Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('dn_sessionId', stored);
+    }
+    return stored;
+  })
+
+  // NEW: Auto-save player state so they don't get sent to the login screen on a hard reload
+  useEffect(() => {
+    if (playerInfo) {
+      sessionStorage.setItem('dn_playerInfo', JSON.stringify(playerInfo));
+    } else {
+      sessionStorage.removeItem('dn_playerInfo');
+    }
+  }, [playerInfo]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('room')) {

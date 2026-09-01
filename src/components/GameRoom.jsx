@@ -290,10 +290,17 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     context.lineCap = 'round'
     contextRef.current = context
 
+    // https://skribbl-backend-dgot.onrender.com
+
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
     setIsSocketReady(true)
 
-    socketRef.current.emit('join_game', playerInfo) 
+    // --- NEW: Smart Connection Bootstrap ---
+    // This fires on the very first load AND every time Chrome wakes up and reconnects
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected! Checking for existing session...');
+      socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
+    });
 
     socketRef.current.on('room_joined', (data) => {
       setRoomId(data.roomId)
@@ -426,31 +433,18 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     })
 
    socketRef.current.on('disconnect', (reason) => {
-    // REPLACEMENT: Just log it. Do not reload! 
-    // Let Socket.IO's built-in manager handle the reconnection attempts.
-    console.log(`Socket disconnected due to: ${reason}`);
-});
-
-// --- NEW: Add this block directly below the disconnect listener ---
-// This triggers when Socket.IO successfully re-establishes the connection
-socketRef.current.io.on('reconnect', () => {
-    console.log('Socket reconnected! Attempting to restore session...');
-    // We send the stable sessionId you generated in App.jsx to claim our old spot
-    socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
-});
-
-// Handle the scenario where the player was tabbed out for longer than your 30s backend grace period
-socketRef.current.on('session_restore_failed', () => {
-    console.log('Grace period expired or session lost. Reloading to start fresh.');
-    window.location.reload(); 
-});
-// --- END NEW BLOCK ---
+      console.log(`Socket disconnected due to: ${reason}`);
+      setConnectionState('reconnecting');
+    });
 
     socketRef.current.on('session_restored', () => {
+      console.log('Session fully restored!');
+      hasJoined.current = true;
       setConnectionState('restored');
       setTimeout(() => setConnectionState('connected'), 2000);
       socketRef.current.emit('request_game_state');
       
+      // Send any drawings the player made while offline!
       if (offlineStrokes.current.length > 0) {
         offlineStrokes.current.forEach(stroke => {
           if (stroke.data) socketRef.current.emit(stroke.event, stroke.data);
@@ -461,8 +455,18 @@ socketRef.current.on('session_restore_failed', () => {
     });
 
     socketRef.current.on('session_restore_failed', () => {
-      setConnectionState('lost');
-      setTimeout(() => window.location.reload(), 2000);
+      if (!hasJoined.current) {
+        // Initial load: Backend says "I don't know this session." So we join normally!
+        console.log('Joining as a new player.');
+        socketRef.current.emit('join_game', playerInfo);
+        hasJoined.current = true;
+      } else {
+        // We were playing, tabbed out for > 30s, and the backend deleted us.
+        console.log('Grace period expired. Wiping session and returning to menu.');
+        setConnectionState('lost');
+        sessionStorage.removeItem('dn_playerInfo'); // Clear memory so we restart at the main menu
+        setTimeout(() => window.location.reload(), 2000);
+      }
     });
 
     socketRef.current.on('game_state_snapshot', (data) => {
