@@ -37,10 +37,14 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [revealedChars, setRevealedChars] = useState({}) // NEW: Letters strictly handed out by the server
   const [correctGuessers, setCorrectGuessers] = useState([])
   
-  const [turnSummary, setTurnSummary] = useState(null) // NEW: Holds the round end scores
-  const summarySound = useRef(new Audio('/sounds/summary.mp3')) // NEW: Sound effect for round end screen
+  const [turnSummary, setTurnSummary] = useState(null) 
+  const summarySound = useRef(new Audio('/sounds/summary.mp3')) 
   
-  const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) // NEW: Hides like/dislike buttons after clicking
+  const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) 
+  
+  // --- NEW: Offline & Session Management ---
+  const [connectionState, setConnectionState] = useState('connected')
+  const offlineStrokes = useRef([]) // Queues drawing actions while disconnected
 
   // --- NEW: Invite Link Copied State ---
   const [inviteCopied, setInviteCopied] = useState(false)
@@ -478,29 +482,51 @@ const presetColors = [
     socketRef.current.on('your_word_choices', (words) => {
       setWordChoices(words)
     })
-    // FIX 1: Handle everyone leaving the lobby (Solo player fix)
     socketRef.current.on('waiting_for_players', () => {
-      setCurrentDrawer("")
-      setSecretWord("")
-      setIsMyTurn(false)
-      setTimeLeft(0)
-      setWinner(null)
-      setIsChoosing(false) // FIX: Force the overlay to close when left alone!
-      clearCanvas()
+      setCurrentDrawer(""); setSecretWord(""); setIsMyTurn(false); setTimeLeft(0); setWinner(null); setIsChoosing(false); clearCanvas();
     })
 
-    // FIX 2: Handle mobile sleep / background network drops
-    socketRef.current.on('disconnect', (reason) => {
-      // If the drop wasn't intentional (e.g. phone went to sleep, wifi dropped) -> reload!
-      if (reason === 'ping timeout' || reason === 'transport close' || reason === 'transport error') {
-        window.location.reload()
+    // --- NEW: Graceful Session Recovery (No more reloads!) ---
+    socketRef.current.on('disconnect', () => setConnectionState('reconnecting'));
+    
+    socketRef.current.on('connect', () => {
+      if (isSocketReady) socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
+    });
+
+    socketRef.current.on('session_restored', () => {
+      setConnectionState('restored');
+      setTimeout(() => setConnectionState('connected'), 2000);
+      socketRef.current.emit('request_game_state');
+      
+      // Flush buffered strokes that happened while offline!
+      if (offlineStrokes.current.length > 0) {
+        offlineStrokes.current.forEach(stroke => {
+          if (stroke.data) socketRef.current.emit(stroke.event, stroke.data);
+          else socketRef.current.emit(stroke.event);
+        });
+        offlineStrokes.current = [];
       }
-    })
+    });
 
-    // Backup Mobile Sleep Fix: If they tab back in and the socket is dead, reload.
+    socketRef.current.on('session_restore_failed', () => {
+      setConnectionState('lost');
+      setTimeout(() => window.location.reload(), 2000);
+    });
+
+    socketRef.current.on('game_state_snapshot', (data) => {
+       if (data.gameState === 'drawing') {
+          setIsMyTurn(data.currentDrawerId === socketRef.current.id);
+          setCurrentDrawer(data.drawerName);
+          setTimeLeft(data.timeRemaining);
+          setWordSkeleton(data.wordSkeleton || []);
+          setRevealedChars(data.revealedChars || {});
+       }
+    });
+
     const handleVisibility = () => {
+      // Mobile background sleep fix: just force a reconnect, don't reload!
       if (document.visibilityState === 'visible' && socketRef.current && !socketRef.current.connected) {
-        window.location.reload()
+        socketRef.current.connect();
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -610,6 +636,15 @@ const presetColors = [
     }
   }, [playerInfo.playerName])
 
+  // --- NEW: Command buffer that automatically intercepts drawings if offline! ---
+  const emitDrawCommand = (event, data = null) => {
+    if (socketRef.current && socketRef.current.connected) {
+      if (data) socketRef.current.emit(event, data);
+      else socketRef.current.emit(event);
+    } else {
+      offlineStrokes.current.push({ event, data });
+    }
+  }
   const getCoordinates = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.nativeEvent.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.nativeEvent.clientY
@@ -896,6 +931,11 @@ const presetColors = [
 
   return (
     <>
+      {connectionState !== 'connected' && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10000, color: '#fff', backgroundColor: connectionState === 'reconnecting' ? '#f57c00' : connectionState === 'restored' ? '#4caf50' : '#d32f2f', transition: 'background-color 0.3s' }}>
+          {connectionState === 'reconnecting' ? '🟡 Reconnecting...' : connectionState === 'restored' ? '🟢 Back in the game' : '🔴 Connection lost — restoring game...'}
+        </div>
+      )}
       <style>{`
         :root {
           --bg-body: #121212;

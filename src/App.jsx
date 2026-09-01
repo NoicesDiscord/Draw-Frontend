@@ -18,6 +18,7 @@ export default function App() {
   const [selectedLobbyId, setSelectedLobbyId] = useState(null) // NEW: Tracks clicked lobby
   const [joinPassword, setJoinPassword] = useState('') // NEW: Password for joining
   const [passwordStatus, setPasswordStatus] = useState('normal') // NEW: Tracks input color ('normal', 'error', 'success')
+  const [sessionId] = useState(() => Math.random().toString(36).substring(2, 15)) // NEW: Stable Session ID for reconnecting!
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('room')) {
@@ -61,13 +62,12 @@ export default function App() {
         if (!data.success) {
           setPasswordStatus('error');
           setError(`⚠️ ${data.message}`);
-          return; // Fails right here! Doesn't load the game screen.
+          return; 
         } else {
           setPasswordStatus('success');
           setError('');
-          // Wait 1 second to show the green confirmation box, then load the game room!
           setTimeout(() => {
-            setPlayerInfo({ playerName: finalName, roomId: roomToValidate, password: joinPassword.trim() });
+            setPlayerInfo({ playerName: finalName, roomId: roomToValidate, password: joinPassword.trim(), sessionId });
           }, 1000);
           return;
         }
@@ -78,16 +78,17 @@ export default function App() {
     }
 
     if (inviteRoom) {
-      setPlayerInfo({ playerName: finalName, roomId: inviteRoom, password: joinPassword.trim() })
+      setPlayerInfo({ playerName: finalName, roomId: inviteRoom, password: joinPassword.trim(), sessionId })
     } else if (mode === 'private') {
       setPlayerInfo({ 
         playerName: finalName, 
-        privateSettings: { maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, password: password.trim() } 
+        privateSettings: { maxPlayers, rounds, drawTime, hintLevel, customWords: parsedWords, password: password.trim() },
+        sessionId 
       })
     } else if (mode === 'browse' && targetLobby) {
-      setPlayerInfo({ playerName: finalName, roomId: targetLobby.id, password: joinPassword.trim() })
+      setPlayerInfo({ playerName: finalName, roomId: targetLobby.id, password: joinPassword.trim(), sessionId })
     } else if (mode === 'public') {
-      setPlayerInfo({ playerName: finalName })
+      setPlayerInfo({ playerName: finalName, sessionId })
     }
   }
 
