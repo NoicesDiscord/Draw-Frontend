@@ -17,6 +17,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
   const [playerList, setPlayerList] = useState([])
   const [timeLeft, setTimeLeft] = useState(0)
+  const endsAtRef = useRef(0) // NEW: Local authoritative clock target
   const [winner, setWinner] = useState(null)
   const [currentDrawer, setCurrentDrawer] = useState("") 
   const [secretWord, setSecretWord] = useState("") 
@@ -365,6 +366,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
     socketRef.current.on('round_update', (data) => {
       setIsMyTurn(data.drawerName === playerInfo.playerName)
+      if (data.endsAt) endsAtRef.current = data.endsAt; // Sync local target
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
       
@@ -486,9 +488,34 @@ export default function GameRoom({ playerInfo, onJoinError }) {
        if (data.gameState === 'drawing') {
           setIsMyTurn(data.currentDrawerId === socketRef.current.id);
           setCurrentDrawer(data.drawerName);
+          if (data.endsAt) endsAtRef.current = data.endsAt;
           setTimeLeft(data.timeRemaining);
           setWordSkeleton(data.wordSkeleton || []);
           setRevealedChars(data.revealedChars || {});
+          
+          // NEW: Replay the entire batched drawing history cleanly!
+          if (data.drawingHistory && data.drawingHistory.length > 0 && contextRef.current) {
+            const ctx = contextRef.current;
+            data.drawingHistory.forEach(action => {
+              if (action.type === 'start') {
+                ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
+                ctx.beginPath(); ctx.moveTo(action.x, action.y); ctx.lineTo(action.x, action.y); ctx.stroke();
+              } else if (action.type === 'draw') {
+                ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
+                ctx.lineTo(action.x, action.y); ctx.stroke();
+              } else if (action.type === 'draw_packet' && action.points.length > 0) {
+                ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
+                ctx.beginPath(); ctx.moveTo(action.points[0].x, action.points[0].y);
+                for (let i = 1; i < action.points.length; i++) ctx.lineTo(action.points[i].x, action.points[i].y);
+                ctx.stroke();
+              } else if (action.type === 'stop') {
+                ctx.closePath(); saveState(); redoStack.current = [];
+              } else if (action.type === 'fill') {
+                applyFill(ctx, canvasRef.current, action.x, action.y, action.color);
+              } else if (action.type === 'undo') handleUndo();
+              else if (action.type === 'redo') handleRedo();
+            });
+          }
        }
     });
 
@@ -513,17 +540,21 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       clearCanvas()
     })
 
-    socketRef.current.on('timer_update', (data) => {
-      const time = typeof data === 'object' ? data.time : data;
-      const chars = typeof data === 'object' ? data.revealedChars : null;
-      
-      setTimeLeft(prev => {
-        if (prev >= 20 && time <= 15) return prev; 
-        return time;
-      });
-
+    // No more 1-second interval pings! The server only sends this when a hint actually appears.
+    socketRef.current.on('hint_update', (chars) => {
       if (chars) setRevealedChars(chars);
-    })
+    });
+
+    socketRef.current.on('time_reduction', (data) => {
+      endsAtRef.current = data.endsAt; // Sync when someone gets the first guess early
+    });
+
+    // NEW: Local Client Countdown Timer (Saves incredible amounts of bandwidth!)
+    const localTimer = setInterval(() => {
+      if (endsAtRef.current > 0) {
+        setTimeLeft(Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000)));
+      }
+    }, 1000);
 
     socketRef.current.on('start', (data) => {
       contextRef.current.strokeStyle = data.color || '#000000'
@@ -554,27 +585,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       contextRef.current.stroke()
     })
     
-    socketRef.current.on('request_canvas_state', (targetId) => {
-      if (canvasRef.current) {
-        const now = Date.now();
-        if (!canvasRef.current.lastSnapshotTime || now - canvasRef.current.lastSnapshotTime > 2000) {
-          canvasRef.current.cachedSnapshot = canvasRef.current.toDataURL('image/jpeg', 0.5);
-          canvasRef.current.lastSnapshotTime = now;
-        }
-        socketRef.current.emit('send_canvas_state', { targetId, canvasData: canvasRef.current.cachedSnapshot });
-      }
-    })
-
-    socketRef.current.on('load_canvas_state', (canvasData) => {
-      if (canvasData && contextRef.current && canvasRef.current) {
-        const img = new Image()
-        img.onload = () => {
-          contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-          contextRef.current.drawImage(img, 0, 0)
-        }
-        img.src = canvasData
-      }
-    })
+    // Removed old toDataURL socket relays for memory efficiency.
     
     socketRef.current.on('stop', () => {
       contextRef.current.closePath()
@@ -619,7 +630,8 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     }, 40);
 
     return () => {
-      clearInterval(packetInterval); // Cleanup interval
+      clearInterval(packetInterval); 
+      clearInterval(localTimer); // Cleanup local countdown
       document.removeEventListener('visibilitychange', handleVisibility)
       socketRef.current.disconnect()
     }
