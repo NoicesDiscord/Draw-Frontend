@@ -13,11 +13,11 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   
   const [gameStatus, setGameStatus] = useState("Waiting for a second player to join...") 
   const [playerList, setPlayerList] = useState([])
-  const [timeLeft, setTimeLeft] = useState(0) // <-- ADD THIS LINE
+  const [timeLeft, setTimeLeft] = useState(0)
   const [winner, setWinner] = useState(null)
   const [currentDrawer, setCurrentDrawer] = useState("") 
   const [secretWord, setSecretWord] = useState("") 
-  const [currentRound, setCurrentRound] = useState(1) // NEW: Tracks the current round
+  const [currentRound, setCurrentRound] = useState(1) 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [roomId, setRoomId] = useState(null)
   const [isHost, setIsHost] = useState(false)
@@ -25,16 +25,16 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [maxRounds, setMaxRounds] = useState(3)
   const [hintLevel, setHintLevel] = useState(2) 
   const [totalDrawTime, setTotalDrawTime] = useState(120) 
-  const [maxPlayers, setMaxPlayers] = useState(8) // NEW: Live max players state
-  const [roomPassword, setRoomPassword] = useState('') // NEW: Live password state
+  const [maxPlayers, setMaxPlayers] = useState(8)
+  const [roomPassword, setRoomPassword] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
-  const [showSettingsModal, setShowSettingsModal] = useState(false) // NEW: Settings popup
-  const [transferTarget, setTransferTarget] = useState("") // NEW: Host transfer dropdown
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [transferTarget, setTransferTarget] = useState("")
   const [isChoosing, setIsChoosing] = useState(false)
   const [wordChoices, setWordChoices] = useState([])
   const [underdogs, setUnderdogs] = useState([]) 
-  const [wordSkeleton, setWordSkeleton] = useState([]) // NEW: Secure word blanks structure
-  const [revealedChars, setRevealedChars] = useState({}) // NEW: Letters strictly handed out by the server
+  const [wordSkeleton, setWordSkeleton] = useState([])
+  const [revealedChars, setRevealedChars] = useState({})
   const [correctGuessers, setCorrectGuessers] = useState([])
   
   const [turnSummary, setTurnSummary] = useState(null) 
@@ -45,12 +45,13 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   // --- NEW: Offline & Session Management ---
   const [connectionState, setConnectionState] = useState('connected')
   const offlineStrokes = useRef([]) // Queues drawing actions while disconnected
+  const hasJoined = useRef(false) // FIX: Tracks if this is an initial join or a reconnect!
 
   // --- NEW: Invite Link Copied State ---
   const [inviteCopied, setInviteCopied] = useState(false)
 
   // --- NEW: Theme Toggle State & Effect ---
-  const [isLightMode, setIsLightMode] = useState(true) // CHANGED: Now defaults to Light Mode
+  const [isLightMode, setIsLightMode] = useState(true)
   useEffect(() => {
     if (isLightMode) {
       document.body.classList.add('light-mode')
@@ -65,24 +66,20 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [activeTool, setActiveTool] = useState('brush') 
   const [showColorPicker, setShowColorPicker] = useState(false) 
   const [showSizePicker, setShowSizePicker] = useState(false) 
-  const [showShapePicker, setShowShapePicker] = useState(false) // NEW: Controls the Desktop shape menu 
+  const [showShapePicker, setShowShapePicker] = useState(false) 
   
-  const shapeStartRef = useRef(null) // NEW: Tracks coordinates for shapes
-  const savedImageRef = useRef(null) // NEW: Tracks the preview frame for shapes
-  const sprayIntervalRef = useRef(null) // NEW: Runs continuous spray dots
-  const lastEmitRef = useRef({ x: 0, y: 0 }) // FIX: Tracks the last sent coordinate to stop network flooding!
+  const shapeStartRef = useRef(null)
+  const savedImageRef = useRef(null)
+  const sprayIntervalRef = useRef(null)
+  const lastEmitRef = useRef({ x: 0, y: 0 }) 
   
-  // --- UPDATED: 40 Perfectly Organized Colors (Columns by Hue, Rows by Lightness) ---
-const presetColors = [
-  // Row 1: Darkest Shades
-  '#000000', '#4E342E', '#8B0000', '#BF360C', '#827717', '#004d00', '#006064', '#000080', '#4A148C', '#880E4F',
-  // Row 2: Primary / Vibrant Shades
-  '#555555', '#795548', '#FF0000', '#FF8C00', '#FFD700', '#008000', '#00BCD4', '#0000FF', '#800080', '#E91E63',
-  // Row 3: Bright / Light Shades
-  '#AAAAAA', '#A1887F', '#FF5252', '#FFB74D', '#FFFF00', '#00FF00', '#4DD0E1', '#1E90FF', '#BA55D3', '#FF69B4',
-  // Row 4: Pastel / Very Light Shades
-  '#FFFFFF', '#D7CCC8', '#FFCDD2', '#FFE0B2', '#FFF9C4', '#B9F6CA', '#B2EBF2', '#BBDEFB', '#E1BEE7', '#F8BBD0'
-];
+  // --- UPDATED: 40 Perfectly Organized Colors ---
+  const presetColors = [
+    '#000000', '#4E342E', '#8B0000', '#BF360C', '#827717', '#004d00', '#006064', '#000080', '#4A148C', '#880E4F',
+    '#555555', '#795548', '#FF0000', '#FF8C00', '#FFD700', '#008000', '#00BCD4', '#0000FF', '#800080', '#E91E63',
+    '#AAAAAA', '#A1887F', '#FF5252', '#FFB74D', '#FFFF00', '#00FF00', '#4DD0E1', '#1E90FF', '#BA55D3', '#FF69B4',
+    '#FFFFFF', '#D7CCC8', '#FFCDD2', '#FFE0B2', '#FFF9C4', '#B9F6CA', '#B2EBF2', '#BBDEFB', '#E1BEE7', '#F8BBD0'
+  ];
 
   // --- NEW: Undo / Redo Memory Stacks ---
   const undoStack = useRef([])
@@ -92,38 +89,29 @@ const presetColors = [
     if (!canvasRef.current || !contextRef.current) return
     const data = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
     undoStack.current.push(data)
-    // FIX: Reduced from 30 to 10. 10 steps = ~19MB of RAM. 30 steps was ~57MB, 
-    // which causes garbage collection stutters and crashes on low-end mobile devices!
     if (undoStack.current.length > 10) undoStack.current.shift() 
   }
 
   const handleUndo = () => {
     if (undoStack.current.length > 1) {
-      redoStack.current.push(undoStack.current.pop()) // Move current state to Redo
-      const previousState = undoStack.current[undoStack.current.length - 1] // Get the state before it
-      contextRef.current.putImageData(previousState, 0, 0) // Draw it!
+      redoStack.current.push(undoStack.current.pop())
+      const previousState = undoStack.current[undoStack.current.length - 1]
+      contextRef.current.putImageData(previousState, 0, 0)
     }
   }
 
   const handleRedo = () => {
     if (redoStack.current.length > 0) {
-      const nextState = redoStack.current.pop() // Grab from Redo
-      undoStack.current.push(nextState) // Put back into Undo
-      contextRef.current.putImageData(nextState, 0, 0) // Draw it!
+      const nextState = redoStack.current.pop()
+      undoStack.current.push(nextState)
+      contextRef.current.putImageData(nextState, 0, 0)
     }
   }
 
-  // FIX: Using local sound files
   const dingSound = useRef(new Audio('/sounds/success.mp3'))
   const winSound = useRef(new Audio('/sounds/win.mp3'))
-  
-  // NEW: Add a sound for clicking the word buttons
   const selectSound = useRef(new Audio('/sounds/select.mp3'))
-  
-  // NEW: Add a sound for the Start Game button!
   const startSound = useRef(new Audio('/sounds/start.mp3'))
-
-  // NEW: Add a ticking sound for the last 10 seconds!
   const tickSound = useRef(new Audio('/sounds/tick.mp3'))
   const lastTickRef = useRef(null) 
 
@@ -132,32 +120,21 @@ const presetColors = [
     const totalGuessers = playerList.length - 1;
     const everyoneGuessed = totalGuessers > 0 && correctGuessers.length >= totalGuessers;
 
-    // FIX: Play only between 10s and 2s (Stops the moment it touches 1). 
-    // Also strictly stops if everyone guessed the word!
     if (timeLeft <= 10 && timeLeft > 1 && currentDrawer && !winner && !turnSummary && !isChoosing && !everyoneGuessed) {
       if (lastTickRef.current !== timeLeft) {
         lastTickRef.current = timeLeft;
-        
-        // Stop the previous tick instantly to prevent any audio overlap
         tickSound.current.pause();
         tickSound.current.currentTime = 0;
-        
         tickSound.current.volume = 0.5;
         tickSound.current.play().catch(err => console.log("Audio blocked:", err));
       }
     } else if (timeLeft > 10 || isChoosing || turnSummary || everyoneGuessed || timeLeft <= 1) {
-      // Release lock and force silence if the phase resets, everyone guesses, or timer reaches 1
       lastTickRef.current = null;
       tickSound.current.pause();
     }
   }, [timeLeft, currentDrawer, winner, turnSummary, isChoosing, correctGuessers.length, playerList.length])
 
-  // --- NEW: Smart Progressive Hint Generator (20%-33% Intervals & 50% Cap) ---
-  // --- NEW: Smart Progressive Hint Generator (Round-Robin & Dynamic Slider) ---
- // --- NEW: Smart Progressive Hint Generator (Randomized Round-Robin) ---
-  // --- NEW: Synced Progressive Hint Generator ---
   const getDynamicHint = (showFullWord) => {
-    // We only need the skeleton array from the server to build the UI securely!
     if (!wordSkeleton || wordSkeleton.length === 0) return "";
 
     const displayElements = [];
@@ -179,7 +156,6 @@ const presetColors = [
              displayChar = serverChar; 
           }
           
-          // FIX: Changed the hint highlight from cyan to a vibrant yellow for much better visibility!
           const highlightColor = isHinted ? '#FFD54F' : (isWinner ? '#ffffff' : 'inherit'); 
           const shadowEffect = isHinted ? '0 0 8px rgba(255, 213, 79, 0.6)' : 'none';
           const weight = (isHinted || isWinner) ? '900' : 'normal';
@@ -201,7 +177,6 @@ const presetColors = [
           </span>
         );
       } else {
-        // Special Characters (Rendered immediately based on the skeleton!)
         const specialChars = [];
         for(let i = 0; i < b.text.length; i++) {
             if (b.text[i] === ' ') {
@@ -227,13 +202,6 @@ const presetColors = [
     );
   }
 
-// ... existing useEffect blocks for viewport and keyboard stay here ...
-
-  
-// --- FIX: RESTORED THE FROZEN CANVAS LOGIC ---
-  // We track the tallest screen height (keyboard closed) and freeze the canvas to 42% of THAT height.
-  // When the keyboard opens, ONLY the chat area shrinks, while the canvas stays perfectly frozen and clear!
-  // --- FIX: Stable Viewport Logic. No more hiding inputs, no more offsetTop math! ---
   const restingViewportHeightRef = useRef(
     window.visualViewport ? window.visualViewport.height : window.innerHeight
   )
@@ -243,25 +211,17 @@ const presetColors = [
 
     const applyHeights = () => {
       const liveHeight = vv ? vv.height : window.innerHeight
-      
-      // Track the height of the screen when the keyboard is CLOSED
       if (liveHeight > restingViewportHeightRef.current) {
         restingViewportHeightRef.current = liveHeight
       }
       const restingHeight = restingViewportHeightRef.current
 
-      // Canvas height is normally frozen based on the closed keyboard height
       let canvasHeight = Math.floor(restingHeight * 0.42)
-      
-      // FIX: The Mobile Keyboard Crash! If the keyboard is huge and crushes the screen, 
-      // we MUST let the canvas shrink, otherwise the browser gets trapped in a layout loop and crashes!
       if (liveHeight < canvasHeight + 120) {
         canvasHeight = Math.max(100, liveHeight - 120) 
       }
       
-      // Chat height dynamically shrinks to whatever space is left
       const chatHeight = Math.max(60, liveHeight - canvasHeight)
-
       const root = document.documentElement.style
       root.setProperty('--app-height', `${liveHeight}px`)
       root.setProperty('--canvas-h', `${canvasHeight}px`)
@@ -269,7 +229,6 @@ const presetColors = [
     }
 
     applyHeights()
-
     const handleOrientation = () => {
       restingViewportHeightRef.current = vv ? vv.height : window.innerHeight
       applyHeights()
@@ -294,18 +253,13 @@ const presetColors = [
     }
   }, [])
 
-  // --- NEW: Prevent accidental back-swipes and refreshes on mobile! ---
   useEffect(() => {
-    // 1. Push a dummy state to trap the first back-swipe
     window.history.pushState(null, null, window.location.href)
-    
     const handleBackSwipe = () => {
-      // If they swipe back, push another dummy state immediately to keep them in the game
       window.history.pushState(null, null, window.location.href)
     }
     window.addEventListener('popstate', handleBackSwipe)
 
-    // 2. Trigger the browser's native "Leave Site?" warning popup if they try to close the tab
     const handleBeforeUnload = (e) => {
       e.preventDefault()
       e.returnValue = ''
@@ -322,28 +276,25 @@ const presetColors = [
     const canvas = canvasRef.current
     canvas.width = 800
     canvas.height = 600
-    // FIX: willReadFrequently optimizes the browser for heavy getImageData usage.
-    // Since you use it constantly for Undo/Redo and Bucket Fill, this stops lag spikes!
     const context = canvas.getContext('2d', { willReadFrequently: true })
     
     const clearCanvas = () => {
       context.fillStyle = 'white'
       context.fillRect(0, 0, canvas.width, canvas.height)
-      undoStack.current = [] // Wipe history on a clear board
+      undoStack.current = [] 
       redoStack.current = []
-      undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height)) // Save pure white board as Step 1
+      undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height)) 
     }
     clearCanvas()
     
     context.lineCap = 'round'
     contextRef.current = context
 
-    // --- YOUR LIVE RENDER URL ---
     socketRef.current = io('https://skribbl-backend-dgot.onrender.com') 
     setIsSocketReady(true)
 
-    socketRef.current.emit('join_game', playerInfo) // FIX: Sends the whole object containing settings!
-    // NEW: Catch room settings when joining!
+    socketRef.current.emit('join_game', playerInfo) 
+
     socketRef.current.on('room_joined', (data) => {
       setRoomId(data.roomId)
       setIsHost(data.isHost)
@@ -355,7 +306,6 @@ const presetColors = [
       if (data.password) setRoomPassword(data.password)
     })
 
-    // NEW: Sync live settings changes made by the host!
     socketRef.current.on('room_settings_updated', (data) => {
       setMaxRounds(data.maxRounds)
       setTotalDrawTime(data.drawTime)
@@ -363,12 +313,10 @@ const presetColors = [
       setMaxPlayers(data.maxPlayers)
     })
 
-    // NEW: Update host status if it was transferred!
     socketRef.current.on('host_updated', (newHostId) => {
       setIsHost(socketRef.current.id === newHostId);
     })
 
-    // NEW: Put everyone in the lobby in a waiting state until the host clicks start
     socketRef.current.on('waiting_for_host', () => {
       setWaitingForHost(true)
       setCurrentDrawer("")
@@ -380,7 +328,6 @@ const presetColors = [
       clearCanvas()
     })
     
-    // NEW: Everyone plays the sound when the network confirms the game has started!
     socketRef.current.on('game_started', () => {
       const clone = startSound.current.cloneNode()
       clone.volume = 0.6
@@ -392,7 +339,6 @@ const presetColors = [
       setPlayerList(sortedPlayers)
     })
 
-    // NEW: Real-time Underdog updates when someone joins mid-round!
     socketRef.current.on('update_underdogs', (newUnderdogs) => {
       setUnderdogs(newUnderdogs || [])
     })
@@ -402,31 +348,26 @@ const presetColors = [
       setCurrentDrawer(data.drawerName) 
       setWinner(null) 
       
-      // FIX: Forcefully stop drawing and clear intervals in case the round 
-      // ends while the previous drawer was still holding the mouse down!
       setIsDrawing(false)
       if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current) 
       if (data.maxRounds) setMaxRounds(data.maxRounds)
       if (data.hintLevel) setHintLevel(data.hintLevel) 
       
-      // NEW: Catch Underdogs
       if (data.underdogs) setUnderdogs(data.underdogs)
       else setUnderdogs([])
       
-      // NEW: Store the secure word skeleton instead of the actual word!
       if (data.skeleton) setWordSkeleton(data.skeleton) 
       else setWordSkeleton([])
       
       setIsChoosing(false) 
       setWaitingForHost(false)
-      setSecretWord("") // Guessers stay blank until they win!
-      setRevealedChars({}) // Reset hints for the new round
+      setSecretWord("") 
+      setRevealedChars({}) 
       setTimeLeft(120) 
       setCurrentRound(data.currentRound || 1); 
       
-      setHasVotedThisTurn(false) // NEW: Restore their ability to vote for the new drawer!
+      setHasVotedThisTurn(false) 
 
-      // NEW: Play the selection sound for the guessers so they know the drawing phase started!
       if (data.drawerName !== playerInfo.playerName) {
         const clone = selectSound.current.cloneNode()
         clone.volume = 0.6
@@ -434,10 +375,9 @@ const presetColors = [
       }
     })
 
-    // NEW: Catch room errors (like trying to join a full or expired room)
     socketRef.current.on('room_error', (errorMessage) => {
       if (onJoinError) {
-        onJoinError(errorMessage); // Seamlessly pushes the error back to your main menu
+        onJoinError(errorMessage); 
       } else {
         alert(errorMessage);
         window.location.href = '/'; 
@@ -446,20 +386,19 @@ const presetColors = [
 
     socketRef.current.on('kicked_from_server', () => {
       alert("You have been kicked from the lobby by a vote.");
-      window.location.href = '/'; // FIX: Also sends kicked players back to the main menu instead of just reloading!
+      window.location.href = '/'; 
     })
+    
     socketRef.current.on('game_over', (winnerName) => {
       setWinner(winnerName)
-      setTurnSummary(null) // NEW: Clear summary just in case
-      setIsChoosing(false) // FIX: Make sure the overlay never blocks the victory screen!
+      setTurnSummary(null) 
+      setIsChoosing(false) 
       
-      // NEW: Play the epic celebration sound!
       winSound.current.volume = 0.7
       winSound.current.currentTime = 0
       winSound.current.play().catch(err => console.log("Audio blocked:", err))
     })
     
-    // NEW: Listener for the end-of-turn score summary!
     socketRef.current.on('turn_summary', (data) => {
       setTurnSummary(data)
       const clone = summarySound.current.cloneNode()
@@ -467,30 +406,36 @@ const presetColors = [
       clone.play().catch(err => console.log("Audio blocked:", err))
     })
 
-    // NEW: The Choosing Phase!
     socketRef.current.on('choosing_word', (data) => {
       setWaitingForHost(false)
       setIsChoosing(true)
-      setTurnSummary(null) // NEW: Hide summary overlay!
+      setTurnSummary(null) 
       setCurrentDrawer(data.drawerName)
       setIsMyTurn(data.drawerName === playerInfo.playerName)
-      setSecretWord("") // Hide the old word
+      setSecretWord("") 
       setWinner(null)
-      setHasVotedThisTurn(false) // NEW: Reset the button visibility
+      setHasVotedThisTurn(false) 
     })
 
     socketRef.current.on('your_word_choices', (words) => {
       setWordChoices(words)
     })
+    
     socketRef.current.on('waiting_for_players', () => {
       setCurrentDrawer(""); setSecretWord(""); setIsMyTurn(false); setTimeLeft(0); setWinner(null); setIsChoosing(false); clearCanvas();
     })
 
-    // --- NEW: Graceful Session Recovery (No more reloads!) ---
+   // --- NEW: Graceful Session Recovery (No more reloads!) ---
     socketRef.current.on('disconnect', () => setConnectionState('reconnecting'));
     
     socketRef.current.on('connect', () => {
-      if (isSocketReady) socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
+      if (hasJoined.current) {
+        // If they already joined once, THIS is a reconnection. Resume the session!
+        socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
+      } else {
+        // This is the very first time they connect. Just mark them as joined.
+        hasJoined.current = true;
+      }
     });
 
     socketRef.current.on('session_restored', () => {
@@ -498,7 +443,6 @@ const presetColors = [
       setTimeout(() => setConnectionState('connected'), 2000);
       socketRef.current.emit('request_game_state');
       
-      // Flush buffered strokes that happened while offline!
       if (offlineStrokes.current.length > 0) {
         offlineStrokes.current.forEach(stroke => {
           if (stroke.data) socketRef.current.emit(stroke.event, stroke.data);
@@ -524,14 +468,12 @@ const presetColors = [
     });
 
     const handleVisibility = () => {
-      // Mobile background sleep fix: just force a reconnect, don't reload!
       if (document.visibilityState === 'visible' && socketRef.current && !socketRef.current.connected) {
         socketRef.current.connect();
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
-    // FIX: Catch the actual word if you are the Drawer OR if you successfully guessed it!
     socketRef.current.on('secret_word', (word) => {
       setSecretWord(word);
     })
@@ -540,7 +482,6 @@ const presetColors = [
       clearCanvas()
     })
 
-    // FIX: Receive the timer AND the secure hints strictly from the server!
     socketRef.current.on('timer_update', (data) => {
       const time = typeof data === 'object' ? data.time : data;
       const chars = typeof data === 'object' ? data.revealedChars : null;
@@ -553,27 +494,24 @@ const presetColors = [
       if (chars) setRevealedChars(chars);
     })
 
-    // --- UPDATED: Apply incoming network colors/sizes before drawing ---
     socketRef.current.on('start', (data) => {
       contextRef.current.strokeStyle = data.color || '#000000'
       contextRef.current.lineWidth = data.size || 5
       contextRef.current.beginPath()
       contextRef.current.moveTo(data.x, data.y)
-      // FIX: Instantly draw a dot for single taps from the network!
       contextRef.current.lineTo(data.x, data.y)
       contextRef.current.stroke()
     })
+    
     socketRef.current.on('draw', (data) => {
       contextRef.current.strokeStyle = data.color || '#000000'
       contextRef.current.lineWidth = data.size || 5
       contextRef.current.lineTo(data.x, data.y)
       contextRef.current.stroke()
     })
-    // NEW: If the server asks, the drawer takes a snapshot of their canvas!
+    
     socketRef.current.on('request_canvas_state', (targetId) => {
       if (canvasRef.current) {
-        // FIX: Late-Joiner Snapshot Freeze! Caches the heavy JPEG encode for 2 seconds.
-        // If 5 people join at once, the drawer's phone only encodes the image ONE time, stopping the tab from freezing!
         const now = Date.now();
         if (!canvasRef.current.lastSnapshotTime || now - canvasRef.current.lastSnapshotTime > 2000) {
           canvasRef.current.cachedSnapshot = canvasRef.current.toDataURL('image/jpeg', 0.5);
@@ -583,7 +521,6 @@ const presetColors = [
       }
     })
 
-    // NEW: The late joiner receives the snapshot and pastes it on their empty canvas!
     socketRef.current.on('load_canvas_state', (canvasData) => {
       if (canvasData && contextRef.current && canvasRef.current) {
         const img = new Image()
@@ -594,37 +531,32 @@ const presetColors = [
         img.src = canvasData
       }
     })
+    
     socketRef.current.on('stop', () => {
       contextRef.current.closePath()
-      saveState() // Guessers save the line!
+      saveState() 
       redoStack.current = []
     })
 
-    // NEW: Listen for the other player using the paint bucket
     socketRef.current.on('fill', (data) => {
       applyFill(contextRef.current, canvasRef.current, data.x, data.y, data.color)
     })
 
-    // NEW: Listen for Undo/Redo from the Drawer
     socketRef.current.on('undo', () => handleUndo())
     socketRef.current.on('redo', () => handleRedo())
 
-    // NEW: Play ding sound when the server confirms a correct guess!
     socketRef.current.on('correct_guess', () => {
       dingSound.current.volume = 0.6
       dingSound.current.currentTime = 0
       dingSound.current.play().catch(err => console.log("Audio blocked:", err))
     })    
 
-    // FIX: Listen to the chat! If the server says it's a guess, add that player to the winners list!
     socketRef.current.on('chat_message', (data) => {
       if (data.isGuess) {
         setCorrectGuessers(prev => prev.includes(data.sender) ? prev : [...prev, data.sender]);
       }
-      // The heavy party popper effect has been removed from here to fix mobile lag!
     })
 
-    // FIX: Automatically wipe the winners list clean whenever the game state resets!
     socketRef.current.on('round_update', () => setCorrectGuessers([]));
     socketRef.current.on('waiting_for_players', () => setCorrectGuessers([]));
     socketRef.current.on('waiting_for_host', () => setCorrectGuessers([]));
@@ -645,6 +577,7 @@ const presetColors = [
       offlineStrokes.current.push({ event, data });
     }
   }
+  
   const getCoordinates = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.nativeEvent.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.nativeEvent.clientY
@@ -659,7 +592,6 @@ const presetColors = [
     }
   }
 
-  // --- NEW: HTML5 Canvas Scanline Flood Fill Algorithm ---
   const applyFill = (ctx, canvas, x, y, colorHex) => {
     const hexToRgb = (h) => [parseInt(h.slice(1,3), 16), parseInt(h.slice(3,5), 16), parseInt(h.slice(5,7), 16), 255]
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -670,9 +602,6 @@ const presetColors = [
     
     const tolerance = 16; 
     
-    // FIX: The Ultimate Bucket Freeze! 
-    // If the new color is ALREADY within the tolerance of the target color, abort immediately.
-    // Otherwise, the newly filled pixels will still pass the match() test and loop infinitely!
     if (Math.abs(sR - fR) <= tolerance && Math.abs(sG - fG) <= tolerance && Math.abs(sB - fB) <= tolerance) return;
     const match = (p) => {
       return Math.abs(data[p] - sR) <= tolerance && 
@@ -691,7 +620,7 @@ const presetColors = [
       let p = (cy * w + cx) * 4
       while(cy >= 0 && match(p)) { cy--; p -= w*4 }
       
-      if (cy >= 0) color(p); // Bleed Top Edge
+      if (cy >= 0) color(p); 
       
       p += w*4; cy++
       let rL = false, rR = false
@@ -699,26 +628,23 @@ const presetColors = [
         color(p)
         if (cx > 0) {
           if (match(p - 4)) { if (!rL) { stack.push([cx - 1, cy]); rL = true } }
-          else { rL = false; color(p - 4); } // Bleed Left Edge
+          else { rL = false; color(p - 4); } 
         }
         if (cx < w - 1) {
           if (match(p + 4)) { if (!rR) { stack.push([cx + 1, cy]); rR = true } }
-          else { rR = false; color(p + 4); } // Bleed Right Edge
+          else { rR = false; color(p + 4); } 
         }
         cy++; p += w*4
       }
-      if (cy < h) color(p); // Bleed Bottom Edge
+      if (cy < h) color(p); 
     }
     ctx.putImageData(imgData, 0, 0)
     
-    // NEW: Save the canvas state immediately after filling a shape!
     undoStack.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
     if (undoStack.current.length > 10) undoStack.current.shift()
     redoStack.current = []
   }
 
-  // --- UPDATED: Apply local colors and send them to the server ---
-  // --- UPDATED: Advanced Tool Handlers (Brush, Bucket, Ruler, Shapes, Spray) ---
   const startDrawing = (e) => {
     if (!isMyTurn) return;
     if (e.touches && e.cancelable) e.preventDefault();
@@ -727,11 +653,10 @@ const presetColors = [
 
     if (activeTool === 'bucket') {
       applyFill(contextRef.current, canvasRef.current, x, y, brushColor);
-      socketRef.current.emit('fill', { x, y, color: brushColor });
+      emitDrawCommand('fill', { x, y, color: brushColor });
       return;
     }
 
-    // Prepare rubber-band preview for shapes
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
       shapeStartRef.current = { sx: x, sy: y, ex: x, ey: y };
       savedImageRef.current = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -739,16 +664,12 @@ const presetColors = [
       return;
     }
 
-    // Continuous Spray Logic
     if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
       setIsDrawing(true);
       if (sprayIntervalRef.current) clearInterval(sprayIntervalRef.current);
       
       const sprayDrop = (cx, cy) => {
-        // FIX: The overall spray area now scales dynamically with your blue dot size!
         const sprayRadius = brushSize * 1.5; 
-        
-        // Dynamically adjust density so large sprays don't look empty, but stay performant
         const sprayDensity = Math.min(20, Math.max(8, Math.floor(brushSize * 0.8))); 
         
         for (let i = 0; i < sprayDensity; i++) {
@@ -764,12 +685,10 @@ const presetColors = [
            }
            
            contextRef.current.fillStyle = dotColor;
-           // FIX: Increased dot size to 4x4 so they are consistently wide and clearly visible
            contextRef.current.fillRect(dotX, dotY, 4, 4);
            
            if (i < 2) {
-             // FIX: Emit size 4 to ensure the network receives the chunkier dots as well
-             socketRef.current.emit('start', { x: dotX, y: dotY, color: dotColor, size: 4 });
+             emitDrawCommand('start', { x: dotX, y: dotY, color: dotColor, size: 4 });
            }
         }
       };
@@ -777,11 +696,10 @@ const presetColors = [
       shapeStartRef.current = { sx: x, sy: y };
       sprayIntervalRef.current = setInterval(() => {
          if (shapeStartRef.current) sprayDrop(shapeStartRef.current.sx, shapeStartRef.current.sy);
-      }, 75); // FIX: Increased timing to give the network room to breathe 
+      }, 75); 
       return;
     }
     
-    // Default Brush
     contextRef.current.strokeStyle = brushColor;
     contextRef.current.lineWidth = brushSize;
     contextRef.current.beginPath();
@@ -790,17 +708,14 @@ const presetColors = [
     contextRef.current.stroke();
     
     setIsDrawing(true);
-    lastEmitRef.current = { x, y }; // FIX: Reset the network tracker on new strokes
-    socketRef.current.emit('start', { x, y, color: brushColor, size: brushSize });
+    lastEmitRef.current = { x, y }; 
+    emitDrawCommand('start', { x, y, color: brushColor, size: brushSize });
   }
 
   const draw = (e) => {
     if (!isDrawing || !isMyTurn) return;
     if (e.touches && e.cancelable) e.preventDefault();
 
-    // FIX: If a desktop user released the mouse OUTSIDE the canvas and hovered back in, 
-    // we auto-stop the drawing so it doesn't draw a phantom line connecting to their new position!
-    // (e.buttons !== 1 ensures the left-click is still actively held down).
     if (!e.touches && e.buttons !== 1) {
       stopDrawing();
       return;
@@ -808,10 +723,7 @@ const presetColors = [
 
     const { x, y } = getCoordinates(e);
 
-    // Live preview dragging for shapes!
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
-       // FIX: The Shape Preview CPU Meltdown! 
-       // Ignores microscopic 120Hz screen movements to save massive amounts of CPU overhead.
        const dist = Math.abs(x - shapeStartRef.current.ex) + Math.abs(y - shapeStartRef.current.ey);
        if (dist < 4) return; 
        
@@ -854,19 +766,14 @@ const presetColors = [
     contextRef.current.lineTo(x, y);
     contextRef.current.stroke();
     
-    // FIX: Network Flood Prevention! Increased distance threshold to 6 pixels.
-    // Visually unnoticeable on the canvas, but cuts socket traffic by roughly 50% for high refresh rate screens.
     const dist = Math.abs(x - lastEmitRef.current.x) + Math.abs(y - lastEmitRef.current.y);
     if (dist > 6) {
-      socketRef.current.emit('draw', { x, y, color: brushColor, size: brushSize });
+      emitDrawCommand('draw', { x, y, color: brushColor, size: brushSize });
       lastEmitRef.current = { x, y };
     }
   }
 
   const stopDrawing = () => {
-    // FIX: Removed `!isMyTurn` from this guard. If your turn ends while you are 
-    // holding down the mouse, lifting your finger MUST be allowed to run this function 
-    // so it can clear the spray intervals and clean up properly!
     if (!isDrawing) return;
     
     if (activeTool === 'spray' || activeTool === 'rainbowSpray') {
@@ -877,37 +784,36 @@ const presetColors = [
        return;
     }
 
-    // Instantly draws the final shape over the network using native socket lines
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
        const { sx, sy, ex, ey } = shapeStartRef.current;
        
        if (activeTool === 'ruler') {
-          socketRef.current.emit('start', { x: sx, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
-          socketRef.current.emit('stop');
+          emitDrawCommand('start', { x: sx, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('stop');
        } else if (activeTool === 'rect') {
-          socketRef.current.emit('start', { x: sx, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: ex, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: sx, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('stop');
+          emitDrawCommand('start', { x: sx, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: ex, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: sx, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('stop');
        } else if (activeTool === 'triangle') {
           const midX = sx + (ex - sx) / 2;
-          socketRef.current.emit('start', { x: midX, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
-          socketRef.current.emit('draw', { x: midX, y: sy, color: brushColor, size: brushSize });
-          socketRef.current.emit('stop');
+          emitDrawCommand('start', { x: midX, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: midX, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('stop');
        } else if (activeTool === 'circle') {
           const radius = Math.sqrt(Math.pow(ex - sx, 2) + Math.pow(ey - sy, 2));
           const segments = 40; 
-          socketRef.current.emit('start', { x: sx + radius, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('start', { x: sx + radius, y: sy, color: brushColor, size: brushSize });
           for (let i = 1; i <= segments; i++) {
              const angle = (i * 2 * Math.PI) / segments;
-             socketRef.current.emit('draw', { x: sx + Math.cos(angle) * radius, y: sy + Math.sin(angle) * radius, color: brushColor, size: brushSize });
+             emitDrawCommand('draw', { x: sx + Math.cos(angle) * radius, y: sy + Math.sin(angle) * radius, color: brushColor, size: brushSize });
           }
-          socketRef.current.emit('stop');
+          emitDrawCommand('stop');
        }
        setIsDrawing(false);
        saveState();
@@ -917,16 +823,15 @@ const presetColors = [
 
     contextRef.current.closePath();
     setIsDrawing(false);
-    socketRef.current.emit('stop');
+    emitDrawCommand('stop');
     
     saveState();
     redoStack.current = [];
   }
 
-  // NEW: Tells the server to wipe the board
   const handleClearBoard = () => {
     if (!isMyTurn) return
-    socketRef.current.emit('clear_board')
+    emitDrawCommand('clear_board')
   }
 
   return (
@@ -1071,7 +976,6 @@ const presetColors = [
         }
 
         /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
-      /* --- MOBILE RESPONSIVENESS MASTER CLASS --- */
         @media (max-width: 900px) {
           .game-layout { 
             position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
@@ -1164,7 +1068,7 @@ const presetColors = [
           .sidebar-left h3 { font-size: 14px !important; margin-bottom: 4px !important; } 
         }
       `}</style>
-      {/* FIX: Dynamically applies a different layout depending on if you are drawing or guessing! */}
+      
       <div className={`game-layout ${isMyTurn ? 'layout-drawer' : 'layout-guesser'}`}>
         
         {/* Leaderboard */}
@@ -1176,7 +1080,6 @@ const presetColors = [
           >
             <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-main)', paddingBottom: '12px', position: 'relative', transition: 'border-color 0.3s ease' }}>
               
-              {/* CHANGED: Flex container for SCORES title and Theme Toggle */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: '6px' }}>
                 <h3 style={{ margin: 0, color: '#bb86fc', fontSize: '16px', letterSpacing: '1px' }}>SCORES</h3>
                 
@@ -1187,7 +1090,7 @@ const presetColors = [
                 >
                   ⚙️
                 </button>
-              </div> {/* FIX: This closing tag was accidentally deleted! */}
+              </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', backgroundColor: 'var(--border-main)', padding: '3px 8px', borderRadius: '12px', transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>
@@ -1195,7 +1098,7 @@ const presetColors = [
                 </span>
                 {isPrivate && (
                   <button onClick={(e) => {
-                    e.stopPropagation(); // Prevents opening the modal when clicking invite
+                    e.stopPropagation();
                     navigator.clipboard.writeText(`${window.location.origin}/?room=${roomId}`);
                     setInviteCopied(true);
                     setTimeout(() => setInviteCopied(false), 5000);
@@ -1211,7 +1114,7 @@ const presetColors = [
                 const isMe = p.name === playerInfo.playerName;
                 const isDrawer = p.name === currentDrawer;
                 const hasGuessed = correctGuessers.includes(p.name);
-                const isUnderdog = underdogs.includes(p.id) && !isDrawer; // NEW: Detect Underdog
+                const isUnderdog = underdogs.includes(p.id) && !isDrawer;
                 
                 return (
                   <li 
@@ -1234,8 +1137,8 @@ const presetColors = [
                         <span style={{ fontSize: '15px', fontWeight: 'bold', color: hasGuessed ? '#03dac6' : (isUnderdog ? '#ff9800' : (isMe ? '#bb86fc' : 'var(--text-main)')), whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', transition: 'color 0.3s ease' }}>
                           {p.name} {isMe && '(You)'}
                         </span>
-                        <span style={{ fontSize: '11px', color: isUnderdog ? '#ff9800' : 'var(--text-muted)', marginTop: '2px', transition: 'color 0.3s ease' }}>
-                          {hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : (isUnderdog ? '🔥 Underdog Buff!' : 'Guesser'))}
+                        <span style={{ fontSize: '11px', color: p.isOffline ? '#f44336' : (isUnderdog ? '#ff9800' : 'var(--text-muted)'), marginTop: '2px', transition: 'color 0.3s ease' }}>
+                          {p.isOffline ? '💤 Offline...' : (hasGuessed ? '✔️ Guessed correctly!' : (isDrawer ? '✏️ Drawing...' : (isUnderdog ? '🔥 Underdog Buff!' : 'Guesser')))}
                         </span>
                       </div>
                     </div>
@@ -1254,18 +1157,16 @@ const presetColors = [
         <div className="center-canvas">
           <div className="canvas-wrapper">
             
-            {/* FIX: Uses CSS classes now so it can shrink on mobile! */}
             <div className="game-clock">
               {timeLeft > 0 ? timeLeft : "0"}
             </div>
 
-            {/* NEW: Space-optimized Like and Dislike buttons for Guessers */}
             {!isMyTurn && currentDrawer && !isChoosing && !winner && !hasVotedThisTurn && (
               <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 60 }}>
                 <button 
                   onClick={() => {
                     socketRef.current.emit('like_drawing');
-                    setHasVotedThisTurn(true); // NEW: Hide both buttons immediately!
+                    setHasVotedThisTurn(true); 
                   }}
                   style={{ background: 'rgba(76, 175, 80, 0.2)', border: '2px solid #4caf50', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
                   onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
@@ -1275,7 +1176,7 @@ const presetColors = [
                 <button 
                   onClick={() => {
                     socketRef.current.emit('dislike_drawing');
-                    setHasVotedThisTurn(true); // NEW: Hide both buttons immediately!
+                    setHasVotedThisTurn(true); 
                   }}
                   style={{ background: 'rgba(244, 67, 54, 0.2)', border: '2px solid #f44336', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'transform 0.1s ease', backdropFilter: 'blur(4px)' }}
                   onMouseDown={e => e.currentTarget.style.transform = 'scale(0.85)'}
@@ -1291,7 +1192,6 @@ const presetColors = [
                   <>
                     <div style={{ color: '#bb86fc', fontSize: '22px' }}>{isHost ? "Lobby Settings" : "Waiting for host..."}</div>
                     
-                    {/* NEW: Live Canvas Settings UI */}
                     {isPrivate && (
                       <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '15px', borderRadius: '12px', width: '100%', fontSize: '15px', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', pointerEvents: 'auto', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
                         
@@ -1358,7 +1258,6 @@ const presetColors = [
                   color: correctGuessers.includes(playerInfo.playerName) ? '#000' : 'white'
                 }}
               >
-                {/* FIX: We pass the boolean down so the function knows whether to render blanks or highlight the hints! */}
                 {getDynamicHint(isMyTurn || correctGuessers.includes(playerInfo.playerName))}
               </div>
             )}
@@ -1368,7 +1267,6 @@ const presetColors = [
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
-              // FIX: Removed onMouseLeave={stopDrawing} so the brush glides smoothly outside and back inside!
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
@@ -1386,16 +1284,10 @@ const presetColors = [
               }}
             />
 
-           {/* FIX: Completely hides the toolbar from Guessers for a clean view! */}
-            {/* FIX: Completely hides the toolbar from Guessers for a clean view! */}
             {isMyTurn && (
               <div className="toolbar" style={{ boxSizing: 'border-box' }}>
                 
-                {/* --- DESKTOP TOOLBAR (1 Clean Row) --- */}
-                {/* --- DESKTOP TOOLBAR (1 Clean Row - SCALED UP) --- */}
-                {/* --- DESKTOP TOOLBAR (Medium Size) --- */}
                 <div className="desktop-only">
-                  {/* Color Box */}
                   <div style={{ position: 'relative' }}>
                     <button
                       onClick={() => {setShowColorPicker(!showColorPicker); setShowSizePicker(false); setShowShapePicker(false);}}
@@ -1412,11 +1304,9 @@ const presetColors = [
 
                   <div className="toolbar-divider" />
 
-                  {/* Brush & Bucket */}
                   <button onClick={() => {setActiveTool('brush'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'brush' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🖌️</button>
                   <button onClick={() => {setActiveTool(activeTool === 'bucket' ? 'brush' : 'bucket'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'bucket' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🪣</button>
 
-                  {/* Blue Dot Size */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '4px' }}>
                     <button onClick={() => {setShowSizePicker(!showSizePicker); setShowColorPicker(false); setShowShapePicker(false);}} style={{ width: '40px', height: '40px', borderRadius: '8px', cursor: 'pointer', padding: 0, background: 'transparent', border: '1px solid #666', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       <div style={{ width: `${Math.min(brushSize, 30)}px`, height: `${Math.min(brushSize, 30)}px`, backgroundColor: '#1E90FF', borderRadius: '50%' }} />
@@ -1434,11 +1324,9 @@ const presetColors = [
 
                   <div className="toolbar-divider" />
 
-                  {/* Spray Can */}
                   <button onClick={() => {setActiveTool(activeTool === 'spray' ? 'brush' : 'spray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'spray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>💨</button>
                   <button onClick={() => {setActiveTool(activeTool === 'rainbowSpray' ? 'brush' : 'rainbowSpray'); setShowColorPicker(false); setShowSizePicker(false); setShowShapePicker(false);}} style={{ background: activeTool === 'rainbowSpray' ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>🌈</button>
 
-                  {/* Desktop Shape Menu */}
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <button onClick={() => {setShowShapePicker(!showShapePicker); setShowColorPicker(false); setShowSizePicker(false);}} style={{ background: ['ruler', 'circle', 'rect', 'triangle'].includes(activeTool) ? '#03dac6' : 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>
                       {activeTool === 'ruler' ? '📏' : activeTool === 'circle' ? '⭕' : activeTool === 'rect' ? '⬜' : activeTool === 'triangle' ? '🔺' : '📐'}
@@ -1454,16 +1342,13 @@ const presetColors = [
 
                   <div className="toolbar-divider" />
 
-                  {/* Undo, Redo, Trash */}
-                  <button onClick={() => { handleUndo(); socketRef.current.emit('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>↩️</button>
-                  <button onClick={() => { handleRedo(); socketRef.current.emit('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>↪️</button>
+                  <button onClick={() => { handleUndo(); emitDrawCommand('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>↩️</button>
+                  <button onClick={() => { handleRedo(); emitDrawCommand('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '8px', cursor: 'pointer', fontSize: '20px', padding: '8px 12px' }}>↪️</button>
                   <button onClick={handleClearBoard} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '22px', padding: '8px 12px' }}>🗑️</button>
                 </div>
 
-                {/* --- MOBILE TOOLBAR (2 Distant Rows) --- */}
                 <div className="mobile-only">
                   
-                  {/* Row 1: Essentials */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '4px' }}>
                     
                     <div style={{ position: 'relative' }}>
@@ -1495,12 +1380,11 @@ const presetColors = [
                       )}
                     </div>
 
-                    <button onClick={() => { handleUndo(); socketRef.current.emit('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↩️</button>
-                    <button onClick={() => { handleRedo(); socketRef.current.emit('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↪️</button>
+                    <button onClick={() => { handleUndo(); emitDrawCommand('undo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↩️</button>
+                    <button onClick={() => { handleRedo(); emitDrawCommand('redo'); }} style={{ background: 'transparent', border: '1px solid #666', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', padding: '6px', flexGrow: 1 }}>↪️</button>
                     <button onClick={handleClearBoard} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '6px' }}>🗑️</button>
                   </div>
 
-                  {/* Row 2: Assistant Tools */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '6px' }}>
                     {[ { id: 'spray', icon: '💨' }, { id: 'rainbowSpray', icon: '🌈' }, { id: 'ruler', icon: '📏' }, { id: 'circle', icon: '⭕' }, { id: 'rect', icon: '⬜' }, { id: 'triangle', icon: '🔺' } ].map(tool => (
                       <button 
@@ -1517,21 +1401,18 @@ const presetColors = [
               </div>
             )}
 
-          </div> {/* NEW: Restored missing canvas-wrapper closing tag */}
-        </div> {/* NEW: Restored missing center-canvas closing tag */}
+          </div> 
+        </div> 
 
-       {/* Chat Box */}
         <div className="sidebar-right">
           {isSocketReady && (
             <ChatBox socket={socketRef.current} playerInfo={playerInfo} isMyTurn={isMyTurn} />
           )}
         </div>
 
-        {/* NEW: Turn Summary Overlay */}
         {turnSummary && !winner && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            /* FIX: Boosted zIndex to 999 so it fully covers the mobile canvas! */
             backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 999, 
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
           }}>
@@ -1554,11 +1435,9 @@ const presetColors = [
           </div>
         )}
 
-        {/* NEW: Word Choosing Phase Overlay */}
         {isChoosing && !turnSummary && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            /* FIX: Boosted zIndex to 999 here as well to protect it from mobile canvas overlap! */
             backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 999,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
           }}>
@@ -1571,7 +1450,6 @@ const presetColors = [
                     <button 
                       key={w}
                       onClick={() => {
-                        // NEW: Play the selection sound!
                         const clone = selectSound.current.cloneNode()
                         clone.volume = 0.6
                         clone.play().catch(e => console.log(e))
@@ -1594,7 +1472,7 @@ const presetColors = [
             )}
           </div>
         )}
-        {/* NEW: Player List & Vote Kick Modal */}
+
         {showPlayerModal && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1603,7 +1481,6 @@ const presetColors = [
           }}>
             <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-main)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}>
               
-              {/* UPDATED: Title Header (Theme Toggle moved to scoreboard) */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '15px', marginBottom: '15px', transition: 'border-color 0.3s ease' }}>
                 <h2 style={{ color: '#bb86fc', margin: 0 }}>Lobby Players</h2>
               </div>
@@ -1631,7 +1508,6 @@ const presetColors = [
                         </button>
                       )}
                     </div>
-                    {/* NEW: Explicitly explain the buff in the pop-up menu! */}
                     {isUnderdog && (
                       <div style={{ marginTop: '10px', fontSize: '12px', color: '#ff9800', background: 'rgba(255, 152, 0, 0.15)', padding: '10px', borderRadius: '8px', border: '1px dashed #ff9800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                          <span style={{ fontSize: '20px' }}>🔥</span> 
@@ -1642,7 +1518,6 @@ const presetColors = [
                 )})}
               </ul>
               
-              {/* FIX 1: Restored the missing Close Button and closing tags for the modal! */}
               <button 
                 onClick={() => setShowPlayerModal(false)} 
                 style={{ width: '100%', padding: '12px', background: 'var(--border-main)', color: 'var(--text-main)', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold', transition: 'all 0.3s ease' }}
@@ -1652,7 +1527,7 @@ const presetColors = [
             </div>
           </div>
         )}
-        {/* --- NEW: In-Game Settings Modal --- */}
+
         {showSettingsModal && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1663,7 +1538,6 @@ const presetColors = [
               
               <h2 style={{ color: '#bb86fc', margin: '0 0 20px 0', textAlign: 'center', borderBottom: '1px solid var(--border-main)', paddingBottom: '10px' }}>⚙️ Game Settings</h2>
               
-              {/* Theme Toggle moved here! */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', padding: '10px', background: 'var(--bg-player)', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
                 <strong style={{ color: 'var(--text-main)' }}>Theme</strong>
                 <button 
@@ -1674,7 +1548,6 @@ const presetColors = [
                 </button>
               </div>
 
-              {/* Read-Only Stats */}
               <div style={{ padding: '12px', background: 'var(--bg-player)', borderRadius: '8px', marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '10px', color: 'var(--text-main)', border: '1px solid var(--border-main)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Room Type:</strong> <span>{isPrivate ? 'Private' : 'Public'}</span></div>
                 {isPrivate && <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Password:</strong> <span>{roomPassword || 'None'}</span></div>}
@@ -1684,11 +1557,9 @@ const presetColors = [
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Hint Level:</strong> <span>{hintLevel == 1 ? 'Low' : hintLevel == 2 ? 'Normal' : hintLevel == 3 ? 'High' : 'Max'}</span></div>
               </div>
 
-              {/* Host Controls */}
               {isHost && isPrivate && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
                   
-                  {/* Transfer Host */}
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <select 
                       value={transferTarget} 
@@ -1713,7 +1584,6 @@ const presetColors = [
                     </button>
                   </div>
 
-                  {/* Restart Lobby Button */}
                   <button 
                     onClick={() => {
                       if (window.confirm("This will end the current game and return everyone to the waiting lobby canvas to change settings. Are you sure?")) {
@@ -1738,8 +1608,6 @@ const presetColors = [
           </div>
         )}
 
-        {/* --- NEW: Advanced Statistical Game Over Screen --- */}
-        {/* FIX 2: Added Array.isArray(winner) to stop the app from crashing if Render hasn't updated your backend yet! */}
         {winner && Array.isArray(winner) && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1747,7 +1615,6 @@ const presetColors = [
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             backdropFilter: 'blur(10px)', padding: '20px', overflowY: 'auto'
           }}>
-            {/* Embedded animation keyframes so the UI builds up cinematically */}
             <style>{`
               @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
               @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
@@ -1762,10 +1629,8 @@ const presetColors = [
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%', maxWidth: '800px' }}>
               
-              {/* TOP 3 PODIUM */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '10px', height: '180px', marginTop: '10px' }}>
                 
-                {/* Silver - 2nd Place */}
                 {winner[1] && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%', animation: 'slideUp 0.6s ease forwards', opacity: 0, animationDelay: '0.2s' }}>
                     <div style={{ fontSize: '20px', marginBottom: '5px', color: '#C0C0C0', fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{winner[1].name}</div>
@@ -1774,7 +1639,6 @@ const presetColors = [
                   </div>
                 )}
                 
-                {/* Gold - 1st Place */}
                 {winner[0] && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '35%', animation: 'slideUp 0.6s ease forwards', zIndex: 10 }}>
                     <div style={{ fontSize: '24px', marginBottom: '5px', color: '#FFD54F', fontWeight: '900', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textShadow: '0 0 10px rgba(255,215,0,0.4)' }}>{winner[0].name}</div>
@@ -1783,7 +1647,6 @@ const presetColors = [
                   </div>
                 )}
                 
-                {/* Bronze - 3rd Place */}
                 {winner[2] && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%', animation: 'slideUp 0.6s ease forwards', opacity: 0, animationDelay: '0.4s' }}>
                     <div style={{ fontSize: '20px', marginBottom: '5px', color: '#CD7F32', fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{winner[2].name}</div>
@@ -1793,7 +1656,6 @@ const presetColors = [
                 )}
               </div>
 
-              {/* STATISTICAL BAR CHARTS */}
               <div style={{ background: 'var(--bg-panel)', padding: '20px 25px', borderRadius: '16px', border: '1px solid #333', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', animation: 'scaleIn 0.5s ease-out forwards', opacity: 0, animationDelay: '0.6s' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#fff', fontSize: '16px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Performance Data</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '220px', overflowY: 'auto', paddingRight: '10px' }}>
@@ -1815,7 +1677,6 @@ const presetColors = [
                 </div>
               </div>
 
-              {/* ACTION BUTTONS */}
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', animation: 'scaleIn 0.5s ease-out forwards', opacity: 0, animationDelay: '1s' }}>
                 {(!isPrivate || isHost) ? (
                   <button 
