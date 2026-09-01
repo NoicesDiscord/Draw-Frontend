@@ -5,6 +5,9 @@ import ChatBox from './ChatBox'
 export default function GameRoom({ playerInfo, onJoinError }) {
   const canvasRef = useRef(null)
   const contextRef = useRef(null)
+  const previewCanvasRef = useRef(null)  // NEW: Overlay canvas for cheap shape previews
+  const previewContextRef = useRef(null) 
+  const pointBuffer = useRef([])         // NEW: Memory buffer for drawing packets
   const socketRef = useRef(null)
   
   const [isDrawing, setIsDrawing] = useState(false)
@@ -278,6 +281,16 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     canvas.height = 600
     const context = canvas.getContext('2d', { willReadFrequently: true })
     
+    // NEW: Setup preview canvas
+    const previewCanvas = previewCanvasRef.current
+    if (previewCanvas) {
+      previewCanvas.width = 800
+      previewCanvas.height = 600
+      const previewContext = previewCanvas.getContext('2d')
+      previewContext.lineCap = 'round'
+      previewContextRef.current = previewContext
+    }
+    
     const clearCanvas = () => {
       context.fillStyle = 'white'
       context.fillRect(0, 0, canvas.width, canvas.height)
@@ -528,6 +541,19 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       contextRef.current.stroke()
     })
     
+    // NEW: Unpack and draw a batched array of lines instantly
+    socketRef.current.on('draw_packet', (data) => {
+      if (!data.points || data.points.length === 0) return;
+      contextRef.current.strokeStyle = data.color || '#000000'
+      contextRef.current.lineWidth = data.size || 5
+      contextRef.current.beginPath()
+      contextRef.current.moveTo(data.points[0].x, data.points[0].y)
+      for (let i = 1; i < data.points.length; i++) {
+        contextRef.current.lineTo(data.points[i].x, data.points[i].y)
+      }
+      contextRef.current.stroke()
+    })
+    
     socketRef.current.on('request_canvas_state', (targetId) => {
       if (canvasRef.current) {
         const now = Date.now();
@@ -580,7 +606,20 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     socketRef.current.on('waiting_for_host', () => setCorrectGuessers([]));
     socketRef.current.on('choosing_word', () => setCorrectGuessers([]));
 
+    // NEW: Send buffered points every 40ms to drastically reduce Socket.IO event overhead
+    const packetInterval = setInterval(() => {
+      if (pointBuffer.current.length > 0) {
+        emitDrawCommand('draw_packet', { 
+           points: pointBuffer.current, 
+           color: contextRef.current.strokeStyle, 
+           size: contextRef.current.lineWidth 
+        });
+        pointBuffer.current = []; // Clear buffer after sending
+      }
+    }, 40);
+
     return () => {
+      clearInterval(packetInterval); // Cleanup interval
       document.removeEventListener('visibilitychange', handleVisibility)
       socketRef.current.disconnect()
     }
@@ -597,8 +636,8 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   }
   
   const getCoordinates = (e) => {
-    const clientX = e.touches ? e.touches[0].clientX : e.nativeEvent.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.nativeEvent.clientY
+    const clientX = e.clientX;
+    const clientY = e.clientY;
     
     const rect = canvasRef.current.getBoundingClientRect()
     const scaleX = canvasRef.current.width / rect.width
@@ -665,9 +704,12 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
   const startDrawing = (e) => {
     if (!isMyTurn) return;
-    if (e.touches && e.cancelable) e.preventDefault();
+    e.preventDefault(); 
+    e.currentTarget.setPointerCapture(e.pointerId); // Keep drawing even if cursor leaves the canvas element
     
     const { x, y } = getCoordinates(e);
+    
+    pointBuffer.current = [{x, y}]; // Seed the buffer
 
     if (activeTool === 'bucket') {
       applyFill(contextRef.current, canvasRef.current, x, y, brushColor);
@@ -677,7 +719,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
       shapeStartRef.current = { sx: x, sy: y, ex: x, ey: y };
-      savedImageRef.current = contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+      // REMOVED getImageData to save CPU!
       setIsDrawing(true);
       return;
     }
@@ -732,9 +774,9 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
   const draw = (e) => {
     if (!isDrawing || !isMyTurn) return;
-    if (e.touches && e.cancelable) e.preventDefault();
+    e.preventDefault();
 
-    if (!e.touches && e.buttons !== 1) {
+    if (e.buttons !== 1 && e.pointerType === 'mouse') {
       stopDrawing();
       return;
     }
@@ -748,16 +790,18 @@ export default function GameRoom({ playerInfo, onJoinError }) {
        shapeStartRef.current.ex = x;
        shapeStartRef.current.ey = y;
        
-       contextRef.current.putImageData(savedImageRef.current, 0, 0);
-       contextRef.current.strokeStyle = brushColor;
-       contextRef.current.lineWidth = brushSize;
-       contextRef.current.beginPath();
+       // Draw the preview directly on the cheap overlay canvas
+       const pCtx = previewContextRef.current;
+       pCtx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+       pCtx.strokeStyle = brushColor;
+       pCtx.lineWidth = brushSize;
+       pCtx.beginPath();
        
        const { sx, sy } = shapeStartRef.current;
 
        if (activeTool === 'ruler') {
-          contextRef.current.moveTo(sx, sy);
-          contextRef.current.lineTo(x, y);
+          pCtx.moveTo(sx, sy);
+          pCtx.lineTo(x, y);
        } else if (activeTool === 'rect') {
           contextRef.current.rect(sx, sy, x - sx, y - sy);
        } else if (activeTool === 'circle') {
@@ -786,7 +830,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     
     const dist = Math.abs(x - lastEmitRef.current.x) + Math.abs(y - lastEmitRef.current.y);
     if (dist > 6) {
-      emitDrawCommand('draw', { x, y, color: brushColor, size: brushSize });
+      pointBuffer.current.push({ x, y }); // Push to memory buffer instead of emitting immediately!
       lastEmitRef.current = { x, y };
     }
   }
@@ -805,7 +849,16 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
        const { sx, sy, ex, ey } = shapeStartRef.current;
        
+       // Clear overlay and commit the final image to the permanent canvas
+       previewContextRef.current.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+       
+       contextRef.current.strokeStyle = brushColor;
+       contextRef.current.lineWidth = brushSize;
+       contextRef.current.beginPath();
+       
        if (activeTool === 'ruler') {
+          contextRef.current.moveTo(sx, sy);
+          contextRef.current.lineTo(ex, ey);
           emitDrawCommand('start', { x: sx, y: sy, color: brushColor, size: brushSize });
           emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
           emitDrawCommand('stop');
@@ -841,6 +894,13 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
     contextRef.current.closePath();
     setIsDrawing(false);
+    
+    // Force flush any remaining buffer points before lifting the brush
+    if (pointBuffer.current.length > 0) {
+      emitDrawCommand('draw_packet', { points: pointBuffer.current, color: brushColor, size: brushSize });
+      pointBuffer.current = [];
+    }
+    
     emitDrawCommand('stop');
     
     saveState();
@@ -1280,18 +1340,22 @@ export default function GameRoom({ playerInfo, onJoinError }) {
               </div>
             )}
             
-            <canvas
-              ref={canvasRef}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-              className="game-canvas"
-              style={{ 
-                cursor: !isMyTurn 
-                  ? 'not-allowed' 
+              <canvas
+                ref={canvasRef}
+                className="game-canvas"
+                style={{ position: 'absolute', zIndex: 1 }}
+              />
+              <canvas
+                ref={previewCanvasRef}
+                onPointerDown={startDrawing}
+                onPointerMove={draw}
+                onPointerUp={stopDrawing}
+                onPointerCancel={stopDrawing}
+                onPointerOut={stopDrawing}
+                className="game-canvas"
+                style={{ position: 'absolute', zIndex: 2, touchAction: 'none',
+                  cursor: !isMyTurn 
+                    ? 'not-allowed' 
                   : activeTool === 'bucket' 
                     ? 'crosshair' 
                     : ['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)
