@@ -1353,7 +1353,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
                 onPointerCancel={stopDrawing}
                 onPointerOut={stopDrawing}
                 className="game-canvas"
-                style={{ position: 'absolute', zIndex: 2, touchAction: 'none',
+                style={{ position: 'absolute', zIndex: 2, touchAction: 'none', backgroundColor: 'transparent',
                   cursor: !isMyTurn 
                     ? 'not-allowed' 
                   : activeTool === 'bucket' 
