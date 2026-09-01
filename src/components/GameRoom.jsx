@@ -425,18 +425,26 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       setCurrentDrawer(""); setSecretWord(""); setIsMyTurn(false); setTimeLeft(0); setWinner(null); setIsChoosing(false); clearCanvas();
     })
 
-   // --- NEW: Graceful Session Recovery (No more reloads!) ---
-    socketRef.current.on('disconnect', () => setConnectionState('reconnecting'));
-    
-    socketRef.current.on('connect', () => {
-      if (hasJoined.current) {
-        // If they already joined once, THIS is a reconnection. Resume the session!
-        socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
-      } else {
-        // This is the very first time they connect. Just mark them as joined.
-        hasJoined.current = true;
-      }
-    });
+   socketRef.current.on('disconnect', (reason) => {
+    // REPLACEMENT: Just log it. Do not reload! 
+    // Let Socket.IO's built-in manager handle the reconnection attempts.
+    console.log(`Socket disconnected due to: ${reason}`);
+});
+
+// --- NEW: Add this block directly below the disconnect listener ---
+// This triggers when Socket.IO successfully re-establishes the connection
+socketRef.current.io.on('reconnect', () => {
+    console.log('Socket reconnected! Attempting to restore session...');
+    // We send the stable sessionId you generated in App.jsx to claim our old spot
+    socketRef.current.emit('resume_session', { sessionId: playerInfo.sessionId });
+});
+
+// Handle the scenario where the player was tabbed out for longer than your 30s backend grace period
+socketRef.current.on('session_restore_failed', () => {
+    console.log('Grace period expired or session lost. Reloading to start fresh.');
+    window.location.reload(); 
+});
+// --- END NEW BLOCK ---
 
     socketRef.current.on('session_restored', () => {
       setConnectionState('restored');
@@ -468,9 +476,15 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     });
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && socketRef.current && !socketRef.current.connected) {
-        socketRef.current.connect();
-      }
+      if (
+    document.visibilityState === 'visible' &&
+    socketRef.current &&
+    !socketRef.current.connected
+) {
+    // REPLACEMENT: Force Socket.IO to attempt a reconnect instead of wiping the page
+    console.log("Page visible again, forcing socket reconnect...");
+    socketRef.current.connect(); 
+}
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
