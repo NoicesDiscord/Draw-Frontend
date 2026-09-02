@@ -14,7 +14,7 @@ class SoundManager {
       start: new Audio('/sounds/start.mp3'),
       tick: new Audio('/sounds/tick.mp3')
     };
-
+ 
     // Pre-configure volumes
     this.sounds.join.volume = 0.4;
     this.sounds.leave.volume = 0.4;
