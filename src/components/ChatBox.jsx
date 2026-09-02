@@ -1,33 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
-
-const joinSound = new Audio('/sounds/join.mp3') 
-const leaveSound = new Audio('/sounds/leave.mp3') 
-const closeSound = new Audio('/sounds/close.mp3') 
-const alertSound = new Audio('/sounds/alert.mp3') 
-const successSound = new Audio('/sounds/success.mp3') 
-const likeSound = new Audio('/sounds/like.mp3') // NEW
-const dislikeSound = new Audio('/sounds/dislike.mp3') // NEW
-
-joinSound.volume = 0.4
-leaveSound.volume = 0.4
-closeSound.volume = 0.5
-alertSound.volume = 0.6
-successSound.volume = 0.5
-likeSound.volume = 0.5 // NEW
-dislikeSound.volume = 0.5 // NEW
-
-const playSoundSafely = (audioObj) => {
-  // FIX: Reuses the single audio element and rewinds it. 
-  // Prevents iOS/Safari from crashing due to overlapping un-deleted audio nodes!
-  audioObj.currentTime = 0;
-  audioObj.play().catch(e => console.log("Audio blocked:", e))
-}
+import { soundManager } from './soundManager' // NEW: Import centralized audio manager
 
 export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [votedOn, setVotedOn] = useState({})
+  
+  const chatContainerRef = useRef(null) // NEW: Ref for the scrollable box
   const messagesEndRef = useRef(null)
+
+  // NEW: Smart scroll - only scroll if the user is already near the bottom!
+  const scrollToBottomIfNear = () => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    }
+  };
 
   useEffect(() => {
     if (!socket) return
@@ -40,15 +31,16 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
         return newMessages.length > 100 ? newMessages.slice(newMessages.length - 100) : newMessages;
       })
       
-      if (msg.isGuess) playSoundSafely(successSound);
+      // NEW: Using the clean centralized sound manager
+      if (msg.isGuess) soundManager.play('success');
       if (msg.sender === "System" && msg.text) {
-        if (msg.text.includes("joined the lobby")) playSoundSafely(joinSound);
-        else if (msg.text.includes("left the lobby")) playSoundSafely(leaveSound);
+        if (msg.text.includes("joined the lobby")) soundManager.play('join');
+        else if (msg.text.includes("left the lobby")) soundManager.play('leave');
       }
-      if (msg.type === 'votekick') playSoundSafely(alertSound);
-      if (msg.isCloseGuess) playSoundSafely(closeSound);
-      if (msg.isLike) playSoundSafely(likeSound); // NEW
-      if (msg.isDislike) playSoundSafely(dislikeSound); // NEW
+      if (msg.type === 'votekick') soundManager.play('alert');
+      if (msg.isCloseGuess) soundManager.play('close');
+      if (msg.isLike) soundManager.play('like'); 
+      if (msg.isDislike) soundManager.play('dislike'); 
     }
     
     socket.on('chat_message', handleNewMessage)
@@ -56,7 +48,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   }, [socket])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
+    scrollToBottomIfNear(); // NEW: Triggers smart scroll instead of forced scroll
   }, [messages])
 
   const handleSubmit = (e) => {
@@ -75,7 +67,7 @@ export default function ChatBox({ socket, playerInfo, isMyTurn }) {
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--border-main)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-panel)', transition: 'all 0.3s ease' }}>
       
       {/* FIX: Added overflowX hidden and wordBreak to force long words to wrap downward! */}
-      <div style={{ flexGrow: 1, height: '0px', overflowY: 'scroll', overflowX: 'hidden', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div ref={chatContainerRef} style={{ flexGrow: 1, height: '0px', overflowY: 'scroll', overflowX: 'hidden', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((msg, index) => (
           <div key={index} style={{ fontSize: '14px', lineHeight: '1.4', wordBreak: 'break-word' }}>
             

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
 import ChatBox from './ChatBox'
+import { soundManager } from './soundManager' // NEW: Bring in the sound manager!
 
 export default function GameRoom({ playerInfo, onJoinError }) {
   const canvasRef = useRef(null)
@@ -42,7 +43,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
   const [correctGuessers, setCorrectGuessers] = useState([])
   
   const [turnSummary, setTurnSummary] = useState(null) 
-  const summarySound = useRef(new Audio('/sounds/summary.mp3')) 
+   
   
   const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false) 
   
@@ -112,11 +113,6 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     }
   }
 
-  const dingSound = useRef(new Audio('/sounds/success.mp3'))
-  const winSound = useRef(new Audio('/sounds/win.mp3'))
-  const selectSound = useRef(new Audio('/sounds/select.mp3'))
-  const startSound = useRef(new Audio('/sounds/start.mp3'))
-  const tickSound = useRef(new Audio('/sounds/tick.mp3'))
   const lastTickRef = useRef(null) 
 
   // --- NEW: Timer Tick Effect (Last 10 Seconds) ---
@@ -127,14 +123,12 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     if (timeLeft <= 10 && timeLeft > 1 && currentDrawer && !winner && !turnSummary && !isChoosing && !everyoneGuessed) {
       if (lastTickRef.current !== timeLeft) {
         lastTickRef.current = timeLeft;
-        tickSound.current.pause();
-        tickSound.current.currentTime = 0;
-        tickSound.current.volume = 0.5;
-        tickSound.current.play().catch(err => console.log("Audio blocked:", err));
+        soundManager.stop('tick'); // Rewind safely
+        soundManager.play('tick');
       }
     } else if (timeLeft > 10 || isChoosing || turnSummary || everyoneGuessed || timeLeft <= 1) {
       lastTickRef.current = null;
-      tickSound.current.pause();
+      soundManager.stop('tick');
     }
   }, [timeLeft, currentDrawer, winner, turnSummary, isChoosing, correctGuessers.length, playerList.length])
 
@@ -350,9 +344,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     })
     
     socketRef.current.on('game_started', () => {
-      const clone = startSound.current.cloneNode()
-      clone.volume = 0.6
-      clone.play().catch(e => console.log("Audio blocked:", e))
+      soundManager.play('start');
     })
 
     socketRef.current.on('update_players', (playersArray) => {
@@ -391,9 +383,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       setHasVotedThisTurn(false) 
 
       if (data.drawerName !== playerInfo.playerName) {
-        const clone = selectSound.current.cloneNode()
-        clone.volume = 0.6
-        clone.play().catch(err => console.log("Audio blocked:", err))
+        soundManager.play('select');
       }
     })
 
@@ -415,17 +405,12 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       setWinner(winnerName)
       setTurnSummary(null) 
       setIsChoosing(false) 
-      
-      winSound.current.volume = 0.7
-      winSound.current.currentTime = 0
-      winSound.current.play().catch(err => console.log("Audio blocked:", err))
+      soundManager.play('win');
     })
     
     socketRef.current.on('turn_summary', (data) => {
       setTurnSummary(data)
-      const clone = summarySound.current.cloneNode()
-      clone.volume = 0.6
-      clone.play().catch(err => console.log("Audio blocked:", err))
+      soundManager.play('summary');
     })
 
     socketRef.current.on('choosing_word', (data) => {
@@ -479,8 +464,12 @@ export default function GameRoom({ playerInfo, onJoinError }) {
         // We were playing, tabbed out for > 30s, and the backend deleted us.
         console.log('Grace period expired. Wiping session and returning to menu.');
         setConnectionState('lost');
-        sessionStorage.removeItem('dn_playerInfo'); // Clear memory so we restart at the main menu
-        setTimeout(() => window.location.reload(), 2000);
+        sessionStorage.removeItem('dn_playerInfo'); 
+        
+        // NEW: Safely kick the user back to the menu without forcing a destructive page reload!
+        if (onJoinError) {
+          setTimeout(() => onJoinError("Connection lost permanently. Please rejoin the lobby."), 1000);
+        }
       }
     });
 
@@ -601,9 +590,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     socketRef.current.on('redo', () => handleRedo())
 
     socketRef.current.on('correct_guess', () => {
-      dingSound.current.volume = 0.6
-      dingSound.current.currentTime = 0
-      dingSound.current.play().catch(err => console.log("Audio blocked:", err))
+      soundManager.play('success');
     })    
 
     socketRef.current.on('chat_message', (data) => {
@@ -926,9 +913,10 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
   return (
     <>
+      {/* NEW: Polished, subtle, non-blocking connection banner! */}
       {connectionState !== 'connected' && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10000, color: '#fff', backgroundColor: connectionState === 'reconnecting' ? '#f57c00' : connectionState === 'restored' ? '#4caf50' : '#d32f2f', transition: 'background-color 0.3s' }}>
-          {connectionState === 'reconnecting' ? '🟡 Reconnecting...' : connectionState === 'restored' ? '🟢 Back in the game' : '🔴 Connection lost — restoring game...'}
+        <div style={{ position: 'fixed', top: '15px', left: '50%', transform: 'translateX(-50%)', padding: '8px 18px', borderRadius: '24px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10000, color: '#fff', backgroundColor: connectionState === 'reconnecting' ? 'rgba(245, 124, 0, 0.9)' : connectionState === 'restored' ? 'rgba(76, 175, 80, 0.9)' : 'rgba(211, 47, 47, 0.9)', backdropFilter: 'blur(6px)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', transition: 'all 0.3s' }}>
+          {connectionState === 'reconnecting' ? '🟡 Reconnecting...' : connectionState === 'restored' ? '✓ Back in the game' : '🔴 Connection lost — restoring game...'}
         </div>
       )}
       <style>{`
@@ -1544,10 +1532,7 @@ export default function GameRoom({ playerInfo, onJoinError }) {
                     <button 
                       key={w}
                       onClick={() => {
-                        const clone = selectSound.current.cloneNode()
-                        clone.volume = 0.6
-                        clone.play().catch(e => console.log(e))
-                        
+                        soundManager.play('select');
                         socketRef.current.emit('word_chosen', w)
                         setIsChoosing(false)
                       }}
