@@ -46,4 +46,4 @@ class SoundManager {
   }
 }
 
-export const soundManager = new SoundManager();
+export const soundManager = new SoundManager(); 
