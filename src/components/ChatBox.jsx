@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { soundManager } from './soundManager' // NEW: Import centralized audio manager
-
+import { soundManager } from '../audio/soundManager'
 export default function ChatBox({ socket, playerInfo, isMyTurn }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')

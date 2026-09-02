@@ -1,5 +1,4 @@
-import { soundManager } from './soundManager'; // NEW: Add the missing import!
-
+import { soundManager } from '../audio/soundManager'
 export default function GameModals({
   turnSummary, winner, isChoosing, isMyTurn, timeLeft, wordChoices, currentDrawer, socketRef,
   showPlayerModal, setShowPlayerModal, playerList, playerInfo, underdogs,
