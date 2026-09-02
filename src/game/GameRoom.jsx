@@ -65,32 +65,27 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     else document.body.classList.remove('light-mode')
   }, [isLightMode])
 
-  // Viewport Height Fixer (Mobile browsers)
-  const restingViewportHeightRef = useRef(window.visualViewport ? window.visualViewport.height : window.innerHeight)
+  // Improved Viewport Logic (Simpler, allows CSS Flex to handle layout)
   useEffect(() => {
-    const vv = window.visualViewport
+    const vv = window.visualViewport;
     const applyHeights = () => {
-      const liveHeight = vv ? vv.height : window.innerHeight
-      if (liveHeight > restingViewportHeightRef.current) restingViewportHeightRef.current = liveHeight
-      let canvasHeight = Math.floor(restingViewportHeightRef.current * 0.42)
-      if (liveHeight < canvasHeight + 120) canvasHeight = Math.max(100, liveHeight - 120) 
-      const chatHeight = Math.max(60, liveHeight - canvasHeight)
-      const root = document.documentElement.style
-      root.setProperty('--app-height', `${liveHeight}px`)
-      root.setProperty('--canvas-h', `${canvasHeight}px`)
-      root.setProperty('--chat-h', `${chatHeight}px`)
+      const liveHeight = vv ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${liveHeight}px`);
     }
-    applyHeights()
-    const handleOrientation = () => { restingViewportHeightRef.current = vv ? vv.height : window.innerHeight; applyHeights() }
+    applyHeights();
     if (vv) { vv.addEventListener('resize', applyHeights); vv.addEventListener('scroll', applyHeights) } 
     else { window.addEventListener('resize', applyHeights) }
-    window.addEventListener('orientationchange', handleOrientation)
+    window.addEventListener('orientationchange', applyHeights);
     return () => {
       if (vv) { vv.removeEventListener('resize', applyHeights); vv.removeEventListener('scroll', applyHeights) } 
       else { window.removeEventListener('resize', applyHeights) }
-      window.removeEventListener('orientationchange', handleOrientation)
-    }
-  }, [])
+
+
+      window.removeEventListener('orientationchange', applyHeights);
+      }
+    }, []);
+
+    
 
   // Block Back Swipe
   useEffect(() => {
@@ -117,12 +112,13 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    canvas.width = 800; canvas.height = 600
+    // Use high resolution for crisp lines, CSS will handle responsive sizing
+    canvas.width = 1200; canvas.height = 900
     const context = canvas.getContext('2d', { willReadFrequently: true })
     
     const previewCanvas = previewCanvasRef.current
     if (previewCanvas) {
-      previewCanvas.width = 800; previewCanvas.height = 600
+      previewCanvas.width = 1200; previewCanvas.height = 900
       const previewContext = previewCanvas.getContext('2d')
       previewContext.lineCap = 'round'
       previewContextRef.current = previewContext

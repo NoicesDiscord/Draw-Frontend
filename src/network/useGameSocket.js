@@ -151,22 +151,36 @@ export function useGameSocket(deps) {
           
           if (data.drawingHistory && data.drawingHistory.length > 0 && contextRef.current) {
             const ctx = contextRef.current;
+            // Helper needed here too
+            const getHistCoords = (normX, normY) => {
+              if (!canvasRef.current) return {x:0, y:0};
+              return { x: normX * canvasRef.current.width, y: normY * canvasRef.current.height };
+            };
+
             data.drawingHistory.forEach(action => {
               if (action.type === 'start') {
+                const pt = getHistCoords(action.x, action.y);
                 ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
-                ctx.beginPath(); ctx.moveTo(action.x, action.y); ctx.lineTo(action.x, action.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
               } else if (action.type === 'draw') {
+                const pt = getHistCoords(action.x, action.y);
                 ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
-                ctx.lineTo(action.x, action.y); ctx.stroke();
+                ctx.lineTo(pt.x, pt.y); ctx.stroke();
               } else if (action.type === 'draw_packet' && action.points.length > 0) {
                 ctx.strokeStyle = action.color; ctx.lineWidth = action.size;
-                ctx.beginPath(); ctx.moveTo(action.points[0].x, action.points[0].y);
-                for (let i = 1; i < action.points.length; i++) ctx.lineTo(action.points[i].x, action.points[i].y);
+                ctx.beginPath(); 
+                const first = getHistCoords(action.points[0].x, action.points[0].y);
+                ctx.moveTo(first.x, first.y);
+                for (let i = 1; i < action.points.length; i++) {
+                    const pt = getHistCoords(action.points[i].x, action.points[i].y);
+                    ctx.lineTo(pt.x, pt.y);
+                }
                 ctx.stroke();
               } else if (action.type === 'stop') {
                 ctx.closePath(); saveState(); redoStack.current = [];
               } else if (action.type === 'fill') {
-                applyFill(ctx, canvasRef.current, action.x, action.y, action.color);
+                const pt = getHistCoords(action.x, action.y);
+                applyFill(ctx, canvasRef.current, pt.x, pt.y, action.color);
               } else if (action.type === 'undo') handleUndo();
               else if (action.type === 'redo') handleRedo();
             });
@@ -190,22 +204,58 @@ export function useGameSocket(deps) {
       if (endsAtRef.current > 0) setTimeLeft(Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000)));
     }, 1000);
 
+    // Helper to convert normalized coordinates back to actual canvas pixels
+    const getActualCoords = (normX, normY) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return { x: 0, y: 0 };
+      return {
+        x: normX * canvas.width,
+        y: normY * canvas.height
+      };
+    };
+
     socketRef.current.on('start', (data) => {
-      contextRef.current.strokeStyle = data.color || '#000000'; contextRef.current.lineWidth = data.size || 5;
-      contextRef.current.beginPath(); contextRef.current.moveTo(data.x, data.y); contextRef.current.lineTo(data.x, data.y); contextRef.current.stroke();
+      if (!contextRef.current) return;
+      const { x, y } = getActualCoords(data.x, data.y);
+      contextRef.current.strokeStyle = data.color || '#000000'; 
+      contextRef.current.lineWidth = data.size || 5;
+      contextRef.current.beginPath(); 
+      contextRef.current.moveTo(x, y); 
+      contextRef.current.lineTo(x, y); 
+      contextRef.current.stroke();
     });
     
     socketRef.current.on('draw', (data) => {
-      contextRef.current.strokeStyle = data.color || '#000000'; contextRef.current.lineWidth = data.size || 5;
-      contextRef.current.lineTo(data.x, data.y); contextRef.current.stroke();
+      if (!contextRef.current) return;
+      const { x, y } = getActualCoords(data.x, data.y);
+      contextRef.current.strokeStyle = data.color || '#000000'; 
+      contextRef.current.lineWidth = data.size || 5;
+      contextRef.current.lineTo(x, y); 
+      contextRef.current.stroke();
     });
     
     socketRef.current.on('draw_packet', (data) => {
-      if (!data.points || data.points.length === 0) return;
-      contextRef.current.strokeStyle = data.color || '#000000'; contextRef.current.lineWidth = data.size || 5;
-      contextRef.current.beginPath(); contextRef.current.moveTo(data.points[0].x, data.points[0].y);
-      for (let i = 1; i < data.points.length; i++) contextRef.current.lineTo(data.points[i].x, data.points[i].y);
+      if (!data.points || data.points.length === 0 || !contextRef.current) return;
+      contextRef.current.strokeStyle = data.color || '#000000'; 
+      contextRef.current.lineWidth = data.size || 5;
+      contextRef.current.beginPath(); 
+      
+      // Interpolate points for smooth rendering on the receiver end
+      const firstPt = getActualCoords(data.points[0].x, data.points[0].y);
+      contextRef.current.moveTo(firstPt.x, firstPt.y);
+      
+      // Draw smooth lines between all points in the batch
+      for (let i = 1; i < data.points.length; i++) {
+         const pt = getActualCoords(data.points[i].x, data.points[i].y);
+         contextRef.current.lineTo(pt.x, pt.y);
+      }
       contextRef.current.stroke();
+    });
+    
+    // Also update fill coordinates
+    socketRef.current.on('fill', (data) => {
+       const { x, y } = getActualCoords(data.x, data.y);
+       applyFill(contextRef.current, canvasRef.current, x, y, data.color);
     });
     
     socketRef.current.on('stop', () => {

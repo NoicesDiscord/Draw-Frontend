@@ -22,11 +22,21 @@ export default function DrawingCanvas({
     const clientX = e.clientX;
     const clientY = e.clientY;
     const rect = canvasRef.current.getBoundingClientRect();
+    
+    // We calculate ACTUAL pixel coordinates for local drawing
     const scaleX = canvasRef.current.width / rect.width;
     const scaleY = canvasRef.current.height / rect.height;
+    
+    const actualX = (clientX - rect.left) * scaleX;
+    const actualY = (clientY - rect.top) * scaleY;
+
+    // We also calculate NORMALIZED coordinates (0.0 to 1.0) for network sending
+    const normX = actualX / canvasRef.current.width;
+    const normY = actualY / canvasRef.current.height;
+
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
+      actual: { x: actualX, y: actualY },
+      norm: { x: normX, y: normY }
     };
   };
 
@@ -35,12 +45,12 @@ export default function DrawingCanvas({
     e.preventDefault(); 
     e.currentTarget.setPointerCapture(e.pointerId); 
     
-    const { x, y } = getCoordinates(e);
-    pointBuffer.current = [{x, y}]; 
+    const { actual: { x, y }, norm } = getCoordinates(e);
+    pointBuffer.current = [norm]; // Send normalized points to network
 
     if (activeTool === 'bucket') {
       applyFill(contextRef.current, canvasRef.current, x, y, brushColor);
-      emitDrawCommand('fill', { x, y, color: brushColor });
+      emitDrawCommand('fill', { x: norm.x, y: norm.y, color: brushColor });
       return;
     }
 
@@ -74,7 +84,9 @@ export default function DrawingCanvas({
            contextRef.current.fillRect(dotX, dotY, 4, 4);
            
            if (i < 2) {
-             emitDrawCommand('start', { x: dotX, y: dotY, color: dotColor, size: 4 });
+             const normDotX = dotX / canvasRef.current.width;
+             const normDotY = dotY / canvasRef.current.height;
+             emitDrawCommand('start', { x: normDotX, y: normDotY, color: dotColor, size: 4 });
            }
         }
       };
@@ -95,7 +107,7 @@ export default function DrawingCanvas({
     
     setIsDrawing(true);
     lastEmitRef.current = { x, y }; 
-    emitDrawCommand('start', { x, y, color: brushColor, size: brushSize });
+    emitDrawCommand('start', { x: norm.x, y: norm.y, color: brushColor, size: brushSize });
   };
 
   const draw = (e) => {
@@ -107,7 +119,7 @@ export default function DrawingCanvas({
       return;
     }
 
-    const { x, y } = getCoordinates(e);
+    const { actual: { x, y }, norm } = getCoordinates(e);
 
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
        const dist = Math.abs(x - shapeStartRef.current.ex) + Math.abs(y - shapeStartRef.current.ey);
@@ -155,7 +167,7 @@ export default function DrawingCanvas({
     
     const dist = Math.abs(x - lastEmitRef.current.x) + Math.abs(y - lastEmitRef.current.y);
     if (dist > 6) {
-      pointBuffer.current.push({ x, y }); 
+      pointBuffer.current.push(norm); // Buffer normalized points
       lastEmitRef.current = { x, y };
     }
   };
@@ -173,6 +185,11 @@ export default function DrawingCanvas({
 
     if (['ruler', 'circle', 'rect', 'triangle'].includes(activeTool)) {
        const { sx, sy, ex, ey } = shapeStartRef.current;
+       const w = canvasRef.current.width;
+       const h = canvasRef.current.height;
+       
+       // Normalized start and end points
+       const n_sx = sx/w, n_sy = sy/h, n_ex = ex/w, n_ey = ey/h;
        
        previewContextRef.current.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
        
@@ -183,33 +200,49 @@ export default function DrawingCanvas({
        if (activeTool === 'ruler') {
           contextRef.current.moveTo(sx, sy);
           contextRef.current.lineTo(ex, ey);
-          emitDrawCommand('start', { x: sx, y: sy, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
+          emitDrawCommand('start', { x: n_sx, y: n_sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_ex, y: n_ey, color: brushColor, size: brushSize });
           emitDrawCommand('stop');
        } else if (activeTool === 'rect') {
-          emitDrawCommand('start', { x: sx, y: sy, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: ex, y: sy, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: sx, y: sy, color: brushColor, size: brushSize });
+          contextRef.current.rect(sx, sy, ex - sx, ey - sy);
+          emitDrawCommand('start', { x: n_sx, y: n_sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_ex, y: n_sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_ex, y: n_ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_sx, y: n_ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_sx, y: n_sy, color: brushColor, size: brushSize });
           emitDrawCommand('stop');
        } else if (activeTool === 'triangle') {
           const midX = sx + (ex - sx) / 2;
-          emitDrawCommand('start', { x: midX, y: sy, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: ex, y: ey, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: sx, y: ey, color: brushColor, size: brushSize });
-          emitDrawCommand('draw', { x: midX, y: sy, color: brushColor, size: brushSize });
+          const n_midX = midX/w;
+          
+          contextRef.current.moveTo(midX, sy);
+          contextRef.current.lineTo(ex, ey);
+          contextRef.current.lineTo(sx, ey);
+          contextRef.current.closePath();
+          
+          emitDrawCommand('start', { x: n_midX, y: n_sy, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_ex, y: n_ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_sx, y: n_ey, color: brushColor, size: brushSize });
+          emitDrawCommand('draw', { x: n_midX, y: n_sy, color: brushColor, size: brushSize });
           emitDrawCommand('stop');
        } else if (activeTool === 'circle') {
           const radius = Math.sqrt(Math.pow(ex - sx, 2) + Math.pow(ey - sy, 2));
+          contextRef.current.arc(sx, sy, radius, 0, 2 * Math.PI);
+          
           const segments = 40; 
-          emitDrawCommand('start', { x: sx + radius, y: sy, color: brushColor, size: brushSize });
+          emitDrawCommand('start', { x: (sx + radius)/w, y: n_sy, color: brushColor, size: brushSize });
           for (let i = 1; i <= segments; i++) {
              const angle = (i * 2 * Math.PI) / segments;
-             emitDrawCommand('draw', { x: sx + Math.cos(angle) * radius, y: sy + Math.sin(angle) * radius, color: brushColor, size: brushSize });
+             emitDrawCommand('draw', { 
+                 x: (sx + Math.cos(angle) * radius)/w, 
+                 y: (sy + Math.sin(angle) * radius)/h, 
+                 color: brushColor, size: brushSize 
+             });
           }
           emitDrawCommand('stop');
        }
+       
+       contextRef.current.stroke();
        setIsDrawing(false);
        saveState();
        redoStack.current = [];
