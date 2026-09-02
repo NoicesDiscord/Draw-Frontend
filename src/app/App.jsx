@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import GameRoom from './components/GameRoom'
-import './styles/lobby.css' // NEW: Import extracted lobby styles
+import GameRoom from '../game/GameRoom'
+import '../styles/lobby.css' 
 
 export default function App() {
   const [name, setName] = useState('')
