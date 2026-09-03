@@ -51,7 +51,7 @@ body {
 /* NEW RESPONSIVE DESKTOP LAYOUT */
 .game-layout {
   display: flex;
-  height: var(--app-height);
+  height: 100vh;
   width: 100vw;
   box-sizing: border-box;
   padding: 12px;
