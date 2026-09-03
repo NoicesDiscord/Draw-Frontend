@@ -1,66 +1,62 @@
-/* PASTEL THEME & GLOBAL VARIABLES */
+/* UNIFIED PASTEL DESIGN SYSTEM */
 :root {
-  --app-height: 100vh;
-  --bg-main: #FDFBF7; /* Soft pastel cream */
+  --bg-main: #FFF9F5;
   --bg-panel: #FFFFFF;
-  --bg-player: #F4F1EA;
-  --bg-chat-form: #F4F1EA;
-  --bg-chat-disabled: #EAE6DF;
+  --bg-player: #FFF1F4;
+  --bg-chat-form: #FFF1F4;
+  --bg-chat-disabled: #F7EAEF;
   
-  --text-main: #4A4A4A;
-  --text-muted: #8E8E8E;
+  --text-main: #3B3540;
+  --text-muted: #756D78;
   
-  --border-main: #E2DDD5;
+  --border-main: rgba(59, 53, 64, 0.12);
+  --border-strong: rgba(59, 53, 64, 0.3);
   
-  /* Pastel Accents */
-  --primary: #AEC6CF;     /* Pastel Blue */
-  --secondary: #FFB7B2;   /* Pastel Pink */
-  --success: #B5EAD7;     /* Pastel Green */
-  --warning: #FFDAC1;     /* Pastel Orange */
-  --highlight: #E2F0CB;   /* Pastel Lime */
-  --purple-pastel: #C7CEEA; 
+  --primary: #B9DDF5;     /* Pastel Blue */
+  --secondary: #F7B7C9;   /* Pastel Pink */
+  --success: #BFE8D0;     /* Pastel Mint */
+  --warning: #FFD2B5;     /* Pastel Peach */
+  --highlight: #F8E7A6;   /* Pastel Yellow */
+  --purple-pastel: #CDBCF6; 
 }
 
-/* Dark Mode Overrides (Still keeping it soft/pastel inspired) */
+/* Dark Mode Overrides */
 body:not(.light-mode) {
-  --bg-main: #1E1C22;
-  --bg-panel: #2A2631;
-  --bg-player: #36313D;
-  --bg-chat-form: #36313D;
-  --bg-chat-disabled: #2A2631;
+  --bg-main: #211F28;
+  --bg-panel: #2B2833;
+  --bg-player: #342F3D;
+  --bg-chat-form: #342F3D;
+  --bg-chat-disabled: #2B2833;
   
-  --text-main: #F4F1EA;
-  --text-muted: #A39EAC;
-  --border-main: #4A4553;
+  --text-main: #F7F2FA;
+  --text-muted: #BDB5C8;
   
-  --primary: #789BCC;
-  --secondary: #D98888;
-  --success: #7ABF9F;
-  --warning: #CFA67D;
+  --border-main: rgba(247, 242, 250, 0.12);
+  --border-strong: rgba(247, 242, 250, 0.3);
+  
+  --primary: #9CC9E8;
+  --secondary: #E9A8BE;
+  --success: #A9D8BD;
+  --warning: #E9B99B;
+  --highlight: #E7D28F;
+  --purple-pastel: #BFA9E8;
 }
 
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* NEW RESPONSIVE LAYOUT (Following Roadmap) */
+/* NEW RESPONSIVE DESKTOP LAYOUT */
 .game-layout {
   display: flex;
   height: var(--app-height);
   width: 100vw;
   box-sizing: border-box;
-  padding: 10px;
-  gap: 15px;
+  padding: 12px;
+  gap: 16px;
   overflow: hidden;
-}
-
-/* Desktop View (3 Columns) */
-.sidebar-left, .sidebar-right {
-  width: 250px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .center-canvas {
@@ -69,18 +65,33 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 0; /* allows flex shrinking */
+  min-width: 0; 
+}
+
+.sidebar-right {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.player-list-container {
+  flex: 0 0 35%; /* Takes up top 35% of sidebar */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .canvas-wrapper {
   position: relative;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   aspect-ratio: 4 / 3;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-  border: 4px solid var(--border-main);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  border: 2px solid var(--border-main);
   display: flex;
   flex-direction: column;
 }
@@ -88,15 +99,14 @@ body {
 .game-canvas {
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-  /* Very important: prevents default touch actions like pull-to-refresh on mobile */
+  border-radius: 10px;
   touch-action: none; 
 }
 
 .game-clock {
   position: absolute;
-  top: -20px;
-  left: -20px;
+  top: -15px;
+  left: -15px;
   width: 60px;
   height: 60px;
   background: var(--secondary);
@@ -106,10 +116,10 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 24px;
-  color: white;
+  font-size: 22px;
+  color: var(--text-main);
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .floating-status {
@@ -118,104 +128,113 @@ body {
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-panel);
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 8px 24px;
+  border-radius: 24px;
   font-weight: bold;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border: 1px solid var(--border-main);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   white-space: nowrap;
 }
 
-/* Toolbar styling */
+/* UNIFIED TOOLBAR */
 .toolbar {
   position: absolute;
   bottom: -65px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  gap: 12px;
   background: var(--bg-panel);
-  padding: 10px 15px;
+  padding: 8px 12px;
   border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  border: 2px solid var(--border-main);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: 1px solid var(--border-main);
   z-index: 100;
+  align-items: center;
 }
 
-.desktop-only { display: flex; gap: 8px; align-items: center; }
+.toolbar-group { display: flex; gap: 6px; align-items: center; }
+.desktop-only { display: flex; }
 .mobile-only { display: none; }
-.toolbar-divider { width: 2px; background: var(--border-main); margin: 0 4px; }
+.toolbar-divider { width: 1px; height: 30px; background: var(--border-main); margin: 0 4px; }
 
-/* MOBILE VIEW OVERRIDES */
-@media (max-width: 800px) {
-  .game-layout {
-    flex-direction: column;
-    padding: 5px;
-    gap: 5px;
-  }
-  
-  .sidebar-left {
-    display: none; /* Hide player list on mobile game view to save space */
-  }
-  
-  .center-canvas {
-    flex-grow: 0;
-    width: 100%;
-  }
-
-  .canvas-wrapper {
-    aspect-ratio: 4 / 3;
-    max-width: 100%;
-    border-width: 2px;
-  }
-  
-  .sidebar-right {
-    width: 100%;
-    flex-grow: 1;
-    height: 0; /* forces flex-grow to take over */
-  }
-  
-  .toolbar {
-    position: relative;
-    bottom: 0;
-    left: 0;
-    transform: none;
-    width: 100%;
-    margin-top: 5px;
-    padding: 8px;
-    border-radius: 8px;
-  }
-  
-  .desktop-only { display: none; }
-  .mobile-only { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-  
-  .game-clock {
-    width: 45px;
-    height: 45px;
-    font-size: 18px;
-    top: -10px;
-    left: -10px;
-  }
+.tool-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 8px 10px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
+.tool-btn:hover { background: var(--bg-player); }
+.tool-btn.active { background: var(--primary); color: #000; border: 1px solid var(--border-strong); }
+.danger-btn:hover { background: var(--secondary); }
+
+.color-btn {
+  width: 38px; height: 38px; padding: 0; border-radius: 8px; border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+}
+.size-btn { width: 38px; height: 38px; padding: 0; border: 1px solid var(--border-main); }
 
 /* Popups */
-.color-popup, .shape-popup, .size-popup {
+.tool-popup {
   position: absolute;
-  bottom: 110%;
+  bottom: 120%;
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-panel);
-  padding: 10px;
+  padding: 12px;
   border-radius: 12px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
   border: 1px solid var(--border-main);
   z-index: 200;
 }
+.color-popup { grid-template-columns: repeat(5, 1fr); }
+.color-popup button { aspect-ratio: 1; width: 30px; border-radius: 6px; cursor: pointer; padding: 0; }
+.size-popup { grid-template-columns: repeat(3, 1fr); }
+.size-popup button { width: 40px; height: 40px; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.shape-popup { grid-template-columns: repeat(4, 1fr); }
 
-.size-popup, .shape-popup { grid-template-columns: repeat(3, 1fr); }
+/* MOBILE VIEW OVERRIDES */
 @media (max-width: 800px) {
-  .color-popup { grid-template-columns: repeat(10, 1fr); bottom: 100%; }
+  .game-layout { flex-direction: column; padding: 6px; gap: 6px; }
+  
+  .center-canvas { flex-grow: 0; width: 100%; }
+  .canvas-wrapper { aspect-ratio: 4 / 3; max-width: 100%; border-width: 1px; border-radius: 8px;}
+  
+  .sidebar-right { width: 100%; flex-grow: 1; height: 0; flex-direction: column; gap: 6px; }
+  .player-list-container { display: none; /* Hidden during active mobile gameplay to save space */ }
+  
+  .toolbar {
+    position: relative; bottom: 0; left: 0; transform: none; width: 100%;
+    margin-top: 2px; padding: 6px; border-radius: 10px; gap: 4px; justify-content: space-between;
+  }
+  
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex; }
+  
+  .tool-btn { font-size: 16px; padding: 6px; }
+  .color-btn, .size-btn { width: 32px; height: 32px; }
+  
+  .game-clock { width: 45px; height: 45px; font-size: 16px; top: -10px; left: -10px; border-width: 2px; }
+
+  .mobile-more-popup {
+    position: absolute; bottom: 110%; right: 0;
+    background: var(--bg-panel); padding: 12px; border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-main);
+    z-index: 300; width: 200px;
+  }
+  .more-grid { display: flex; flex-direction: column; gap: 4px; }
+  .more-grid .tool-btn { justify-content: flex-start; gap: 10px; font-size: 15px; font-weight: bold; }
+  .menu-divider { height: 1px; background: var(--border-main); margin: 4px 0; }
+  
+  .color-popup { grid-template-columns: repeat(8, 1fr); width: 280px; }
 }

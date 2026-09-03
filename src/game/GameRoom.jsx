@@ -296,12 +296,6 @@ export default function GameRoom({ playerInfo, onJoinError }) {
       
       <div className={`game-layout ${isMyTurn ? 'layout-drawer' : 'layout-guesser'}`}>
         
-        <PlayerList 
-          playerList={playerList} playerInfo={playerInfo} currentDrawer={currentDrawer} correctGuessers={correctGuessers}
-          underdogs={underdogs} currentRound={currentRound} maxRounds={maxRounds} isPrivate={isPrivate}
-          roomId={roomId} setShowPlayerModal={setShowPlayerModal} setShowSettingsModal={setShowSettingsModal}
-        />
-
         <div className="center-canvas">
           <div className="canvas-wrapper">
             <div className="game-clock">{timeLeft > 0 ? timeLeft : "0"}</div>
@@ -357,6 +351,11 @@ export default function GameRoom({ playerInfo, onJoinError }) {
         </div> 
 
         <div className="sidebar-right">
+          <PlayerList 
+            playerList={playerList} playerInfo={playerInfo} currentDrawer={currentDrawer} correctGuessers={correctGuessers}
+            underdogs={underdogs} currentRound={currentRound} maxRounds={maxRounds} isPrivate={isPrivate}
+            roomId={roomId} setShowPlayerModal={setShowPlayerModal} setShowSettingsModal={setShowSettingsModal}
+          />
           {isSocketReady && <ChatBox socket={socketRef.current} playerInfo={playerInfo} isMyTurn={isMyTurn} />}
         </div>
 

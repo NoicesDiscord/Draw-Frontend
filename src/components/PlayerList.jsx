@@ -9,7 +9,7 @@ export default function PlayerList({
   const [inviteCopied, setInviteCopied] = useState(false)
 
   return (
-    <div className="sidebar-left">
+    <div className="player-list-container">
       <div 
         onClick={() => setShowPlayerModal(true)}
         title="Click to manage lobby players"
