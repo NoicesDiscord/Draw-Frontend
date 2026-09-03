@@ -166,6 +166,7 @@ export function useGameSocket(deps) {
           setTimeLeft(data.timeRemaining);
           setWordSkeleton(data.wordSkeleton || []);
           setRevealedChars(data.revealedChars || {});
+          setCorrectGuessers(data.correctGuessers || []); // Restore green guessed UI for late joiners/reconnects!
           
           if (data.drawingHistory && data.drawingHistory.length > 0 && contextRef.current) {
             const ctx = contextRef.current;
