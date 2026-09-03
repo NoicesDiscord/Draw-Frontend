@@ -87,16 +87,13 @@ export default function GameRoom({ playerInfo, onJoinError }) {
 
     
 
-  // Block Back Swipe
+  // Block Accidental Mobile Back Swipe (Point 34: Removed annoying beforeunload alert)
   useEffect(() => {
     window.history.pushState(null, null, window.location.href)
     const handleBackSwipe = () => window.history.pushState(null, null, window.location.href)
-    const handleBeforeUnload = (e) => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('popstate', handleBackSwipe)
-    window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
       window.removeEventListener('popstate', handleBackSwipe)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
 
