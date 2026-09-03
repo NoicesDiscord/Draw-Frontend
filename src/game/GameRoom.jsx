@@ -100,54 +100,95 @@ export default function GameRoom({ playerInfo, onJoinError }) {
     }
   }, [])
 
-  // Canvas Initialization
+  // Canvas Initialization & Device Pixel Ratio (#20)
   const clearCanvas = () => {
     if (!contextRef.current || !canvasRef.current) return;
     contextRef.current.fillStyle = 'white'
     contextRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-    undoStack.current = [] 
-    redoStack.current = []
-    undoStack.current.push(contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)) 
+    undoStack.current = []; 
+    redoStack.current = [];
   }
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    // Use high resolution for crisp lines, CSS will handle responsive sizing
-    canvas.width = 1200; canvas.height = 900
-    const context = canvas.getContext('2d', { willReadFrequently: true })
+    const setupCanvas = (cvs) => {
+      if (!cvs) return null;
+      // Get logical CSS size or default to a 4:3 ratio base
+      const rect = cvs.getBoundingClientRect();
+      const baseWidth = rect.width || 800;
+      const baseHeight = rect.height || 600;
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Set actual internal bitmap size to match device pixels perfectly
+      cvs.width = baseWidth * dpr;
+      cvs.height = baseHeight * dpr;
+      
+      const ctx = cvs.getContext('2d', { willReadFrequently: true });
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      return ctx;
+    };
+
+    contextRef.current = setupCanvas(canvasRef.current);
+    previewContextRef.current = setupCanvas(previewCanvasRef.current);
     
-    const previewCanvas = previewCanvasRef.current
-    if (previewCanvas) {
-      previewCanvas.width = 1200; previewCanvas.height = 900
-      const previewContext = previewCanvas.getContext('2d')
-      previewContext.lineCap = 'round'
-      previewContextRef.current = previewContext
-    }
-    
-    context.lineCap = 'round'
-    contextRef.current = context
-    clearCanvas()
+    clearCanvas();
   }, [])
 
-  // Drawing Helpers
-  const saveState = () => {
-    if (!canvasRef.current || !contextRef.current) return
-    undoStack.current.push(contextRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height))
-    if (undoStack.current.length > 10) undoStack.current.shift() 
+  // Command-Based Drawing Helpers (#8)
+  const redrawFromHistory = () => {
+    if (!canvasRef.current || !contextRef.current) return;
+    contextRef.current.fillStyle = 'white';
+    contextRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    
+    const getActualCoords = (normX, normY) => ({
+      x: normX * canvasRef.current.width,
+      y: normY * canvasRef.current.height
+    });
+
+    const ctx = contextRef.current;
+    undoStack.current.forEach(stroke => {
+      stroke.forEach(cmd => {
+        if (cmd.event === 'start') {
+           const pt = getActualCoords(cmd.data.x, cmd.data.y);
+           ctx.strokeStyle = cmd.data.color; ctx.lineWidth = cmd.data.size;
+           ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+        } else if (cmd.event === 'draw') {
+           const pt = getActualCoords(cmd.data.x, cmd.data.y);
+           ctx.lineTo(pt.x, pt.y); ctx.stroke();
+        } else if (cmd.event === 'draw_packet') {
+           ctx.strokeStyle = cmd.data.color; ctx.lineWidth = cmd.data.size;
+           ctx.beginPath();
+           const first = getActualCoords(cmd.data.points[0].x, cmd.data.points[0].y);
+           ctx.moveTo(first.x, first.y);
+           for (let i = 1; i < cmd.data.points.length; i++) {
+               const pt = getActualCoords(cmd.data.points[i].x, cmd.data.points[i].y);
+               ctx.lineTo(pt.x, pt.y);
+           }
+           ctx.stroke();
+        } else if (cmd.event === 'fill') {
+           const pt = getActualCoords(cmd.data.x, cmd.data.y);
+           applyFill(ctx, canvasRef.current, pt.x, pt.y, cmd.data.color);
+        } else if (cmd.event === 'stop') {
+           ctx.closePath();
+        }
+      });
+    });
   }
 
+  // Deprecated image-based state save, now handled automatically by useGameSocket interceptor
+  const saveState = () => {}
+
   const handleUndo = () => {
-    if (undoStack.current.length > 1) {
-      redoStack.current.push(undoStack.current.pop())
-      contextRef.current.putImageData(undoStack.current[undoStack.current.length - 1], 0, 0)
+    if (undoStack.current.length > 0) {
+      redoStack.current.push(undoStack.current.pop());
+      redrawFromHistory();
     }
   }
 
   const handleRedo = () => {
     if (redoStack.current.length > 0) {
-      const nextState = redoStack.current.pop()
-      undoStack.current.push(nextState)
-      contextRef.current.putImageData(nextState, 0, 0)
+      undoStack.current.push(redoStack.current.pop());
+      redrawFromHistory();
     }
   }
 

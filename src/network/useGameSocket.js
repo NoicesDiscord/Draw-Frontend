@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { soundManager } from '../audio/soundManager';
 
@@ -14,7 +14,25 @@ export function useGameSocket(deps) {
     applyFill, saveState, handleUndo, handleRedo, clearCanvas
   } = deps;
 
+  const currentStroke = useRef([]);
+
   const emitDrawCommand = (event, data = null) => {
+    // Intercept commands to build a lightweight, vector-based undo/redo history (#8)
+    if (['start', 'draw', 'draw_packet', 'fill'].includes(event)) {
+        currentStroke.current.push({ event, data });
+        if (event === 'fill') { // Fill is a single-event stroke
+            undoStack.current.push([...currentStroke.current]);
+            currentStroke.current = [];
+            redoStack.current = [];
+        }
+    } else if (event === 'stop') {
+        if (currentStroke.current.length > 0) {
+            undoStack.current.push([...currentStroke.current, { event: 'stop' }]);
+            currentStroke.current = [];
+            redoStack.current = [];
+        }
+    }
+
     if (socketRef.current && socketRef.current.connected) {
       if (data) socketRef.current.emit(event, data);
       else socketRef.current.emit(event);
