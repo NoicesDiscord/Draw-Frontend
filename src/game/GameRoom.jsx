@@ -10,8 +10,45 @@ import { soundManager } from '../audio/soundManager'
 import '../styles/game.css'
 
 export default function GameRoom({ playerInfo, onJoinError }) {
+  // --- MISSING STATE VARIABLES ---
+  const [isSocketReady, setIsSocketReady] = useState(false);
+  const [roomId, setRoomId] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [maxRounds, setMaxRounds] = useState(3);
+  const [hintLevel, setHintLevel] = useState(2);
+  const [totalDrawTime, setTotalDrawTime] = useState(120);
+  const [maxPlayers, setMaxPlayers] = useState(8);
+  const [roomPassword, setRoomPassword] = useState('');
+  const [waitingForHost, setWaitingForHost] = useState(false);
+  const [currentDrawer, setCurrentDrawer] = useState('');
+  const [secretWord, setSecretWord] = useState('');
+  const [isMyTurn, setIsMyTurn] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [winner, setWinner] = useState(null);
+  const [isChoosing, setIsChoosing] = useState(false);
+  const [playerList, setPlayerList] = useState([]);
+  const [underdogs, setUnderdogs] = useState([]);
+  const [wordSkeleton, setWordSkeleton] = useState([]);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [hasVotedThisTurn, setHasVotedThisTurn] = useState(false);
+  const [turnSummary, setTurnSummary] = useState(null);
+  const [wordChoices, setWordChoices] = useState([]);
+  const [connectionState, setConnectionState] = useState('connected');
+  const [revealedChars, setRevealedChars] = useState({});
+  const [correctGuessers, setCorrectGuessers] = useState([]);
+  
+  // --- UI & TOOLBAR STATES ---
+  const [showPlayerModal, setShowPlayerModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(false);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [brushColor, setBrushColor] = useState('#000000');
+  const [brushSize, setBrushSize] = useState(4);
+  const [activeTool, setActiveTool] = useState('brush');
+
   // Network & Game Refs
-  const pointBuffer = useRef([]);        
+  const pointBuffer = useRef([]);
   const socketRef = useRef(null);
   const endsAtRef = useRef(0); 
   const offlineStrokes = useRef([]); 
